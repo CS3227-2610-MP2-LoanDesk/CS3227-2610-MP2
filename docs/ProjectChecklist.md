@@ -1,6 +1,6 @@
 # LoanDesk Project Checklist
 
-**Status date:** 14 September 2026
+**Status date:** 21 September 2026
 
 This is the end-to-end checklist for the project. Check items only when they
 are implemented and verified. Keep decisions and evidence truthful.
@@ -16,8 +16,8 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Add JavaFX/Gradle README instructions.
 - [x] Add `.gitignore` entries for build, IDE, and local data files.
 - [x] Add initial CI workflow.
-- [ ] Review foundation with the team.
-- [ ] Commit and push the foundation to `main`.
+- [x] Review foundation with the team.
+- [x] Commit and push the foundation to `main`.
 - [ ] Tag the shared baseline, for example `foundation-0.1`.
 - [ ] Protect `main` and require pull-request review.
 
@@ -52,6 +52,10 @@ are implemented and verified. Keep decisions and evidence truthful.
 
 - [x] Implement shared role selection, borrower login/sign-up, session identity,
       logout, and placeholder dashboards.
+- [x] Add borrower password sign-up/login with salted persisted hashes.
+- [ ] Add supervisor and custodian password login through their role owners.
+- [ ] Enforce an active-session gate before protected dashboards and role
+      operations, including direct service calls and logout re-entry.
 - [x] Implement first-launch JSON seeding for the agreed initial records.
 - [x] Implement username validation and duplicate prevention.
 - [x] Add tests for authentication, persistence, and username rules.
@@ -64,6 +68,9 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [ ] Add meaningful unit tests for shared rules.
 
 ## 4. Borrower workflow
+
+See the sequential [borrower milestone plan](BorrowerMilestones.md) for
+implementation order and exit criteria.
 
 - [ ] Catalogue and equipment filtering.
 - [ ] Availability search by name, category, and dates.
@@ -100,9 +107,11 @@ are implemented and verified. Keep decisions and evidence truthful.
 
 ## 7. Agentic SE implementation and evidence
 
-- [ ] Create actual reusable `SKILL.md` files under the agreed skills folder.
+- [x] Create four borrower review `SKILL.md` files under `.agents/skills/`.
 - [ ] Evaluate the UI acceptance reviewer with a controlled fixture.
-- [ ] Evaluate the permission/workflow reviewer with illegal operations.
+- [x] Evaluate borrower ownership review on one controlled defective/correct pair
+      with direct foreign-owner calls (21 September 2026).
+- [ ] Broaden permission/workflow evaluation to integration and real lifecycle rules.
 - [ ] Evaluate the persistence-failure tester with injected save failure.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
@@ -111,10 +120,12 @@ are implemented and verified. Keep decisions and evidence truthful.
 
 ## 8. Hooks, quality, and delivery automation
 
-- [ ] Decide whether to version Git hooks under `.githooks/`.
+- [x] Choose versioned personal hooks under `tools/borrower/hooks/`, activated per checkout.
+- [x] Add and fixture-test pre-commit data, conflict-marker and whitespace checks with scope warnings.
 - [ ] Add fast pre-commit formatting and unit-test checks if agreed.
 - [ ] Add commit-message convention if agreed.
-- [ ] Add pre-push full-test check if it remains acceptably fast.
+- [x] Add pre-push full clean-test check and verify success/failure propagation.
+- [x] Activate personal hooks in Yikbing's checkout and run the real pre-push check.
 - [ ] Expand pull-request CI to build, test, format, and package.
 - [ ] Add dependency/security scanning where supported.
 - [ ] Add documentation-path/completeness checks.
@@ -148,20 +159,25 @@ are implemented and verified. Keep decisions and evidence truthful.
   persistence foundation
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
 - `docs/ProjectContext.md`: durable context snapshot
-- `docs/AgenticSE.md`: skill and hook design proposal
+- `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
+- `.agents/skills/`: four borrower review skills, eligible for automatic selection
+- `tools/borrower/`: personal hooks and disposable-repository test harness
+- `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
 - `docs/DeveloperGuide.md`: architecture and contribution guidance
 - `docs/UserGuide.md`: current user setup placeholder
 - `logs/Yikbing-logs/`: personal dated AI-session summaries
 
 ## Verified current progress
 
-- Repository cloned and on `main`.
-- Local changes are not committed or pushed yet.
+- Working branch `yikbing` at `bb25354` on 21 September 2026, with uncommitted work.
+- HEAD matches locally recorded `origin/main`; no remote fetch in this session.
 - Java 25.0.4.1 is installed.
 - `gradlew.bat test --no-daemon` passes.
 - Shared role selection, borrower login/sign-up, staff entry, logout, and
   placeholder dashboards are implemented.
 - Role-specific catalogue, approval, checkout, return, and maintenance features
   do not exist yet.
-- No actual `SKILL.md` files, versioned Git hooks, `Reflections.md`, or release
-  artifact exists yet.
+- Four borrower skills and two hook scripts now exist. Hook fixture tests pass.
+- First ownership skill fixture evaluation completed; other skills, repeat runs,
+  automatic-selection checks and integration/system evaluations remain unfinished.
+- `Reflections.md` and release packaging remain unfinished.

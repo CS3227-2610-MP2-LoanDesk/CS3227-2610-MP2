@@ -6,7 +6,7 @@ Update it when a team decision changes the architecture, workflow, or scope.
 ## Product
 
 LoanDesk is a JavaFX desktop equipment-lending application for one local
-## Proposed ownership layout
+installation. It has three roles: borrower, lab supervisor/approver, and
 equipment custodian/lab technician. There is no hosted backend or network
 synchronization in the current plan.
 
@@ -51,8 +51,8 @@ ui -> application -> domain
 				  -> persistence
 ```
 
-Role-specific UI belongs in `ui/borrower`, `ui/supervisor`, and
-`ui/custodian`. Shared login, role selection, and session/logout UI belongs in
+Role-specific UI belongs in `features/borrower/ui`, `features/supervisor/ui`, and
+`features/custodian/ui`. Shared login, role selection, and session/logout UI belongs in
 `ui/common`. Shared packages need coordination because all three roles depend
 on them.
 
@@ -74,12 +74,27 @@ parts inventory, repair costing, and detailed maintenance scheduling.
 ## Login direction
 
 The first screen presents three buttons labelled `Borrower`, `Supervisor`, and
-`Custodian`. The supervisor and custodian buttons open their singleton local
-role accounts directly. The borrower path presents separate `Log in` and `Sign
-up` actions and uses a unique username without a password. Usernames are
-trimmed, compared case-insensitively, cannot be blank or invalid, and have a
-maximum length of 30 characters. Internal spaces are not allowed; letters,
-numbers, underscores, and hyphens are allowed.
+`Custodian`. The final role flows require passwords for borrowers, supervisors
+and custodians. The current foundation still opens singleton supervisor and
+custodian accounts directly; their role owners must replace that temporary
+entry with password login. The borrower path presents separate `Log in` and
+`Sign up` actions and uses a unique username with a password. Usernames are trimmed,
+compared case-insensitively, cannot be blank or invalid, and have a maximum
+length of 30 characters. Internal spaces are not allowed; letters, numbers,
+underscores, and hyphens are allowed. Borrower passwords must be 8 to 128
+characters. Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes with
+recorded parameters, never as plaintext.
+
+Authentication is the gate for protected role work. An unauthenticated user
+may choose a role and use the borrower log-in or sign-up flow, but must have an
+active session before opening a role dashboard or performing role operations.
+Logout clears the active session and returns to role selection. Services must
+enforce this boundary as well as the UI, so direct calls cannot bypass it.
+
+Existing local files created before password support may contain users without
+credentials. They are not silently assigned passwords or overwritten; a
+fresh/reset local demonstration file or an explicit migration policy is
+required before those accounts can log in.
 
 The local file is `data/loandesk.json`. On first launch, if this file does not
 exist, the persistence layer creates it and writes the initial borrower accounts
@@ -139,6 +154,20 @@ just to avoid coordination.
 - Packaging and cross-platform release verification
 
 ## Session continuity
+
+For a new chat/model, read `CODEX_HANDOFF.md` first. Yikbing prefers a guided
+explanation and agreement on the next scope before new implementation. We paused
+after a first isolated ownership skill evaluation: executable JUnit checks and
+a separate fresh agent review, not an automated agent-invoking JUnit test.
+The fixture policy is not a production cancellation-policy decision.
+
+Yikbing owns borrower work; other team members own supervisor and custodian.
+The agreed development setup (21 September 2026) includes three automatically
+selectable borrower review skills under `.agents/skills/` and personal Git
+hooks under `tools/borrower/hooks/`. See `docs/AgenticSE.md` for their scope and
+`docs/DeveloperGuide.md` for local activation. Skills cover UI, ownership and
+both existing test failures and additional edge cases. This setup changes no
+product contracts and does not settle the open workflow policies above.
 
 Before changing shared contracts, read this file and the relevant developer
 logs. Record material decisions in the developer guide or a dated log entry.

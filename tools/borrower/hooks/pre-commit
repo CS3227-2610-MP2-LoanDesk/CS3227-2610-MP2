@@ -1,0 +1,31 @@
+#!/bin/bash
+# Inspect the index only. Never modify files or the index.
+set -euo pipefail
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+paths=$(git diff --cached --name-only --diff-filter=ACMR -z | base64)
+failed=0
+while IFS= read -r -d '' path; do
+    case "${path,,}" in
+        data/*|*/data/*)
+            printf 'BLOCK: local data must not be committed: %s\n' "$path" >&2
+            failed=1
+            continue
+            ;;
+    esac
+    case "$path" in
+        src/*/java/loandesk/domain/*|src/*/java/loandesk/application/*|src/*/java/loandesk/persistence/*|src/*/java/loandesk/ui/common/*|src/*/java/loandesk/features/supervisor/*|src/*/java/loandesk/features/custodian/*|src/main/java/loandesk/LoanDeskApp.java|build.gradle|settings.gradle)
+            printf 'WARNING: shared or other-role change; confirm coordination: %s\n' "$path" >&2 ;;
+    esac
+    # Check complete staged text, including markers outside changed lines.
+    if git grep --cached -I -q -E '^(<{7,}|={7,}|>{7,}|\|{7,})([[:space:]].*)?$' -- ":(literal)$path"; then
+        printf 'BLOCK: possible conflict marker in staged file: %s\n' "$path" >&2
+        failed=1
+    else
+        code=$?
+        if [ "$code" -gt 1 ]; then exit "$code"; fi
+    fi
+done < <(printf '%s' "$paths" | base64 --decode)
+# Do not print staged data contents through diff diagnostics when data was found.
+if [ "$failed" -ne 0 ]; then exit 1; fi
+git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab diff --cached --check

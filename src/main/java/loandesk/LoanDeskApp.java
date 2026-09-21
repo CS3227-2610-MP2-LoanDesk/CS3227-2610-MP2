@@ -10,6 +10,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -67,21 +68,25 @@ public final class LoanDeskApp extends Application {
         VBox content = layout("Borrower " + action, "Enter a username to continue.");
         TextField username = new TextField();
         username.setPromptText("Username");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Password");
         Button submit = new Button(action);
         Button back = new Button("Back");
         Label feedback = new Label();
         submit.setOnAction(event -> {
             try {
                 User borrower = signUp
-                        ? authenticationService.signUpBorrower(username.getText())
-                        : authenticationService.loginBorrower(username.getText());
+                        ? authenticationService.signUpBorrower(username.getText(), password.getText())
+                        : authenticationService.loginBorrower(username.getText(), password.getText());
                 openDashboard(borrower);
             } catch (IllegalArgumentException | IOException exception) {
                 feedback.setText(exception.getMessage());
+            } finally {
+                password.clear();
             }
         });
         back.setOnAction(event -> showBorrowerOptions());
-        content.getChildren().addAll(username, submit, feedback, back);
+        content.getChildren().addAll(username, password, submit, feedback, back);
         showScene(content);
     }
 

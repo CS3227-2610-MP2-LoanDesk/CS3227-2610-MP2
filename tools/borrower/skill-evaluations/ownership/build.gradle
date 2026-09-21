@@ -1,0 +1,44 @@
+// Standalone fixture build: not included in LoanDesk's production build.
+subprojects {
+    apply plugin: 'java'
+    repositories { mavenCentral() }
+    java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+    layout.buildDirectory = rootProject.file("../../../../build/ownership-evaluation/${project.name}")
+    sourceSets.test.java.srcDirs = [rootProject.file('tests')]
+    dependencies {
+        testImplementation platform('org.junit:junit-bom:5.12.2')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+    tasks.named('test') {
+        useJUnitPlatform()
+        // A seeded defect is intentional. verifyFixtures enforces exact outcomes.
+        ignoreFailures = true
+        outputs.upToDateWhen { false }
+    }
+}
+
+def fixtureReports = ['case-a', 'case-b'].collectEntries { caseName ->
+    [(caseName): project(":${caseName}").layout.buildDirectory.file(
+        'test-results/test/TEST-evaluation.CancellationContractTest.xml')]
+}
+
+tasks.register('verifyFixtures') {
+    dependsOn ':case-a:test', ':case-b:test'
+    doLast {
+        fixtureReports.each { caseName, reportProvider ->
+            def report = reportProvider.get().asFile
+            def suite = new groovy.xml.XmlSlurper().parse(report)
+            def expectedFailures = caseName == 'case-a' ? 1 : 0
+            if (suite.@tests.toInteger() != 7 || suite.@failures.toInteger() != expectedFailures
+                    || suite.@errors.toInteger() != 0 || suite.@skipped.toInteger() != 0) {
+                throw new GradleException("Unexpected fixture results for ${caseName}: ${report}")
+            }
+            def failures = suite.testcase.findAll { it.failure.size() > 0 }.collect { it.@name.text() }
+            if (caseName == 'case-a' && failures != ['foreignOwnerIsRejectedWithoutMutation()']) {
+                throw new GradleException("Wrong failure in case-a: ${failures}")
+            }
+            println "Verified ${caseName}: 7 tests, ${expectedFailures} expected failure(s), no errors/skips."
+        }
+    }
+}
