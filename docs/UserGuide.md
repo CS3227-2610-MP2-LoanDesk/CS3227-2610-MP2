@@ -33,4 +33,11 @@ Existing JSON files are not imported. Use borrower sign-up to create accounts
 in the new local database. The generated database files remain local and are
 ignored by Git.
 
-The placeholder dashboard buttons do not provide role features yet.
+## Borrower catalogue
+
+After logging in as a borrower, select `Catalogue` to view the seeded equipment
+identifiers and names. Enter part of an equipment name and select `Filter` to
+perform a case-insensitive search. Select `Clear` to restore the full catalogue.
+If no item matches, the screen displays an empty-results message. The current
+catalogue slice is read-only; category, condition, availability and borrowing
+actions will be added with later workflow milestones.

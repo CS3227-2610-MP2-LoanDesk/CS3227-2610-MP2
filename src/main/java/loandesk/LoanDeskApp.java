@@ -10,28 +10,35 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import loandesk.application.AuthenticationService;
+import loandesk.application.CatalogueService;
 import loandesk.application.Session;
+import loandesk.domain.Equipment;
 import loandesk.domain.Role;
 import loandesk.domain.User;
+import loandesk.persistence.DataStore;
 import loandesk.persistence.DatabaseDataStore;
 
 public final class LoanDeskApp extends Application {
     private final Session session = new Session();
     private AuthenticationService authenticationService;
+    private CatalogueService catalogueService;
     private Stage stage;
 
     @Override
     public void start(Stage primaryStage) {
         stage = primaryStage;
         try {
-            authenticationService = new AuthenticationService(
-                    new DatabaseDataStore(Path.of("data", "loandesk")));
+            DataStore dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
+            authenticationService = new AuthenticationService(dataStore);
+            catalogueService = new CatalogueService(dataStore);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -100,7 +107,7 @@ public final class LoanDeskApp extends Application {
         VBox content = layout(title, "The shared foundation is ready for role features.");
         if (user.role() == Role.BORROWER) {
             content.getChildren().addAll(
-                    new Button("Catalogue"),
+                    catalogueButton(),
                     new Button("My Requests"),
                     new Button("My Loans"));
         } else if (user.role() == Role.SUPERVISOR) {
@@ -123,6 +130,60 @@ public final class LoanDeskApp extends Application {
         showScene(content);
     }
 
+    private Button catalogueButton() {
+        Button catalogue = new Button("Catalogue");
+        catalogue.setOnAction(event -> showCatalogue());
+        return catalogue;
+    }
+
+    private void showCatalogue() {
+        VBox content = layout("Catalogue", "Search equipment by name.");
+        TextField filter = new TextField();
+        filter.setPromptText("Name filter");
+        Button apply = new Button("Filter");
+        Button clear = new Button("Clear");
+        Button back = new Button("Back");
+        HBox filterActions = new HBox(12, apply, clear);
+        filterActions.setAlignment(Pos.CENTER);
+        Label feedback = new Label();
+        ListView<String> results = new ListView<>();
+        results.setPrefHeight(180);
+
+        final java.util.List<Equipment> equipment;
+        try {
+            equipment = catalogueService.loadCatalogue();
+        } catch (IOException exception) {
+            feedback.setText("Unable to load the catalogue: " + exception.getMessage());
+            back.setOnAction(event -> openDashboard(session.requireUser()));
+            content.getChildren().addAll(feedback, back);
+            showScene(content);
+            return;
+        }
+
+        Runnable renderResults = () -> {
+            java.util.List<Equipment> filtered = catalogueService.filterByName(equipment, filter.getText());
+            results.getItems().setAll(filtered.stream()
+                    .map(item -> item.id() + " — " + item.name())
+                    .toList());
+            feedback.setText(filtered.isEmpty()
+                    ? (equipment.isEmpty()
+                            ? "The catalogue is currently empty."
+                            : "No equipment matches that name.")
+                    : filtered.size() + " equipment item(s) found.");
+        };
+        apply.setOnAction(event -> renderResults.run());
+        clear.setOnAction(event -> {
+            filter.clear();
+            renderResults.run();
+        });
+        filter.setOnAction(event -> renderResults.run());
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        renderResults.run();
+
+        content.getChildren().addAll(filter, filterActions, feedback, results, back);
+        showScene(content, 480, 420);
+    }
+
     private VBox layout(String title, String subtitle) {
         Label heading = new Label(title);
         heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
@@ -134,8 +195,12 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showScene(VBox content) {
+        showScene(content, 480, 360);
+    }
+
+    private void showScene(VBox content, double width, double height) {
         stage.setTitle("LoanDesk");
-        stage.setScene(new Scene(content, 480, 360));
+        stage.setScene(new Scene(content, width, height));
         stage.show();
     }
 

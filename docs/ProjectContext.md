@@ -62,6 +62,21 @@ Borrower submits -> Supervisor approves -> Custodian checks out
 -> Custodian returns -> Borrower sees history after restart
 ```
 
+### Initial borrower catalogue contract
+
+The first catalogue slice is intentionally read-only and supports equipment
+identifier/name display, case-insensitive name filtering, clearing the filter,
+and an understandable empty-results message. It does not add category,
+condition, availability or loan fields yet. Those shared fields will be added
+with the request/loan foundation so availability can be derived from real
+workflow records rather than invented catalogue state.
+
+The agreed future vocabulary is equipment conditions `GOOD`, `DAMAGED`,
+`UNDER_MAINTENANCE` and `LOST`; request statuses `PENDING`, `APPROVED`,
+`REJECTED`, `NEEDS_CLARIFICATION` and `CANCELLED`; and loan statuses `ACTIVE`,
+`RETURNED`, `OVERDUE` and `LOST`. Availability will be derived as
+`AVAILABLE`, `ON_LOAN` or `UNAVAILABLE`.
+
 Important invariants include: only approved requests can be checked out; an item
 cannot be issued twice; damaged equipment becomes unavailable; borrowers can
 only access their own records; and failed multi-record saves must not leave

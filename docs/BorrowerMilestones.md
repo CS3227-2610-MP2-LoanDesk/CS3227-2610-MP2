@@ -39,28 +39,28 @@ direct unauthenticated calls safely.
 
 ## Milestone 1 — Confirm shared workflow contracts
 
-- [ ] Agree whether the first catalogue slice supports name only, or also
-      category and availability fields.
+- [x] Agree that the first catalogue slice supports name filtering only;
+      category, condition and availability are deferred to request/loan work.
 - [ ] Agree request and loan boundaries, request statuses and legal
       transitions.
 - [ ] Agree date boundaries, collection windows, cancellation,
       clarification/resubmission and overdue-borrower rules.
-- [ ] Record any shared `Equipment`, request, loan or repository changes in
-      `docs/ProjectContext.md` before implementing them.
+- [x] Record the agreed catalogue scope and future status vocabulary in
+      `docs/ProjectContext.md` before implementing the catalogue.
 
 Exit criteria: the next borrower slice can be implemented without inventing a
 shared policy. Shared changes have an agreed owner and review path.
 
 ## Milestone 2 — Catalogue and filtering
 
-- [ ] Load equipment through the existing persistence boundary.
-- [ ] Add borrower-owned catalogue application logic.
-- [ ] Wire the borrower dashboard's Catalogue action to a real screen.
-- [ ] Display equipment identifiers and names clearly.
-- [ ] Implement the agreed filters, including case handling and clearing.
-- [ ] Show an understandable empty-results state.
-- [ ] Test all records, matches, no matches and filter reset behaviour.
-- [ ] Run the UI and change-completeness reviews.
+- [x] Load equipment through the existing persistence boundary.
+- [x] Add borrower-owned catalogue application logic.
+- [x] Wire the borrower dashboard's Catalogue action to a real screen.
+- [x] Display equipment identifiers and names clearly.
+- [x] Implement name filtering, including case handling and clearing.
+- [x] Show an understandable empty-results state.
+- [x] Test all records, matches, no matches and filter reset behaviour.
+- [x] Run the UI and change-completeness reviews.
 
 Exit criteria: a logged-in borrower can open the catalogue, filter it, clear
 filters and understand an empty result without changing shared workflow state.

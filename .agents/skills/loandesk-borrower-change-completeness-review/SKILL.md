@@ -1,6 +1,6 @@
 ---
 name: loandesk-borrower-change-completeness-review
-description: Review whether a LoanDesk borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review evidence. Use after borrower feature, test, UI, service or persistence changes, or for a borrower milestone readiness check.
+description: Review whether a LoanDesk borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review-panel evidence. Use after borrower feature, test, UI, service or persistence changes, or for a borrower milestone readiness check.
 ---
 
 # Borrower change-completeness review
@@ -53,29 +53,49 @@ not run destructive cleanup outside the repository, and do not use
 `data/loandesk.json` as test data. Report commands and actual results; mark
 suggested tests or documentation as proposed rather than complete.
 
-## Independent PR review
+## Independent PR review panel
 
-For a meaningful borrower change that is intended for a pull request, arrange
-one fresh, read-only reviewer pass before declaring the change PR-ready. This
-is a separate agent invocation, not the same conversation that implemented the
-change. Give the reviewer only the repository path, relevant requirements and
-the staged diff (or a verified PR diff); do not provide suspected defects,
-expected answers or conclusions from the first review. Ask it not to edit,
-commit, push, change local data or treat test fixtures as production policy.
+For a meaningful borrower change intended for a pull request, arrange a fresh,
+read-only independent review panel before declaring the change PR-ready. Use a
+maximum of three reviewers and choose the smallest panel covering the change
+surface; do not spawn a panel for a routine test run or tiny documentation edit.
+Each reviewer is a separate agent invocation, not the implementing conversation
+or another panel member. Give each only the repository path, relevant
+requirements and the staged diff (or verified PR diff). Do not provide
+suspected defects, expected answers, prior conclusions or other reviewers'
+reports. Ask every reviewer not to edit, commit, push, change local data or
+treat test fixtures as production policy.
 
-The independent reviewer should report severity, file and line, reproduction
-or reasoning, expected versus observed behaviour, and a focused next action.
-Record whether the pass was run, unavailable or inconclusive. Never describe
-an unavailable review as a pass. For a meaningful review, retain the prompt,
-response and verification evidence in a dated `logs/Yikbing-logs/` entry when
-the result affects the milestone or PR decision.
+Choose focused reviewers rather than asking every reviewer to repeat the whole
+review:
 
-This skill may coordinate the reviewer, but it does not itself guarantee that
-another agent was invoked. Git hooks must remain deterministic and local; they
-must not spawn agents or make network calls. GitHub CI remains authoritative
-for build and test checks, while GitHub-native or third-party review comments
-are an additional PR review layer rather than a replacement for this
-independent pass.
+- UI/service or catalogue changes: one UI/interaction reviewer and one
+  behaviour/test reviewer.
+- Authentication, password or persistence changes: one authentication/security
+  reviewer, one persistence/transaction/concurrency reviewer and one
+  completeness/shared-contract reviewer.
+- Ownership or request/loan changes: one ownership/workflow reviewer and one
+  behaviour/test reviewer; add a persistence reviewer when storage changes.
+
+The independent reviewer should report severity, file and line or symbol,
+reproduction or reasoning, expected versus observed behaviour, focused next
+action and limitations. Record each panel member as `RUN`, `UNAVAILABLE` or
+`INCONCLUSIVE`, including the actual prompt and response evidence. A panel with
+one unavailable member may provide partial evidence, but must not be described
+as a complete panel pass. The main agent should reconcile duplicate findings,
+record disagreements, map each finding to a focused test or decision, and
+rerun affected checks before deciding readiness.
+
+For a meaningful review, retain the panel prompts, responses and
+decision-relevant verification evidence in a dated `logs/Yikbing-logs/` entry.
+Never describe an unavailable or inconclusive reviewer as a pass.
+
+This skill may coordinate the panel, but it does not itself guarantee that
+agents return successfully. Git hooks must remain deterministic and local; they
+must not spawn agents or make network calls. GitHub CI remains authoritative for
+build and test checks, while GitHub-native or third-party review comments are an
+additional PR review layer rather than a replacement for this independent
+panel.
 
 Output a compact change-surface/evidence table, then findings grouped as:
 missing test, missing or stale documentation, missing session evidence,

@@ -43,7 +43,7 @@ do not invent unresolved date, cancellation, or request-state policies.
 | `loandesk-borrower-ui-review` | Review catalogue filters, empty results, validation messages, request status, and enabled actions. | Detect an accepted invalid date range in an isolated fixture. |
 | `loandesk-borrower-ownership-review` | Review service-layer ownership and edits/cancellation against agreed policy. | Detect borrower A being allowed to cancel borrower B's request. |
 | `loandesk-borrower-edge-case-test-review` | Run and review existing tests, investigate failures, check valid success and safe rejection, and identify missing boundary, stale-state, repeated-action and save-failure tests. | Identify meaningful omissions and weak assertions in an incomplete test fixture. |
-| `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review evidence. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
+| `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review-panel evidence. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
 
 Each review should report concrete findings, file references, reproduction
 steps, and verification evidence. Evaluate against both defective and correct
@@ -53,14 +53,23 @@ Do not leave intentional defects in production code.
 ### Independent PR review workflow
 
 For a borrower feature or milestone completion check, or a meaningful borrower
-pull request, run the completeness skill and arrange one fresh, read-only
-reviewer pass using the relevant change diff. Repeat it before a PR if
-meaningful changes were made after the last completion check.
-The fresh reviewer receives the requirements and raw change only; do not give
-it the implementing agent's suspected answer or prior conclusions. Save the
-review prompt, response and decision-relevant evidence in a dated log when the
-review affects milestone or PR readiness. Report unavailable or inconclusive
-review honestly.
+pull request, run the completeness skill and arrange the smallest fresh,
+read-only review panel covering the change surface, with no more than three
+reviewers. Use UI/interaction plus behaviour/test reviewers for catalogue or
+screen changes; authentication/security plus persistence/concurrency reviewers
+for password or database changes; and ownership/workflow plus behaviour/test
+reviewers for request/loan changes. Add a third reviewer only when the change
+surface warrants it.
+
+Each reviewer receives the requirements and raw staged change only, with no
+implementing-agent conclusions or other reviewer reports. Record each result as
+`RUN`, `UNAVAILABLE` or `INCONCLUSIVE`; a partial panel must not be described
+as a complete pass. Reconcile duplicate findings and disagreements, map
+findings to focused tests or decisions, and save prompts, responses and
+decision-relevant evidence in a dated log when the review affects milestone or
+PR readiness. Repeat the panel before a PR if meaningful changes were made
+after the last completion check. Report unavailable or inconclusive reviews
+honestly.
 
 The PR template records this evidence for GitHub reviewers. The repository's
 GitHub Actions workflow remains responsible for build/test checks. Local hooks

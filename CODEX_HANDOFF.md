@@ -5,9 +5,10 @@ Read this file first when continuing the project from a terminal.
 ## Resume here: 23 September 2026
 
 The user is continuing after implementing borrower review tooling, the session
-role guard, borrower password authentication and the shared H2 persistence
-foundation. Catalogue, request, loan and history product features remain
-unfinished. Do not restart completed tooling or storage work.
+role guard, borrower password authentication, the shared H2 persistence
+foundation and the first read-only borrower catalogue slice. Request, loan and
+history product features remain unfinished. Do not restart completed tooling,
+storage or catalogue work.
 
 ### User preferences and boundaries
 
@@ -34,6 +35,14 @@ unfinished. Do not restart completed tooling or storage work.
   independent reviewer pass for borrower feature/milestone completion checks
   and meaningful PRs. Routine substeps do not trigger it automatically. It
   explicitly keeps agent invocation out of local Git hooks.
+- The edge-case skill explicitly routes borrower authentication, password,
+  credential-persistence, database-save and catalogue changes; it requires a
+  reported `RUN`, `UNAVAILABLE` or `NOT APPLICABLE` result and is not a
+  background watcher or Git hook. See the dated skill-improvement log.
+- The change-completeness skill now uses an adaptive independent review panel
+  of at most three focused reviewers for meaningful milestone/PR checks. It
+  records each member as `RUN`, `UNAVAILABLE` or `INCONCLUSIVE` and never calls
+  a partial panel complete. See the multi-reviewer skill log.
 - `.github/PULL_REQUEST_TEMPLATE.md` records tests, relevant skills,
   independent-review evidence, data safety and shared-contract coordination.
 - Pre-commit and pre-push hooks are active only in this checkout through
@@ -57,9 +66,10 @@ unfinished. Do not restart completed tooling or storage work.
 1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
-   Report actual status; H2 migration work is uncommitted on `yikbing`.
-3. Report the H2 implementation summary and actual test status before any
-   further changes. Discuss the exact files and scope before editing.
+   Report actual status; the H2 migration is committed and the catalogue slice
+   may have staged work awaiting its own commit.
+3. Report the catalogue implementation summary and actual test status before
+   any further changes. Discuss the exact files and scope before editing.
 4. The next borrower milestone is the remaining active-session gate for
    protected operations, followed by the catalogue contract and implementation.
    Integration/system evaluation, automatic-selection checks, repeat runs and
@@ -92,9 +102,10 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
 - Inspected on 23 September 2026: branch `yikbing` is based on merged
-  `origin/main` at `f2748da`; H2 migration changes are uncommitted.
-- Recent commits include `715e1b7 docs(agentic): formalize independent review
-  checkpoints` and `f2748da Merge pull request #1 ...`.
+  `origin/main` at `f2748da`; H2 migration commit is `f28e1d2`.
+- Recent commits include `f28e1d2 migrate LoanDesk storage from JSON to H2`,
+  `715e1b7 docs(agentic): formalize independent review checkpoints` and
+  `f2748da Merge pull request #1 ...`.
 - Work from the repository root, not the parent `MP2` directory.
 
 ## Toolchain and commands
@@ -111,8 +122,8 @@ PowerShell commands from the repository root:
 .\gradlew.bat run --no-daemon
 ```
 
-The clean test suite has passed after the H2 persistence migration. Run it
-before claiming a change is ready.
+The clean test suite has passed after the H2 persistence migration and the
+catalogue implementation. Run it before claiming a change is ready.
 
 ## Current product foundation
 
@@ -129,9 +140,12 @@ The shared foundation currently provides:
 - Transactional H2 saves through the shared data-store boundary
 - A fresh H2 database is used; old ignored JSON files are not imported
 - Tests for authentication, persistence, and username rules
+- Read-only borrower catalogue loaded through `DataStore`
+- Case-insensitive catalogue name filtering, clearing and empty-result feedback
 
-Role-specific catalogue, approval, checkout, return, and maintenance features
-are not implemented yet.
+Request submission, approval, checkout, return, maintenance and loan-history
+features are not implemented yet. Catalogue category, condition and derived
+availability remain deferred until those workflows exist.
 
 Professor feedback changed the borrower plan: authentication must gate all
 protected dashboards and operations, including direct service calls. Login,

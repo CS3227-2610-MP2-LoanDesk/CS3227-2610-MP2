@@ -71,7 +71,7 @@ are implemented and verified. Keep decisions and evidence truthful.
 See the sequential [borrower milestone plan](BorrowerMilestones.md) for
 implementation order and exit criteria.
 
-- [ ] Catalogue and equipment filtering.
+- [x] Catalogue and equipment name filtering.
 - [ ] Availability search by name, category, and dates.
 - [ ] Submit one-item request with purpose and date validation.
 - [ ] View own requests and request details.
