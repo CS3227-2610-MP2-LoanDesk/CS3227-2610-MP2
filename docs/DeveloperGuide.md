@@ -35,6 +35,9 @@ interfaces rather than being implemented directly in controllers.
 - Create focused branches such as `feature/borrower-workflow`.
 - Run `./gradlew test` before opening a pull request.
 - Pull requests require review from at least one teammate.
+- Use the repository PR template to record test results, relevant borrower
+  skill reviews, independent-review evidence, data safety and shared-contract
+  coordination.
 - Do not merge changes that break the build or change a shared contract without
   discussing it with affected owners.
 
@@ -55,6 +58,18 @@ selection for relevant borrower changes; this is agent selection, not background
 execution. You can also invoke a skill by its `$name`. If newly created skills
 are not visible, start a fresh session. Review-only requests produce findings;
 fixes/tests are made only within an authorized implementation task.
+
+For a borrower feature or milestone completion check, and for a meaningful PR,
+the completeness skill arranges a fresh, read-only reviewer pass over the
+relevant change diff. The reviewer must not receive the implementing agent's
+conclusions and must report findings with severity, file/line references,
+reasoning and next actions. Repeat it before a PR if meaningful changes were
+made after the last completion check. Save decision-relevant prompt/output
+evidence in a dated log. Routine substeps, small documentation edits and
+ordinary test runs do not automatically invoke a fresh reviewer. This
+independent pass is not launched by Git hooks; hooks stay deterministic and
+local. GitHub Actions runs the repository's build/test checks, while
+GitHub-native review services are an optional additional PR-comment layer.
 
 Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
 `pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks

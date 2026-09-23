@@ -30,6 +30,12 @@ work.
   original skills passed official format validation; the fourth passed manual
   frontmatter checks because its validator lacked PyYAML. Automatic selection
   is eligible, not proven by the explicit-invocation evaluation.
+- The change-completeness skill now requires or records a fresh, read-only
+  independent reviewer pass for borrower feature/milestone completion checks
+  and meaningful PRs. Routine substeps do not trigger it automatically. It
+  explicitly keeps agent invocation out of local Git hooks.
+- `.github/PULL_REQUEST_TEMPLATE.md` records tests, relevant skills,
+  independent-review evidence, data safety and shared-contract coordination.
 - Pre-commit and pre-push hooks are active only in this checkout through
   `core.hooksPath=tools/borrower/hooks`. Nine hook fixture tests passed.
 - Ownership exercise: `tools/borrower/skill-evaluations/ownership/README.md`.
@@ -195,9 +201,12 @@ defect and accepted the correct case; other skill evaluations, repeat runs,
 Yikbing owns only the borrower role. Avoid supervisor/custodian edits unless
 unavoidable, and discuss shared-contract or major architecture changes first.
 When asked about skills or hooks again, consult **Yikbing's borrower setup**
-in `docs/AgenticSE.md` and the 21 September implementation log. The three
-skills and two hooks were explicitly authorized for implementation. Optional
-GitHub skill imports remain uninstalled.
+in `docs/AgenticSE.md` and the 21 September implementation log. The four
+skills and two hooks were explicitly authorized for implementation. The
+completeness skill and PR template now document the independent-review workflow.
+GitHub Actions already runs build/test checks; GitHub Copilot or another
+GitHub-integrated reviewer still requires repository/account-owner setup and
+is not configured by this local change.
 
 1. Inspect and preserve uncommitted work before updating from `main`; do not
    switch branches or pull over existing work blindly.
