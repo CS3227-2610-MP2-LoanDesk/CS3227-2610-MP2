@@ -23,12 +23,11 @@ are implemented and verified. Keep decisions and evidence truthful.
 
 ## 2. Shared decisions before feature branches
 
-- [x] Choose JSON persistence.
-- [x] Choose `data/loandesk.json` as the local data path.
-- [x] Create the data file on first launch when it is absent.
-- [x] Preserve existing data and do not reseed on later launches.
-- [x] Reject malformed JSON without overwriting the original file.
-- [x] Use temporary-file replacement for normal saves.
+- [x] Choose embedded H2 persistence for the shared local database.
+- [x] Choose `data/loandesk` as the local database path; keep generated files ignored.
+- [x] Create the database schema and seed records on first launch when it is empty.
+- [x] Preserve existing database records and do not reseed on later launches.
+- [x] Use JDBC transactions and prepared statements for database writes.
 - [x] Keep supervisor and custodian as fixed singleton roles.
 - [x] Set borrower username maximum length to 30 characters.
 - [x] Set username rules: trim, case-insensitive uniqueness, no internal spaces,
@@ -56,7 +55,7 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [ ] Add supervisor and custodian password login through their role owners.
 - [ ] Enforce an active-session gate before protected dashboards and role
       operations, including direct service calls and logout re-entry.
-- [x] Implement first-launch JSON seeding for the agreed initial records.
+- [x] Implement first-launch H2 schema creation and seeding for the agreed initial records.
 - [x] Implement username validation and duplicate prevention.
 - [x] Add tests for authentication, persistence, and username rules.
 - [ ] Implement domain models and validation rules.
@@ -155,7 +154,7 @@ implementation order and exit criteria.
 - `build.gradle`, `settings.gradle`: Gradle project configuration
 - `gradlew`, `gradlew.bat`, `gradle/wrapper/`: reproducible Gradle wrapper
 - `.github/workflows/ci.yml`: initial pull-request/push test workflow
-- `src/main/java/...`: JavaFX launcher, shared domain, application, and JSON
+- `src/main/java/...`: JavaFX launcher, shared domain, application, and H2
   persistence foundation
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
 - `docs/ProjectContext.md`: durable context snapshot
@@ -169,12 +168,16 @@ implementation order and exit criteria.
 
 ## Verified current progress
 
-- Working branch `yikbing` at `bb25354` on 21 September 2026, with uncommitted work.
-- HEAD matches locally recorded `origin/main`; no remote fetch in this session.
+- Working branch `yikbing` is based on merged `origin/main` at `f2748da`, with
+  uncommitted H2 migration work on 23 September 2026.
+- The previous authentication and agent-tooling commit is already merged into
+  `main`; the H2 migration has not been committed or pushed yet.
 - Java 25.0.4.1 is installed.
 - `gradlew.bat test --no-daemon` passes.
 - Shared role selection, borrower login/sign-up, staff entry, logout, and
   placeholder dashboards are implemented.
+- H2 persistence currently stores users, password credentials and equipment in
+  one role-aware local database. Existing JSON files are not imported.
 - Role-specific catalogue, approval, checkout, return, and maintenance features
   do not exist yet.
 - Four borrower skills and two hook scripts now exist. Hook fixture tests pass.

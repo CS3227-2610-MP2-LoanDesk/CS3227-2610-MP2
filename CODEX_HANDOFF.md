@@ -2,12 +2,12 @@
 
 Read this file first when continuing the project from a terminal.
 
-## Resume here: 21 September 2026
+## Resume here: 23 September 2026
 
 The user is continuing after implementing borrower review tooling, the session
-role guard and borrower password authentication. Catalogue, request, loan and
-history product features remain unfinished. Do not restart completed tooling
-work.
+role guard, borrower password authentication and the shared H2 persistence
+foundation. Catalogue, request, loan and history product features remain
+unfinished. Do not restart completed tooling or storage work.
 
 ### User preferences and boundaries
 
@@ -57,8 +57,8 @@ work.
 1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
-   Report actual status; existing work is uncommitted on `yikbing`.
-3. Report the staged implementation summary and actual test status before any
+   Report actual status; H2 migration work is uncommitted on `yikbing`.
+3. Report the H2 implementation summary and actual test status before any
    further changes. Discuss the exact files and scope before editing.
 4. The next borrower milestone is the remaining active-session gate for
    protected operations, followed by the catalogue contract and implementation.
@@ -91,10 +91,10 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Repository: `CS3227-2610-MP2`
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
-- Inspected on 21 September 2026: branch `yikbing` at `bb25354`, matching
-  locally recorded `origin/main`; uncommitted work exists, and no fetch was run.
-- Recent commits include `bb25354 fix gradle wraper errors` and
-  `e03bec1 create foundation for MP2`.
+- Inspected on 23 September 2026: branch `yikbing` is based on merged
+  `origin/main` at `f2748da`; H2 migration changes are uncommitted.
+- Recent commits include `715e1b7 docs(agentic): formalize independent review
+  checkpoints` and `f2748da Merge pull request #1 ...`.
 - Work from the repository root, not the parent `MP2` directory.
 
 ## Toolchain and commands
@@ -111,8 +111,8 @@ PowerShell commands from the repository root:
 .\gradlew.bat run --no-daemon
 ```
 
-The clean test suite has passed after the package flattening. Run it before
-claiming a change is ready.
+The clean test suite has passed after the H2 persistence migration. Run it
+before claiming a change is ready.
 
 ## Current product foundation
 
@@ -124,9 +124,10 @@ The shared foundation currently provides:
 - Fixed supervisor and custodian entry pending their password-login work
 - Session and logout handling
 - Placeholder three-button dashboards
-- JSON persistence at `data/loandesk.json`
-- First-launch seed data: `testBorrower1`, `testBorrower2`, `camera1`, `camera2`
-- Temporary-file replacement for JSON saves
+- Embedded H2 persistence rooted at `data/loandesk`
+- First-launch schema and seed data: `testBorrower1`, `testBorrower2`, `camera1`, `camera2`
+- Transactional H2 saves through the shared data-store boundary
+- A fresh H2 database is used; old ignored JSON files are not imported
 - Tests for authentication, persistence, and username rules
 
 Role-specific catalogue, approval, checkout, return, and maintenance features
@@ -145,7 +146,7 @@ src/main/java/loandesk/
   LoanDeskApp.java
   domain/          shared models and roles
   application/     shared session/authentication logic
-  persistence/     shared JSON storage
+  persistence/     shared H2 database storage
   features/
     borrower/
       ui/
@@ -164,8 +165,8 @@ shared models, permissions, availability rules, and persistence centralized.
 
 ## Data and Git
 
-`data/`, `.gradle/`, and `build/` are ignored. Do not commit local
-`data/loandesk.json`; each developer should have independent local test data.
+`data/`, `.gradle/`, and `build/` are ignored. Do not commit local H2 database
+files under `data/`; each developer should have independent local test data.
 Do not add a hook that deletes data automatically. Tests should use temporary
 folders.
 

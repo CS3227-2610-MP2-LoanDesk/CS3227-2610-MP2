@@ -12,9 +12,9 @@
 
 The shared Java package layout is:
 
-- `domain`: models, roles, and statuses independent of JavaFX and JSON
+- `domain`: models, roles, and statuses independent of JavaFX and persistence
 - `application`: use cases, permissions, and workflow rules
-- `persistence`: JSON data store, repositories, and first-launch initialization
+- `persistence`: shared H2 database store, repositories and first-launch initialization
 - `ui/common`: role selection, login, sign-up, session, and logout
 - `features/borrower`, `features/supervisor`, `features/custodian`: role-owned
   `ui/` and `application/` packages
@@ -40,6 +40,17 @@ interfaces rather than being implemented directly in controllers.
   coordination.
 - Do not merge changes that break the build or change a shared contract without
   discussing it with affected owners.
+
+The application uses the embedded H2 dependency declared in `build.gradle`.
+Normal users do not install or run a separate database server; the Gradle
+application distribution supplies the H2 JAR and the application creates its
+ignored local database files under `data/loandesk`. The current schema stores
+users, credentials, equipment and a database revision row. A store must load
+the database before saving; snapshot writes then use an atomic revision update
+inside the transaction, rejecting stale or concurrent writers instead of
+silently replacing another instance's newer shared update.
+Request, loan, history and maintenance tables will be added through the same
+shared persistence boundary as those features are implemented.
 
 ## AI-assisted development records
 

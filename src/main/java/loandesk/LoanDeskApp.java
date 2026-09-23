@@ -19,7 +19,7 @@ import loandesk.application.AuthenticationService;
 import loandesk.application.Session;
 import loandesk.domain.Role;
 import loandesk.domain.User;
-import loandesk.persistence.JsonDataStore;
+import loandesk.persistence.DatabaseDataStore;
 
 public final class LoanDeskApp extends Application {
     private final Session session = new Session();
@@ -31,7 +31,7 @@ public final class LoanDeskApp extends Application {
         stage = primaryStage;
         try {
             authenticationService = new AuthenticationService(
-                    new JsonDataStore(Path.of("data", "loandesk.json")));
+                    new DatabaseDataStore(Path.of("data", "loandesk")));
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;

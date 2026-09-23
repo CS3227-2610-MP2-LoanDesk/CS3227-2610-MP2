@@ -14,7 +14,7 @@ code unless a shared-contract gate below has been agreed with the team.
 - [x] Borrower login, sign-up, session and logout foundation.
 - [x] Borrower password login/sign-up with salted persisted hashes and the
       agreed 8-to-128-character rule.
-- [x] JSON loading, first-run seeding and atomic save foundation.
+- [x] H2 loading, first-run schema creation, seeding and transactional save foundation.
 - [x] Placeholder borrower dashboard with catalogue, requests and loans actions.
 - [x] Borrower UI, ownership, edge-case/test and change-completeness review
       skills.
@@ -136,8 +136,8 @@ cross-role defects have explicit owners.
 - [ ] Update `docs/ProjectChecklist.md`, `docs/UserGuide.md` and the final
       dated session log.
 - [ ] Review local-data, packaging and clean-install assumptions with the team.
-- [ ] Confirm no deliberate fixture defects or personal `data/loandesk.json`
-      files are included.
+- [ ] Confirm no deliberate fixture defects or personal `data/` database files
+      are included.
 
 Exit criteria: borrower functionality, tests, documentation and integration
 evidence are complete enough for team review and release planning.
