@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="evaluation.CancellationContractTest" tests="7" skipped="0" failures="1" errors="0" timestamp="2026-09-21T03:49:45.171Z" hostname="YB" time="0.119">
+  <properties/>
+  <testcase name="foreignOwnerIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.102">
+    <failure message="org.gradle.internal.exceptions.DefaultMultiCauseException: Multiple Failures (2 failures)&#13;&#10;&#9;org.opentest4j.AssertionFailedError: rejected action must return false ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;&#13;&#10;&#9;org.opentest4j.AssertionFailedError: rejected action must preserve all records ==&gt; expected: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=PENDING], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt; but was: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=CANCELLED], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt;" type="org.gradle.internal.exceptions.DefaultMultiCauseException">org.gradle.internal.exceptions.DefaultMultiCauseException: Multiple Failures (2 failures)
+	org.opentest4j.AssertionFailedError: rejected action must return false ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;
+	org.opentest4j.AssertionFailedError: rejected action must preserve all records ==&gt; expected: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=PENDING], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt; but was: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=CANCELLED], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt;
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:80)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:44)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:38)
+	at app//org.junit.jupiter.api.Assertions.assertAll(Assertions.java:2944)
+	at app//evaluation.CancellationContractTest.rejectedWithoutMutation(CancellationContractTest.java:65)
+	at app//evaluation.CancellationContractTest.foreignOwnerIsRejectedWithoutMutation(CancellationContractTest.java:33)
+	at java.base@25.0.4.1/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+	Suppressed: org.opentest4j.AssertionFailedError: rejected action must return false ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;
+		at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+		at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+		at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+		at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+		at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+		at app//evaluation.CancellationContractTest.lambda$rejectedWithoutMutation$0(CancellationContractTest.java:66)
+		at app//org.junit.jupiter.api.AssertAll.lambda$assertAll$0(AssertAll.java:68)
+		at java.base@25.0.4.1/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:214)
+		at java.base@25.0.4.1/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)
+		at java.base@25.0.4.1/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)
+		at java.base@25.0.4.1/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)
+		at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:77)
+		... 8 more
+	Suppressed: org.opentest4j.AssertionFailedError: rejected action must preserve all records ==&gt; expected: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=PENDING], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt; but was: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=CANCELLED], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt;
+		at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+		at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+		at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+		at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+		at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+		at app//evaluation.CancellationContractTest.lambda$rejectedWithoutMutation$1(CancellationContractTest.java:67)
+		at app//org.junit.jupiter.api.AssertAll.lambda$assertAll$0(AssertAll.java:68)
+		at java.base@25.0.4.1/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:214)
+		at java.base@25.0.4.1/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)
+		at java.base@25.0.4.1/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+		at java.base@25.0.4.1/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)
+		at java.base@25.0.4.1/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)
+		at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:77)
+		... 8 more
+Cause 1: org.opentest4j.AssertionFailedError: rejected action must return false ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+	at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+	at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+	at app//evaluation.CancellationContractTest.lambda$rejectedWithoutMutation$0(CancellationContractTest.java:66)
+	at app//org.junit.jupiter.api.AssertAll.lambda$assertAll$0(AssertAll.java:68)
+	at java.base@25.0.4.1/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:214)
+	at java.base@25.0.4.1/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)
+	at java.base@25.0.4.1/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)
+	at java.base@25.0.4.1/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:77)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:44)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:38)
+	at app//org.junit.jupiter.api.Assertions.assertAll(Assertions.java:2944)
+	at app//evaluation.CancellationContractTest.rejectedWithoutMutation(CancellationContractTest.java:65)
+	at app//evaluation.CancellationContractTest.foreignOwnerIsRejectedWithoutMutation(CancellationContractTest.java:33)
+	at java.base@25.0.4.1/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+Cause 2: org.opentest4j.AssertionFailedError: rejected action must preserve all records ==&gt; expected: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=PENDING], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt; but was: &lt;{request-a=Request[id=request-a, ownerId=borrower-a, status=PENDING], request-b=Request[id=request-b, ownerId=borrower-b, status=CANCELLED], cancelled-a=Request[id=cancelled-a, ownerId=borrower-a, status=CANCELLED]}&gt;
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1156)
+	at app//evaluation.CancellationContractTest.lambda$rejectedWithoutMutation$1(CancellationContractTest.java:67)
+	at app//org.junit.jupiter.api.AssertAll.lambda$assertAll$0(AssertAll.java:68)
+	at java.base@25.0.4.1/java.util.stream.ReferencePipeline$3$1.accept(ReferencePipeline.java:214)
+	at java.base@25.0.4.1/java.util.Spliterators$ArraySpliterator.forEachRemaining(Spliterators.java:1024)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:570)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:560)
+	at java.base@25.0.4.1/java.util.stream.ReduceOps$ReduceOp.evaluateSequential(ReduceOps.java:921)
+	at java.base@25.0.4.1/java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:265)
+	at java.base@25.0.4.1/java.util.stream.ReferencePipeline.collect(ReferencePipeline.java:723)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:77)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:44)
+	at app//org.junit.jupiter.api.AssertAll.assertAll(AssertAll.java:38)
+	at app//org.junit.jupiter.api.Assertions.assertAll(Assertions.java:2944)
+	at app//evaluation.CancellationContractTest.rejectedWithoutMutation(CancellationContractTest.java:65)
+	at app//evaluation.CancellationContractTest.foreignOwnerIsRejectedWithoutMutation(CancellationContractTest.java:33)
+	at java.base@25.0.4.1/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base@25.0.4.1/java.util.ArrayList.forEach(ArrayList.java:1604)
+</failure>
+  </testcase>
+  <testcase name="loggedOutIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.002"/>
+  <testcase name="wrongRoleIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.001"/>
+  <testcase name="ownerCanCancelOnlySelectedRequest()" classname="evaluation.CancellationContractTest" time="0.004"/>
+  <testcase name="repeatedCancellationIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.002"/>
+  <testcase name="cancelledRequestIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.002"/>
+  <testcase name="unknownRequestIsRejectedWithoutMutation()" classname="evaluation.CancellationContractTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

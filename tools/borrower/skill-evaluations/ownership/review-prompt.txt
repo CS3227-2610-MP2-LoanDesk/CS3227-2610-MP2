@@ -1,0 +1,13 @@
+Use the loandesk-borrower-ownership-review skill to review the supplied case-a
+and case-b independently against requirements.md. This is an isolated fixture,
+not a change to production contracts. Report findings without editing files.
+
+Read only the supplied skill, requirements.md and the two CancellationService.java
+files. Do not read tests, build scripts, answer sheets, prior results, project
+logs or conversation history. The supplied requirements provide the complete
+context for this exercise; broader LoanDesk policies are not needed here.
+
+Provide the operation/role/owner/state table and supported findings with file
+locations, direct-call scenarios, expected versus observed behaviour and missing
+tests. Say explicitly whether any code was executed. Do not assume either case
+has a defect. Return your review without fixing anything.

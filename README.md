@@ -29,3 +29,7 @@ See [docs/DeveloperGuide.md](docs/DeveloperGuide.md) for the project layout
 and contribution workflow. User-facing setup instructions will be maintained
 in [docs/UserGuide.md](docs/UserGuide.md). The complete progress tracker is
 in [docs/ProjectChecklist.md](docs/ProjectChecklist.md).
+
+Borrower review skills and optional per-checkout Git hooks are documented in
+[docs/AgenticSE.md](docs/AgenticSE.md) and the
+[developer setup guide](docs/DeveloperGuide.md#borrower-skills-and-personal-hooks).

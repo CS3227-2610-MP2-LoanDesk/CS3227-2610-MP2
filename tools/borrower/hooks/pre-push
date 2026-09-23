@@ -1,0 +1,9 @@
+#!/bin/bash
+set -eu
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+printf 'LoanDesk pre-push: running clean test --no-daemon on the working tree.\n'
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) exec ./gradlew.bat clean test --no-daemon ;;
+    *) exec sh ./gradlew clean test --no-daemon ;;
+esac

@@ -1,0 +1,2 @@
+rootProject.name = 'borrower-ownership-evaluation'
+include 'case-a', 'case-b'

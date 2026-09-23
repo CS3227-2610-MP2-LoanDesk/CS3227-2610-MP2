@@ -10,8 +10,10 @@ import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import loandesk.domain.Equipment;
+import loandesk.domain.PasswordCredential;
 import loandesk.domain.Role;
 import loandesk.domain.User;
+import loandesk.security.PasswordHasher;
 
 public final class JsonDataStore {
     private final Path dataFile;
@@ -24,10 +26,15 @@ public final class JsonDataStore {
 
     public LoanDeskData loadOrSeed() throws IOException {
         if (Files.notExists(dataFile)) {
+            User firstBorrower = new User("testBorrower1", Role.BORROWER);
+            User secondBorrower = new User("testBorrower2", Role.BORROWER);
             LoanDeskData seeded = new LoanDeskData(
                     List.of(
-                            new User("testBorrower1", Role.BORROWER),
-                            new User("testBorrower2", Role.BORROWER)),
+                            firstBorrower,
+                            secondBorrower),
+                    List.of(
+                            PasswordHasher.hash(firstBorrower.username(), "password1"),
+                            PasswordHasher.hash(secondBorrower.username(), "password2")),
                     List.of(
                             new Equipment("camera1", "Camera 1"),
                             new Equipment("camera2", "Camera 2")));

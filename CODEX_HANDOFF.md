@@ -1,0 +1,230 @@
+# LoanDesk Codex Handoff
+
+Read this file first when continuing the project from a terminal.
+
+## Resume here: 21 September 2026
+
+The user is continuing after implementing borrower review tooling, the session
+role guard and borrower password authentication. Catalogue, request, loan and
+history product features remain unfinished. Do not restart completed tooling
+work.
+
+### User preferences and boundaries
+
+- Yikbing is learning testing for the first time. Explain each step in plain
+  language, including why it is needed and what the result means.
+- Discuss the next implementation scope and wait for the user's instruction
+  before starting new work. Once authorized, complete that scope and explain progress.
+- Work only inside this repository; never edit/delete the parent MP2 files.
+- Borrower only; avoid supervisor/custodian changes. Ask before shared-contract
+  or major architecture changes. Keep shared rules and persistence centralized.
+- Preserve existing uncommitted work and ignored personal data. Do not commit,
+  push, switch branches or pull automatically as part of resuming this chat.
+- Run `.\gradlew.bat clean test --no-daemon` before and after changes; update
+  relevant artifacts and a dated session log. Use synthetic test data.
+
+### Completed and verified
+
+- Four automatically selectable skills under `.agents/skills/`: borrower UI,
+  ownership, edge-case/test review, and change-completeness review. The three
+  original skills passed official format validation; the fourth passed manual
+  frontmatter checks because its validator lacked PyYAML. Automatic selection
+  is eligible, not proven by the explicit-invocation evaluation.
+- Pre-commit and pre-push hooks are active only in this checkout through
+  `core.hooksPath=tools/borrower/hooks`. Nine hook fixture tests passed.
+- Ownership exercise: `tools/borrower/skill-evaluations/ownership/README.md`.
+  Standalone Gradle project; not included in normal application tests.
+- Same seven JUnit tests run against two synthetic Java services. Case A fails
+  only foreign-owner rejection; case B passes seven. `verifyFixtures` checks
+  these exact outcomes and succeeds only when the expected pattern occurs.
+- A separately invoked fresh reviewer, explicitly approved by the user, read
+  the skill, requirements and cases without conversation history or answer sheet.
+  It detected the missing owner check in A and reported no defect in B.
+- IMPORTANT: JUnit did NOT invoke the agent or skill. JUnit tested Java code;
+  the agent review was run separately and assessed against an answer sheet.
+  Calling this a unit-level skill evaluation does not make it a JUnit skill test.
+- Evidence: `logs/Yikbing-logs/2026-09-21-ownership-skill-evaluation.md` and its
+  linked prompt, original response and saved JUnit XML. No human sign-off yet.
+
+### First actions for the next chat
+
+1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
+   `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
+2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
+   Report actual status; existing work is uncommitted on `yikbing`.
+3. Report the staged implementation summary and actual test status before any
+   further changes. Discuss the exact files and scope before editing.
+4. The next borrower milestone is the remaining active-session gate for
+   protected operations, followed by the catalogue contract and implementation.
+   Integration/system evaluation, automatic-selection checks, repeat runs and
+   detailed reflections remain pending. Do not claim they have been done.
+5. Preserve the user's local data and staged work; do not commit, push, pull or
+   switch branches automatically.
+
+To reproduce the completed fixture check from the repository root:
+
+```powershell
+.\gradlew.bat -p tools/borrower/skill-evaluations/ownership verifyFixtures --no-daemon
+```
+
+One reported JUnit failure in case A is intentional. Never fix that isolated
+fixture merely to make all tests green. Normal Gradle clean removes generated
+reports, but preserved XML and review evidence remain in logs.
+
+### Model suggestion (advice, not a configuration change)
+
+As of 21 September 2026, Luna (`gpt-5.6-luna`) with Medium reasoning is the
+suggested economical starting point for the next narrow evaluation. Terra
+(`gpt-5.6-terra`) with Medium reasoning is recommended for broader feature
+implementation. Escalate for difficult shared-rule/debugging work. These are
+task-based recommendations, not measured LoanDesk benchmarks. No model setting
+was changed. Source: https://learn.chatgpt.com/docs/models
+
+## Repository
+
+- Repository: `CS3227-2610-MP2`
+- Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
+- Default branch: `main`
+- Inspected on 21 September 2026: branch `yikbing` at `bb25354`, matching
+  locally recorded `origin/main`; uncommitted work exists, and no fetch was run.
+- Recent commits include `bb25354 fix gradle wraper errors` and
+  `e03bec1 create foundation for MP2`.
+- Work from the repository root, not the parent `MP2` directory.
+
+## Toolchain and commands
+
+- Java SE 25
+- Gradle 9.1.0 through the committed wrapper
+- JavaFX 21.0.6
+- JUnit 5
+
+PowerShell commands from the repository root:
+
+```powershell
+.\gradlew.bat clean test --no-daemon
+.\gradlew.bat run --no-daemon
+```
+
+The clean test suite has passed after the package flattening. Run it before
+claiming a change is ready.
+
+## Current product foundation
+
+The shared foundation currently provides:
+
+- Three role buttons: `Borrower`, `Supervisor`, `Custodian`
+- Borrower `Log in` and `Sign up`
+- Borrower password login/sign-up with salted persisted hashes
+- Fixed supervisor and custodian entry pending their password-login work
+- Session and logout handling
+- Placeholder three-button dashboards
+- JSON persistence at `data/loandesk.json`
+- First-launch seed data: `testBorrower1`, `testBorrower2`, `camera1`, `camera2`
+- Temporary-file replacement for JSON saves
+- Tests for authentication, persistence, and username rules
+
+Role-specific catalogue, approval, checkout, return, and maintenance features
+are not implemented yet.
+
+Professor feedback changed the borrower plan: authentication must gate all
+protected dashboards and operations, including direct service calls. Login,
+sign-up and role selection remain the unauthenticated entry points.
+
+## Package layout
+
+The Java namespace was intentionally flattened to `loandesk`:
+
+```text
+src/main/java/loandesk/
+  LoanDeskApp.java
+  domain/          shared models and roles
+  application/     shared session/authentication logic
+  persistence/     shared JSON storage
+  features/
+    borrower/
+      ui/
+      application/
+    supervisor/
+      ui/
+      application/
+    custodian/
+      ui/
+      application/
+```
+
+The role feature folders contain README files and placeholders. Put role-owned
+UI and role-specific application use cases in the relevant feature area. Keep
+shared models, permissions, availability rules, and persistence centralized.
+
+## Data and Git
+
+`data/`, `.gradle/`, and `build/` are ignored. Do not commit local
+`data/loandesk.json`; each developer should have independent local test data.
+Do not add a hook that deletes data automatically. Tests should use temporary
+folders.
+
+The repository also contains `.github/workflows/ci.yml` and shared Java settings
+under `.vscode/settings.json`. The parent workspace's `.github/modernize` and
+parent `.vscode` folder are not part of this repository.
+
+## Documentation artifacts
+
+- `docs/ProjectContext.md`: decisions and architecture context
+- `docs/ProjectChecklist.md`: end-to-end progress checklist
+- `docs/DeveloperGuide.md`: contributor and package guidance
+- `docs/UserGuide.md`: current user instructions
+- `docs/AgenticSE.md`: implemented borrower skills/hooks and future team proposals
+- `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
+- `logs/Yikbing-logs/`: verified summaries of Yikbing's AI sessions
+
+Four borrower `SKILL.md` files now live in `.agents/skills/`; the third covers
+edge cases and existing test failures, and the fourth covers change
+completeness. Automatic selection is enabled by default.
+Two personal hooks live in `tools/borrower/hooks/`, with a reproducible harness
+at `tools/borrower/test_hooks.py`. Activated in Yikbing's checkout on 21 September
+2026 via local `core.hooksPath=tools/borrower/hooks`; activation is not cloned.
+See the Developer Guide for local activation
+and removal. The first controlled ownership skill evaluation is under
+`tools/borrower/skill-evaluations/ownership/`, with evidence in the
+21 September ownership evaluation log. One fresh reviewer detected the planted
+defect and accepted the correct case; other skill evaluations, repeat runs,
+`docs/Reflections.md`, release packaging, website, and cross-role workflows remain.
+
+## Next work
+
+Yikbing owns only the borrower role. Avoid supervisor/custodian edits unless
+unavoidable, and discuss shared-contract or major architecture changes first.
+When asked about skills or hooks again, consult **Yikbing's borrower setup**
+in `docs/AgenticSE.md` and the 21 September implementation log. The three
+skills and two hooks were explicitly authorized for implementation. Optional
+GitHub skill imports remain uninstalled.
+
+1. Inspect and preserve uncommitted work before updating from `main`; do not
+   switch branches or pull over existing work blindly.
+2. Agree on request/loan models, statuses, date boundaries, clarification and
+   cancellation policy, and permissions before changing shared contracts.
+3. Create a feature branch for one role.
+4. Implement and test role work inside its feature area while coordinating any
+   shared-package changes.
+5. Keep the checklist and session logs truthful.
+
+Example:
+
+```powershell
+git switch main
+git pull origin main
+git switch -c feature/borrower-workflow
+.\gradlew.bat clean test --no-daemon
+```
+
+## Important correction history
+
+The Java package was deliberately changed from
+`sg.edu.nus.cs3227.loandesk` to `loandesk`. If VS Code displays the old path,
+close the stale editor tab and reopen the file from `src/main/java/loandesk/`,
+or run `Java: Clean Java Language Server Workspace`.
+
+A previous push attempt failed with HTTP 403 because the GitHub account
+`Yikbing` lacked repository write permission. The repository later reached a
+clean state matching `origin/main`; if pushing again fails, ask the organization
+owner to grant write access.

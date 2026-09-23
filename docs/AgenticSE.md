@@ -1,8 +1,117 @@
 # Agentic SE Skills and Hooks
 
-This document defines the proposed custom development-agent practices for
+This document defines the custom development-agent practices for
 LoanDesk. These practices support the assignment reflection; they do not add
 AI functionality to the LoanDesk product.
+
+## Yikbing's borrower setup (implemented 21 September 2026)
+
+Four repository skills and two personal Git hooks implement the setup agreed
+with Yikbing. Skills allow automatic selection when their descriptions match;
+they do not run continuously. Hooks run at commit/push after local activation.
+See [DeveloperGuide.md](DeveloperGuide.md#borrower-skills-and-personal-hooks)
+for usage, activation, disabling and verification. No online imports were installed.
+The hooks were activated in Yikbing's checkout on 21 September 2026. Nine hook
+fixture tests and the three original skill format checks passed. The fourth
+skill passed manual frontmatter checks; its official validator could not run
+because the available Python runtime lacked PyYAML. The real
+pre-push hook also passed the full Gradle clean test suite. See the dated
+[implementation log](../logs/Yikbing-logs/2026-09-21-borrower-skills-hooks-implementation.md).
+
+Yikbing owns the borrower role; other members own supervisor and custodian.
+Keep borrower work under `src/main/java/loandesk/features/borrower/`. Skills
+may read shared contracts, but should flag unavoidable shared changes for
+coordination. Ask before changing shared contracts or major architecture;
+do not invent unresolved date, cancellation, or request-state policies.
+
+### What each mechanism does
+
+- **Skill:** reusable agent instructions for a task requiring judgment;
+  optionally includes scripts and references. It does not guarantee correctness.
+- **Git hook:** a deterministic script triggered by a Git event, such as a
+  commit or push. Local hooks can be bypassed.
+- **CI:** checks run on GitHub; the repository already runs Gradle tests on
+  pushes to `main` and pull requests targeting `main`.
+
+### Implemented custom skills
+
+| Skill name | Purpose | Planned controlled evaluation |
+| --- | --- | --- |
+| `loandesk-borrower-ui-review` | Review catalogue filters, empty results, validation messages, request status, and enabled actions. | Detect an accepted invalid date range in an isolated fixture. |
+| `loandesk-borrower-ownership-review` | Review service-layer ownership and edits/cancellation against agreed policy. | Detect borrower A being allowed to cancel borrower B's request. |
+| `loandesk-borrower-edge-case-test-review` | Run and review existing tests, investigate failures, check valid success and safe rejection, and identify missing boundary, stale-state, repeated-action and save-failure tests. | Identify meaningful omissions and weak assertions in an incomplete test fixture. |
+| `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence and shared-contract coordination. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
+
+Each review should report concrete findings, file references, reproduction
+steps, and verification evidence. Evaluate against both defective and correct
+examples, and retain missed defects and false positives as well as successes.
+Do not leave intentional defects in production code.
+
+Location: `.agents/skills/<skill-name>/SKILL.md` inside this
+repository. Automatic selection is enabled by default. Example explicit invocation:
+`$loandesk-borrower-ownership-review Review my borrower changes.`
+
+### Implemented personal Git hooks
+
+- **Pre-commit:** inspect staged changes for whitespace errors and conflict
+  markers; reject staged `data/` files; warn when shared or other-role files
+  are included. Scope warnings should not block necessary coordinated changes.
+- **Pre-push:** run `.\gradlew.bat clean test --no-daemon` on Windows and stop
+  the push if tests fail.
+
+Scripts live in `tools/borrower/hooks/`, with LF line endings controlled by a
+local `.gitattributes`. Activation uses this checkout's `core.hooksPath`; it does
+not configure teammates' clones. Existing hook configuration must be inspected
+before activation. Scripts do not stage, rewrite, or delete local data. Pre-push
+does clean generated build output through Gradle. Pre-commit examines the index,
+including force-added data and partially staged files; scope warnings do not block.
+
+`tools/borrower/test_hooks.py` exercises hooks in disposable repositories inside
+ignored `build/`. It checks clean and empty indexes, data blocking without content
+disclosure, conflict markers, whitespace, scope warnings, partial staging and
+pre-push argument/exit-status propagation. The pre-push test uses a stub wrapper;
+real Gradle verification is recorded separately in the session log.
+
+Skill format validation does not prove review quality. The first controlled
+ownership evaluation now has two isolated cases, shared executable contract
+tests and one fresh reviewer run. The reviewer identified the seeded defect
+and reported no unsupported defect in the correct case. See the
+[walkthrough](../tools/borrower/skill-evaluations/ownership/README.md) and
+[evaluation record](../logs/Yikbing-logs/2026-09-21-ownership-skill-evaluation.md).
+This is one unit-level evaluation with explicit skill invocation; automatic
+selection, integration/system evaluation, other skills and detailed human
+reflections remain unfinished. The skills do not authorize unrelated edits
+or claim exhaustive coverage.
+
+JUnit does not launch an agent or invoke these skills. It tests the synthetic
+Java services. The fresh agent review is a separate, explicitly invoked step,
+and its findings are compared against the withheld answer sheet. An automated
+agent evaluation runner has not been implemented.
+
+Defer commit-message enforcement and automatic formatting. No formatter was
+configured in `build.gradle` when this recommendation was recorded. The
+broader team proposals below remain future options, not activated requirements.
+
+### Online imports worth considering later
+
+- [gh-fix-ci](https://github.com/openai/skills/tree/main/skills/.curated/gh-fix-ci):
+  investigate failing GitHub Actions checks on borrower pull requests.
+- [gh-address-comments](https://github.com/openai/skills/tree/main/skills/.curated/gh-address-comments):
+  collect teammate review comments and implement selected fixes.
+
+Both require authenticated GitHub CLI access. Recheck their instructions and
+dependencies before importing. `skill-creator` and `skill-installer` were
+already available in the planning session; no import was needed for them.
+
+The inspected `playwright` skill targets browser automation, not JavaFX.
+The inspected `security-best-practices` skill targets Python,
+JavaScript/TypeScript, and Go, so it is not a Java-specific review choice.
+
+References checked during planning:
+
+- [Official skill format, invocation, and repository locations](https://learn.chatgpt.com/docs/build-skills)
+- [Git hook behaviour](https://git-scm.com/docs/githooks)
+- [OpenAI curated skill catalogue](https://github.com/openai/skills/tree/main/skills/.curated)
 
 ## Skill format
 
@@ -10,7 +119,7 @@ Every skill should specify its trigger, required inputs, checks, output, and
 verification evidence. A skill evaluation must use a controlled fixture or
 isolated test change. Do not leave intentional defects in the release branch.
 
-## Proposed skills
+## Broader team skill proposals (not implemented by this setup)
 
 ### 1. UI acceptance reviewer
 
@@ -74,7 +183,7 @@ also verifies that each role sees only the operations it owns.
 **Verification:** Run the first integration acceptance scenario on a clean local
 store and retain the test output or screenshots.
 
-## Hooks and automation
+## Broader team automation proposals (not activated by this setup)
 
 Hooks should be lightweight developer feedback. CI is authoritative because
 local hooks can be bypassed.

@@ -1,6 +1,7 @@
 package loandesk;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.file.Files;
@@ -22,8 +23,9 @@ class AuthenticationServiceTest {
         Path dataFile = temporaryDirectory.resolve("loandesk.json");
         AuthenticationService service = new AuthenticationService(new JsonDataStore(dataFile));
 
-        assertEquals("testBorrower1", service.loginBorrower(" TESTBORROWER1 ").username());
+        assertEquals("testBorrower1", service.loginBorrower(" TESTBORROWER1 ", "password1").username());
         assertEquals(2, new JsonDataStore(dataFile).loadOrSeed().equipment().size());
+        assertFalse(Files.readString(dataFile).contains("password1"));
         assertEquals(Role.SUPERVISOR, service.loginStaff(Role.SUPERVISOR).role());
         assertEquals(Role.CUSTODIAN, service.loginStaff(Role.CUSTODIAN).role());
         assertEquals("loandesk.json", dataFile.getFileName().toString());
@@ -34,10 +36,10 @@ class AuthenticationServiceTest {
         Path dataFile = temporaryDirectory.resolve("loandesk.json");
         AuthenticationService service = new AuthenticationService(new JsonDataStore(dataFile));
 
-        service.signUpBorrower("NewBorrower");
+        service.signUpBorrower("NewBorrower", "newpassword");
         AuthenticationService reloaded = new AuthenticationService(new JsonDataStore(dataFile));
 
-        assertEquals("newborrower", reloaded.loginBorrower("NEWBORROWER").username());
+        assertEquals("newborrower", reloaded.loginBorrower("NEWBORROWER", "newpassword").username());
     }
 
     @Test
@@ -46,7 +48,7 @@ class AuthenticationServiceTest {
                 new JsonDataStore(temporaryDirectory.resolve("loandesk.json")));
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.signUpBorrower("testborrower1"));
+                () -> service.signUpBorrower("testborrower1", "newpassword"));
     }
 
     @Test
@@ -56,5 +58,43 @@ class AuthenticationServiceTest {
         new AuthenticationService(new JsonDataStore(dataFile));
 
         assertEquals(true, Files.exists(dataFile));
+    }
+
+    @Test
+    void rejectsWrongBorrowerPassword() throws Exception {
+        AuthenticationService service = new AuthenticationService(
+                new JsonDataStore(temporaryDirectory.resolve("loandesk.json")));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.loginBorrower("testBorrower1", "wrongpass"));
+    }
+
+    @Test
+    void rejectsNullBorrowerPassword() throws Exception {
+        AuthenticationService service = new AuthenticationService(
+                new JsonDataStore(temporaryDirectory.resolve("loandesk.json")));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.loginBorrower("testBorrower1", null));
+    }
+
+    @Test
+    void rejectsPasswordsOutsideTheAgreedLengthRange() throws Exception {
+        AuthenticationService service = new AuthenticationService(
+                new JsonDataStore(temporaryDirectory.resolve("loandesk.json")));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.signUpBorrower("newBorrower", "short"));
+    }
+
+    @Test
+    void persistsAHashInsteadOfThePlaintextPassword() throws Exception {
+        Path dataFile = temporaryDirectory.resolve("loandesk.json");
+        AuthenticationService service = new AuthenticationService(new JsonDataStore(dataFile));
+
+        service.signUpBorrower("NewBorrower", "newpassword");
+
+        String savedJson = Files.readString(dataFile);
+        org.junit.jupiter.api.Assertions.assertFalse(savedJson.contains("newpassword"));
     }
 }

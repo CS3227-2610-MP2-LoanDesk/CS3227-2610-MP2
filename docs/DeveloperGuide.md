@@ -6,7 +6,8 @@
 - `src/test/java`: automated tests
 - `docs`: user and developer documentation
 - `docs/ProjectContext.md`: compact context and current decisions
-- `docs/AgenticSE.md`: proposed skills, hooks, and evaluation evidence
+- `docs/BorrowerMilestones.md`: sequential borrower implementation plan
+- `docs/AgenticSE.md`: borrower skills/hooks and future team proposals
 - `logs/Yikbing-logs`: Yikbing's dated, verified AI-session summaries
 
 The shared Java package layout is:
@@ -15,7 +16,8 @@ The shared Java package layout is:
 - `application`: use cases, permissions, and workflow rules
 - `persistence`: JSON data store, repositories, and first-launch initialization
 - `ui/common`: role selection, login, sign-up, session, and logout
-- `ui/borrower`, `ui/supervisor`, `ui/custodian`: role-specific screens
+- `features/borrower`, `features/supervisor`, `features/custodian`: role-owned
+  `ui/` and `application/` packages
 
 The intended application direction is:
 
@@ -43,7 +45,75 @@ For each meaningful AI-assisted session, add a dated summary under
 files changed. These summaries are checked by a human before submission and
 are not intended to replace the full conversation transcript.
 
-## Open decisions
+## Borrower skills and personal hooks
+
+Four skills live under `.agents/skills/`: `loandesk-borrower-ui-review`,
+`loandesk-borrower-ownership-review`, and
+`loandesk-borrower-edge-case-test-review`, plus
+`loandesk-borrower-change-completeness-review`. Their descriptions enable automatic
+selection for relevant borrower changes; this is agent selection, not background
+execution. You can also invoke a skill by its `$name`. If newly created skills
+are not visible, start a fresh session. Review-only requests produce findings;
+fixes/tests are made only within an authorized implementation task.
+
+Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
+`pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks
+staged content for local data, conflict markers and whitespace, and warns about
+shared/other-role source changes. Pre-push runs the full clean test suite on
+the current working tree; uncommitted changes mean this is not proof that the
+commits being pushed pass independently. CI checks the submitted commit.
+
+Activation is per clone. Inspect `git config --show-origin --get core.hooksPath`
+and existing `.git/hooks` first; do not replace active hooks without coordination.
+When no existing configuration needs preserving:
+
+```powershell
+git config --local core.hooksPath tools/borrower/hooks
+git config --local --get core.hooksPath
+```
+
+To disable this setup, first confirm that the local value is still
+`tools/borrower/hooks`, then run `git config --local --unset core.hooksPath`.
+This restores default/inherited hook lookup; it does not delete hook scripts.
+Local hooks are bypassable and do not replace CI. Marker-like text in docs can
+be flagged; inspect and rephrase intentional examples rather than auto-editing.
+
+Reproduce the hook checks with Python 3 (test tooling only):
+
+```powershell
+python tools/borrower/test_hooks.py
+git hook run pre-commit
+git hook run pre-push
+```
+
+Fixtures use synthetic files in disposable repositories under ignored `build/`.
+Never run `clean` concurrently with these fixtures. No real commit or push is
+needed. Skills, hooks and the harness do not modify application data. Unix
+execution has not been verified; a future Unix checkout may also require
+executable permissions on the two hook scripts.
+
+## First ownership skill evaluation
+
+Follow the [beginner walkthrough](../tools/borrower/skill-evaluations/ownership/README.md).
+It contains neutral case A/B examples, synthetic requirements, seven shared
+JUnit tests, a reviewer prompt and a separate evaluator answer sheet.
+
+```powershell
+.\gradlew.bat -p tools/borrower/skill-evaluations/ownership verifyFixtures --no-daemon
+```
+
+An intentional test failure in case A is expected; the harness checks its exact
+identity and requires all case B tests to pass. Do not run only the fixture
+`test` task and interpret its exit status as acceptance: `verifyFixtures` is the
+acceptance task. The application build and normal pre-push tests exclude these
+fixtures. See the dated log for the independent review and assessment; use a
+fresh reviewer without the answer sheet when repeating the evaluation.
+
+JUnit runs Java assertions only; it does not send the review prompt to an AI.
+The agent review and assessment are separate steps. When switching chats/models,
+start with `CODEX_HANDOFF.md` for the current stopping point and user preferences.
+
+## Open workflow policies
 
 The team still needs to agree on date-boundary rules, request state names,
 request/loan model boundaries, and workflow policy before implementing those

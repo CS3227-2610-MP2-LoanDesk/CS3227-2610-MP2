@@ -2,6 +2,7 @@ package loandesk.application;
 
 import java.util.Objects;
 
+import loandesk.domain.Role;
 import loandesk.domain.User;
 
 public final class Session {
@@ -24,5 +25,14 @@ public final class Session {
             throw new IllegalStateException("No user is currently logged in.");
         }
         return user;
+    }
+
+    public User requireRole(Role requiredRole) {
+        Objects.requireNonNull(requiredRole);
+        User currentUser = requireUser();
+        if (currentUser.role() != requiredRole) {
+            throw new IllegalStateException("The logged-in user does not have the required role.");
+        }
+        return currentUser;
     }
 }
