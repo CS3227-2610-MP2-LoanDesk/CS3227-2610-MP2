@@ -73,14 +73,119 @@ workflow records rather than invented catalogue state.
 
 The agreed future vocabulary is equipment conditions `GOOD`, `DAMAGED`,
 `UNDER_MAINTENANCE` and `LOST`; request statuses `PENDING`, `APPROVED`,
-`REJECTED`, `NEEDS_CLARIFICATION` and `CANCELLED`; and loan statuses `ACTIVE`,
-`RETURNED`, `OVERDUE` and `LOST`. Availability will be derived as
-`AVAILABLE`, `ON_LOAN` or `UNAVAILABLE`.
+`COLLECTED`, `REJECTED`, `CANCELLED` and `EXPIRED`; and loan statuses
+`ACTIVE`, `RETURNED` and `LOST`. `OVERDUE` is derived for an active loan whose
+due date has passed. Availability is proposed as `AVAILABLE`, `RESERVED`,
+`ON_LOAN` or `UNAVAILABLE`.
 
 Important invariants include: only approved requests can be checked out; an item
 cannot be issued twice; damaged equipment becomes unavailable; borrowers can
 only access their own records; and failed multi-record saves must not leave
 inconsistent state.
+
+### Agreed request and loan policy
+
+The following borrower workflow decisions were agreed with the affected role
+owners on 24 September 2026 and should guide implementation:
+
+- A request contains one equipment item. A borrower may have at most three
+  active loans or approved reservations.
+- Equipment, a non-blank purpose and a start date are required. The start date
+  defaults to today and the due date defaults to fourteen days later; shorter
+  periods are allowed. Borrowers may edit only pending requests before their
+  start date.
+- Borrowers create `PENDING` requests; supervisors approve or reject them;
+  borrowers may cancel eligible requests; and uncollected approved requests
+  expire at the end of their requested start date.
+- Requests and loans are separate records. A loan is created at physical
+  checkout by the custodian, not at supervisor approval. Rejected, cancelled
+  and expired requests do not create loans.
+- Dates are date-only, inclusive and allow same-day borrowing. Past start
+  dates and due dates before the start date are rejected.
+- Clarification and revision are excluded from the initial workflow. A
+  cancellation requires a reason and is allowed only for pending or approved
+  requests whose start date is later than today.
+- Borrowers with unresolved overdue or lost loans cannot submit new requests.
+  This restriction is enforced in the request service; supervisor overrides
+  and fine settlement are outside the current scope.
+- Pending requests do not reserve equipment. Approved requests reserve it
+  until the collection deadline. Active loans, damaged equipment, equipment
+  under maintenance and lost equipment are unavailable.
+- Each request has a generated request ID, borrower username, equipment ID,
+  purpose, requested dates, status, timestamps and nullable loan ID. Approval
+  or rejection retains the decision actor, time and reason. Cancellation
+  retains the cancelling borrower, time and reason.
+- A checked-out request becomes `COLLECTED` and links to a separate loan.
+  Expiry applies only before collection; overdue applies to the resulting loan
+  after checkout. A lost loan continues to block new requests until resolved.
+- Request records and the shared loan/availability foundation use the existing
+  `LoanDeskData` and H2 transaction boundary. The first schema change is
+  additive: existing users, credentials and equipment are preserved.
+
+The custodian is the source of truth for physical equipment condition: they
+record damage and return condition, place equipment under maintenance and
+confirm lost equipment. Supervisors use that state when approving requests but
+do not directly edit physical condition.
+
+### Agreed borrower request UX
+
+The following borrower-facing design decisions were agreed on 24 September
+2026. They describe the intended UI and do not replace service-layer checks:
+
+- The request form selects one equipment item, collects a purpose and uses
+  date-only start and due-date pickers. The start date defaults to today and
+  the due date defaults to fourteen days later; borrowers may shorten the
+  period but not extend it beyond fourteen days.
+- Purpose uses common options (`Academic project`, `Personal use`, `Event or
+  club activity`, and `Research or lab work`) plus `Other`. Selecting `Other`
+  requires a short explanation. The stored purpose remains request text rather
+  than introducing a separate purpose-category contract for the MVP.
+- The catalogue remains browseable and read-only. It shows availability, but
+  only `AVAILABLE` equipment can be selected for a request. The request
+  service reloads and rechecks eligibility, ownership and availability at
+  submission time so stale UI cannot bypass the rules.
+- A borrower may have only one pending request for a given equipment item.
+  The service rejects duplicates even if the UI is bypassed.
+- The dashboard opens after successful login. It prioritizes overdue-loan
+  warnings, then approved-request collection reminders, active loans and
+  requests. A borrowing-eligibility banner lists every active blocker, such as
+  overdue or lost loans or the three-loan/reservation limit. The banner uses
+  text as well as red styling and disables request actions while the catalogue
+  remains viewable.
+- The dashboard includes `Active Loans`, `Upcoming Collections` and request
+  summaries, with friendly empty states. `My Loans` uses separate active and
+  history tables; active entries show equipment, checkout date, due date and
+  `ACTIVE` or `OVERDUE`, while completed entries also show return date and
+  `RETURNED` status. Custodian-only internal condition notes are not exposed as
+  borrower actions.
+- `My Requests` keeps active requests above terminal history. It shows
+  equipment, purpose, dates, status and permitted actions. Borrowers may edit
+  only purpose and dates on an eligible pending request; equipment cannot be
+  changed. Rejected requests remain read-only history and require a new
+  request. Cancellation uses confirmation, a required reason dropdown
+  (`No longer needed`, `Plans changed`, `Requested dates changed`, `Unable to
+  collect the equipment`, `Submitted the request by mistake`, and `Other`),
+  and a required explanation for `Other`; the reason is persisted.
+- Successful submission shows a confirmation dialog with the equipment, dates
+  and `PENDING` status. An `OK` button is required before returning to the
+  dashboard. Invalid form input stays on the form with inline errors and
+  preserves entered values. Policy rejection messages identify the specific
+  blocker.
+- If the start date changes, a default due date moves to fourteen days after
+  the new start. A manually shortened period is preserved when possible;
+  otherwise inline validation asks the borrower to correct the due date.
+
+This UX is intentionally separate from supervisor approval and custodian
+checkout/return screens. Those role owners must consume the shared contracts
+and status values rather than duplicate borrower-only rules.
+
+### Shared implementation boundary for the first request slice
+
+The first implementation slice adds the shared request/loan domain vocabulary,
+H2 persistence and read-only eligibility/availability queries. It does not add
+the custodian checkout/return UI or supervisor approval UI. Those role owners
+will use the same records and transitions later. Borrower request submission
+must still rely on the shared service boundary rather than local UI checks.
 
 ## Current scope boundaries
 
@@ -155,10 +260,7 @@ just to avoid coordination.
 - Seed only when the database is empty; do not reseed existing data
 - Schema versioning and database recovery policy
 - Keep supervisor and custodian as fixed singleton roles without usernames
-- Inclusive or exclusive date boundaries
-- Request and loan model boundaries
-- Cancellation and clarification rules for each request state
-- Eligibility treatment for borrowers with overdue loans
+- Cross-role demonstration data after workflow features exist
 - Reset behaviour for demonstration data
 - Packaging and cross-platform release verification
 

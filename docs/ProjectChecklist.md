@@ -1,6 +1,6 @@
 # LoanDesk Project Checklist
 
-**Status date:** 24 September 2026
+**Status date:** 25 September 2026
 
 This is the end-to-end checklist for the project. Check items only when they
 are implemented and verified. Keep decisions and evidence truthful.
@@ -38,11 +38,11 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Defer complex request, damage, and maintenance demo scenarios until after
   feature branches are created.
 - [ ] Decide local data location, reset, recovery, and schema version behaviour.
-- [ ] Finalize request statuses and legal transitions.
-- [ ] Decide whether requests and loans are separate records.
-- [ ] Finalize date boundary and collection-window rules.
-- [ ] Finalize cancellation, clarification, and resubmission rules.
-- [ ] Decide how overdue borrowers affect approval.
+- [x] Finalize request statuses and legal transitions.
+- [x] Decide whether requests and loans are separate records.
+- [x] Finalize date boundary and collection-window rules.
+- [x] Finalize cancellation, clarification, and resubmission rules.
+- [x] Decide how overdue borrowers affect approval.
 - [x] Define initial seeded accounts and equipment.
 - [ ] Define cross-role demonstration data after workflow features exist.
 - [ ] Agree on shared service/repository interfaces before implementation.
@@ -58,11 +58,13 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Implement first-launch H2 schema creation and seeding for the agreed initial records.
 - [x] Implement username validation and duplicate prevention.
 - [x] Add tests for authentication, persistence, and username rules.
-- [ ] Implement domain models and validation rules.
+- [x] Implement the first shared request/loan domain models and basic validation.
 - [ ] Implement permission checks in services, not only in the UI.
 - [ ] Implement request lifecycle rules in one shared place.
-- [ ] Implement shared availability/conflict calculation.
+- [x] Implement the first shared availability precedence calculation.
 - [ ] Implement repository interfaces and consistent error handling.
+- [x] Add the coordinated shared request/loan domain and additive H2 tables.
+- [x] Add read-only eligibility and availability queries for borrower services.
 - [ ] Add logging that excludes passwords and sensitive credentials.
 - [ ] Add meaningful unit tests for shared rules.
 
@@ -75,10 +77,11 @@ implementation order and exit criteria.
 - [ ] Availability search by name, category, and dates.
 - [ ] Submit one-item request with purpose and date validation.
 - [ ] View own requests and request details.
-- [ ] Read clarification, revise, and resubmit.
+- [ ] Read rejection reasons and create a new request after rejection.
 - [ ] Cancel only where policy permits.
 - [ ] View active loans, due dates, overdue indicators, and history.
-- [ ] Test ownership, invalid input, prohibited edits, filters, and state rules.
+- [ ] Test ownership, invalid input, prohibited edits, filters, duplicate
+  pending requests, eligibility blockers, stale availability and state rules.
 
 ## 5. Supervisor workflow
 
@@ -169,15 +172,19 @@ implementation order and exit criteria.
 ## Verified current progress
 
 - Working branch `yikbing` is based on merged `origin/main` at `f2748da`, with
-  uncommitted H2 migration work on 23 September 2026.
-- The previous authentication and agent-tooling commit is already merged into
-  `main`; the H2 migration has not been committed or pushed yet.
+  the merged PR #2 commit `a18f29f`; the shared request-foundation changes are
+  currently uncommitted.
+- The H2 migration, catalogue and catalogue session-boundary work are merged
+  into `main`; request submission and role-specific workflow features remain
+  unfinished.
 - Java 25.0.4.1 is installed.
-- `gradlew.bat test --no-daemon` passes.
+- `gradlew.bat clean test --no-daemon` passes after the shared request-foundation
+  changes.
 - Shared role selection, borrower login/sign-up, staff entry, logout, and
   placeholder dashboards are implemented.
 - H2 persistence currently stores users, password credentials and equipment in
-  one role-aware local database. Existing JSON files are not imported.
+  one role-aware local database, now extended with request/loan tables and
+  equipment condition. Existing JSON files are not imported.
 - Role-specific catalogue, approval, checkout, return, and maintenance features
   do not exist yet.
 - Four borrower skills and two hook scripts now exist. Hook fixture tests pass.

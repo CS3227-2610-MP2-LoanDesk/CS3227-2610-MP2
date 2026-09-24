@@ -149,9 +149,28 @@ start with `CODEX_HANDOFF.md` for the current stopping point and user preference
 
 ## Open workflow policies
 
-The team still needs to agree on date-boundary rules, request state names,
-request/loan model boundaries, and workflow policy before implementing those
-contracts.
+The agreed request/loan policy is recorded in `ProjectContext.md`. It covers
+separate request and loan records, supervisor approval, custodian
+checkout/return, fourteen-day default due dates, expiry after a missed
+collection, cancellation, overdue eligibility and derived availability. Shared
+request and loan contracts should follow those decisions rather than inventing
+role-specific alternatives.
+
+The borrower request UX is also recorded in `ProjectContext.md`. Its important
+implementation boundaries are that the UI may explain or disable actions, but
+the application service must remain authoritative for eligibility, duplicate
+pending requests, ownership, date rules and fresh availability checks. The
+dashboard may summarize active loans, overdue warnings, approved collection
+reminders and request history, while shared persistence remains responsible for
+the underlying records. Supervisor reasons and custodian condition data are
+shared inputs; they are not reimplemented as borrower-only state.
+
+The first request implementation slice adds shared request/loan vocabulary,
+additive H2 persistence and read-only eligibility/availability queries. It does
+not add supervisor approval or custodian checkout/return screens. A checked-out
+request is `COLLECTED` and links to a separate loan; `OVERDUE` is derived from
+an active loan and its due date. Existing local H2 data must remain readable
+after the additive schema change.
 
 See [ProjectContext.md](ProjectContext.md) for the current context snapshot and
 [AgenticSE.md](AgenticSE.md) for the skill and hook proposal.
