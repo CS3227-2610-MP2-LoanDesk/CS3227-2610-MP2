@@ -21,17 +21,17 @@ code unless a shared-contract gate below has been agreed with the team.
 
 ## Milestone 0 — Authentication gate and session boundaries
 
-- [ ] Keep role selection and borrower log-in/sign-up available while logged
+- [x] Keep role selection and borrower log-in/sign-up available while logged
       out.
-- [ ] Require an active session before opening the borrower dashboard or any
+- [x] Require an active session before opening the borrower dashboard or any
       borrower operation.
-- [ ] Ensure logout clears the session and prevents returning to protected
+- [x] Ensure logout clears the session and prevents returning to protected
       screens through stale UI state.
-- [ ] Enforce the same session boundary in borrower application services, not
+- [x] Enforce the same session boundary in borrower application services, not
       only in JavaFX event handlers.
-- [ ] Test logged-out, logged-in and logged-out-again paths, including direct
+- [x] Test logged-out, logged-in and logged-out-again paths, including direct
       service calls where applicable.
-- [ ] Run the ownership, edge-case/test and change-completeness reviews.
+- [x] Run the ownership, edge-case/test and change-completeness reviews.
 
 Exit criteria: only authentication entry points are available while logged
 out; every protected borrower action requires a current session and rejects

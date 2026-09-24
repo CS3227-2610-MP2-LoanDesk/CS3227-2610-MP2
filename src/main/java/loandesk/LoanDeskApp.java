@@ -38,7 +38,7 @@ public final class LoanDeskApp extends Application {
         try {
             DataStore dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
             authenticationService = new AuthenticationService(dataStore);
-            catalogueService = new CatalogueService(dataStore);
+            catalogueService = new CatalogueService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;

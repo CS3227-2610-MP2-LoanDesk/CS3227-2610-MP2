@@ -33,6 +33,11 @@ Existing JSON files are not imported. Use borrower sign-up to create accounts
 in the new local database. The generated database files remain local and are
 ignored by Git.
 
+After a successful login or sign-up, the borrower dashboard and its protected
+catalogue actions become available. Select `Log out` to clear the active
+session and return to role selection; protected borrower actions require
+logging in again.
+
 ## Borrower catalogue
 
 After logging in as a borrower, select `Catalogue` to view the seeded equipment

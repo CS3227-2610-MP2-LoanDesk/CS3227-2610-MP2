@@ -2,13 +2,13 @@
 
 Read this file first when continuing the project from a terminal.
 
-## Resume here: 23 September 2026
+## Resume here: 24 September 2026
 
-The user is continuing after implementing borrower review tooling, the session
-role guard, borrower password authentication, the shared H2 persistence
-foundation and the first read-only borrower catalogue slice. Request, loan and
-history product features remain unfinished. Do not restart completed tooling,
-storage or catalogue work.
+The user is continuing after implementing borrower review tooling, borrower
+password authentication, the shared H2 persistence foundation, the first
+read-only borrower catalogue slice and the borrower catalogue session guard.
+Request, loan and history product features remain unfinished. Do not restart
+completed tooling, storage, catalogue or session-boundary work.
 
 ### User preferences and boundaries
 
@@ -66,14 +66,14 @@ storage or catalogue work.
 1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
-   Report actual status; the H2 migration is committed and the catalogue slice
-   may have staged work awaiting its own commit.
+   Report actual status; the catalogue commits are pushed through `337edad`,
+   while the borrower session-boundary changes may still be uncommitted.
 3. Report the catalogue implementation summary and actual test status before
    any further changes. Discuss the exact files and scope before editing.
-4. The next borrower milestone is the remaining active-session gate for
-   protected operations, followed by the catalogue contract and implementation.
-   Integration/system evaluation, automatic-selection checks, repeat runs and
-   detailed reflections remain pending. Do not claim they have been done.
+4. The next borrower milestone is agreement on request and loan contracts,
+   followed by the one-item request workflow. Integration/system evaluation,
+   automatic-selection checks, repeat runs and detailed reflections remain
+   pending. Do not claim they have been done.
 5. Preserve the user's local data and staged work; do not commit, push, pull or
    switch branches automatically.
 
@@ -101,11 +101,12 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Repository: `CS3227-2610-MP2`
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
-- Inspected on 23 September 2026: branch `yikbing` is based on merged
-  `origin/main` at `f2748da`; H2 migration commit is `f28e1d2`.
-- Recent commits include `f28e1d2 migrate LoanDesk storage from JSON to H2`,
-  `715e1b7 docs(agentic): formalize independent review checkpoints` and
-  `f2748da Merge pull request #1 ...`.
+- Inspected on 24 September 2026: branch `yikbing` points to catalogue commit
+  `337edad` on `origin/yikbing` and is based on merged `origin/main` at
+  `f2748da`; the borrower session-boundary changes are uncommitted.
+- Recent commits include `337edad add catalogue filtering and review workflow`,
+  `f28e1d2 migrate LoanDesk storage from JSON to H2` and
+  `715e1b7 docs(agentic): formalize independent review checkpoints`.
 - Work from the repository root, not the parent `MP2` directory.
 
 ## Toolchain and commands
@@ -122,8 +123,9 @@ PowerShell commands from the repository root:
 .\gradlew.bat run --no-daemon
 ```
 
-The clean test suite has passed after the H2 persistence migration and the
-catalogue implementation. Run it before claiming a change is ready.
+The clean test suite has passed after the H2 persistence migration, catalogue
+implementation and borrower catalogue session guard. Run it before claiming a
+change is ready.
 
 ## Current product foundation
 
@@ -142,6 +144,8 @@ The shared foundation currently provides:
 - Tests for authentication, persistence, and username rules
 - Read-only borrower catalogue loaded through `DataStore`
 - Case-insensitive catalogue name filtering, clearing and empty-result feedback
+- Catalogue loading rejects logged-out and wrong-role sessions at the service
+  boundary
 
 Request submission, approval, checkout, return, maintenance and loan-history
 features are not implemented yet. Catalogue category, condition and derived

@@ -53,10 +53,12 @@ Request, loan, history and maintenance tables will be added through the same
 shared persistence boundary as those features are implemented.
 
 The initial borrower catalogue is implemented by `CatalogueService`. It loads
-equipment through `DataStore` and owns case-insensitive name filtering, while
-the JavaFX screen is responsible only for collecting the filter and displaying
-the results. Category, condition and availability remain deferred until the
-request/loan records needed to calculate them are implemented.
+equipment through `DataStore` only for an active borrower session and owns
+case-insensitive name filtering, while the JavaFX screen is responsible only
+for collecting the filter and displaying the results. The filtering helper is
+pure; the persistence boundary is protected by the role check. Category,
+condition and availability remain deferred until the request/loan records
+needed to calculate them are implemented.
 
 ## AI-assisted development records
 
