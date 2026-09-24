@@ -25,11 +25,24 @@ The first screen provides three role buttons: `Borrower`, `Supervisor`, and
   accounts directly. Password login for those roles is still pending their
   owners' implementation.
 - The initial equipment records are `camera1` and `camera2`.
-- Local data is stored in `data/loandesk.json` and persists between launches.
+- Local data is stored in an embedded H2 database rooted at `data/loandesk` and
+  persists between launches. Users do not need to install a separate database
+  server.
 
-If `data/loandesk.json` was created before password support, its existing users
-do not have credentials. The application does not invent passwords or silently
-overwrite that file; use a fresh local demonstration file or an agreed
-migration process.
+Existing JSON files are not imported. Use borrower sign-up to create accounts
+in the new local database. The generated database files remain local and are
+ignored by Git.
 
-The placeholder dashboard buttons do not provide role features yet.
+After a successful login or sign-up, the borrower dashboard and its protected
+catalogue actions become available. Select `Log out` to clear the active
+session and return to role selection; protected borrower actions require
+logging in again.
+
+## Borrower catalogue
+
+After logging in as a borrower, select `Catalogue` to view the seeded equipment
+identifiers and names. Enter part of an equipment name and select `Filter` to
+perform a case-insensitive search. Select `Clear` to restore the full catalogue.
+If no item matches, the screen displays an empty-results message. The current
+catalogue slice is read-only; category, condition, availability and borrowing
+actions will be added with later workflow milestones.

@@ -12,9 +12,9 @@
 
 The shared Java package layout is:
 
-- `domain`: models, roles, and statuses independent of JavaFX and JSON
+- `domain`: models, roles, and statuses independent of JavaFX and persistence
 - `application`: use cases, permissions, and workflow rules
-- `persistence`: JSON data store, repositories, and first-launch initialization
+- `persistence`: shared H2 database store, repositories and first-launch initialization
 - `ui/common`: role selection, login, sign-up, session, and logout
 - `features/borrower`, `features/supervisor`, `features/custodian`: role-owned
   `ui/` and `application/` packages
@@ -35,8 +35,30 @@ interfaces rather than being implemented directly in controllers.
 - Create focused branches such as `feature/borrower-workflow`.
 - Run `./gradlew test` before opening a pull request.
 - Pull requests require review from at least one teammate.
+- Use the repository PR template to record test results, relevant borrower
+  skill reviews, independent-review evidence, data safety and shared-contract
+  coordination.
 - Do not merge changes that break the build or change a shared contract without
   discussing it with affected owners.
+
+The application uses the embedded H2 dependency declared in `build.gradle`.
+Normal users do not install or run a separate database server; the Gradle
+application distribution supplies the H2 JAR and the application creates its
+ignored local database files under `data/loandesk`. The current schema stores
+users, credentials, equipment and a database revision row. A store must load
+the database before saving; snapshot writes then use an atomic revision update
+inside the transaction, rejecting stale or concurrent writers instead of
+silently replacing another instance's newer shared update.
+Request, loan, history and maintenance tables will be added through the same
+shared persistence boundary as those features are implemented.
+
+The initial borrower catalogue is implemented by `CatalogueService`. It loads
+equipment through `DataStore` only for an active borrower session and owns
+case-insensitive name filtering, while the JavaFX screen is responsible only
+for collecting the filter and displaying the results. The filtering helper is
+pure; the persistence boundary is protected by the role check. Category,
+condition and availability remain deferred until the request/loan records
+needed to calculate them are implemented.
 
 ## AI-assisted development records
 
@@ -55,6 +77,18 @@ selection for relevant borrower changes; this is agent selection, not background
 execution. You can also invoke a skill by its `$name`. If newly created skills
 are not visible, start a fresh session. Review-only requests produce findings;
 fixes/tests are made only within an authorized implementation task.
+
+For a borrower feature or milestone completion check, and for a meaningful PR,
+the completeness skill arranges a fresh, read-only reviewer pass over the
+relevant change diff. The reviewer must not receive the implementing agent's
+conclusions and must report findings with severity, file/line references,
+reasoning and next actions. Repeat it before a PR if meaningful changes were
+made after the last completion check. Save decision-relevant prompt/output
+evidence in a dated log. Routine substeps, small documentation edits and
+ordinary test runs do not automatically invoke a fresh reviewer. This
+independent pass is not launched by Git hooks; hooks stay deterministic and
+local. GitHub Actions runs the repository's build/test checks, while
+GitHub-native review services are an optional additional PR-comment layer.
 
 Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
 `pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks

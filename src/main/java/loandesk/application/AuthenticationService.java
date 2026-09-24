@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import loandesk.domain.Role;
 import loandesk.domain.PasswordCredential;
 import loandesk.domain.User;
-import loandesk.persistence.JsonDataStore;
+import loandesk.persistence.DataStore;
 import loandesk.persistence.LoanDeskData;
 import loandesk.security.PasswordHasher;
 
@@ -14,10 +14,10 @@ public final class AuthenticationService {
     public static final int MIN_PASSWORD_LENGTH = 8;
     public static final int MAX_PASSWORD_LENGTH = 128;
 
-    private final JsonDataStore dataStore;
+    private final DataStore dataStore;
     private LoanDeskData data;
 
-    public AuthenticationService(JsonDataStore dataStore) throws IOException {
+    public AuthenticationService(DataStore dataStore) throws IOException {
         this.dataStore = dataStore;
         this.data = dataStore.loadOrSeed();
     }
@@ -52,8 +52,9 @@ public final class AuthenticationService {
         users.add(borrower);
         ArrayList<PasswordCredential> credentials = new ArrayList<>(data.credentials());
         credentials.add(PasswordHasher.hash(normalized, password));
-        data = new LoanDeskData(users, credentials, data.equipment());
-        dataStore.save(data);
+        LoanDeskData updatedData = new LoanDeskData(users, credentials, data.equipment());
+        dataStore.save(updatedData);
+        data = updatedData;
         return borrower;
     }
 

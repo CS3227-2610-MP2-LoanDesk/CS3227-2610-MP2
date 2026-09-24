@@ -2,12 +2,13 @@
 
 Read this file first when continuing the project from a terminal.
 
-## Resume here: 21 September 2026
+## Resume here: 24 September 2026
 
-The user is continuing after implementing borrower review tooling, the session
-role guard and borrower password authentication. Catalogue, request, loan and
-history product features remain unfinished. Do not restart completed tooling
-work.
+The user is continuing after implementing borrower review tooling, borrower
+password authentication, the shared H2 persistence foundation, the first
+read-only borrower catalogue slice and the borrower catalogue session guard.
+Request, loan and history product features remain unfinished. Do not restart
+completed tooling, storage, catalogue or session-boundary work.
 
 ### User preferences and boundaries
 
@@ -30,6 +31,20 @@ work.
   original skills passed official format validation; the fourth passed manual
   frontmatter checks because its validator lacked PyYAML. Automatic selection
   is eligible, not proven by the explicit-invocation evaluation.
+- The change-completeness skill now requires or records a fresh, read-only
+  independent reviewer pass for borrower feature/milestone completion checks
+  and meaningful PRs. Routine substeps do not trigger it automatically. It
+  explicitly keeps agent invocation out of local Git hooks.
+- The edge-case skill explicitly routes borrower authentication, password,
+  credential-persistence, database-save and catalogue changes; it requires a
+  reported `RUN`, `UNAVAILABLE` or `NOT APPLICABLE` result and is not a
+  background watcher or Git hook. See the dated skill-improvement log.
+- The change-completeness skill now uses an adaptive independent review panel
+  of at most three focused reviewers for meaningful milestone/PR checks. It
+  records each member as `RUN`, `UNAVAILABLE` or `INCONCLUSIVE` and never calls
+  a partial panel complete. See the multi-reviewer skill log.
+- `.github/PULL_REQUEST_TEMPLATE.md` records tests, relevant skills,
+  independent-review evidence, data safety and shared-contract coordination.
 - Pre-commit and pre-push hooks are active only in this checkout through
   `core.hooksPath=tools/borrower/hooks`. Nine hook fixture tests passed.
 - Ownership exercise: `tools/borrower/skill-evaluations/ownership/README.md`.
@@ -51,13 +66,14 @@ work.
 1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
-   Report actual status; existing work is uncommitted on `yikbing`.
-3. Report the staged implementation summary and actual test status before any
-   further changes. Discuss the exact files and scope before editing.
-4. The next borrower milestone is the remaining active-session gate for
-   protected operations, followed by the catalogue contract and implementation.
-   Integration/system evaluation, automatic-selection checks, repeat runs and
-   detailed reflections remain pending. Do not claim they have been done.
+   Report actual status; the catalogue commits are pushed through `337edad`,
+   while the borrower session-boundary changes may still be uncommitted.
+3. Report the catalogue implementation summary and actual test status before
+   any further changes. Discuss the exact files and scope before editing.
+4. The next borrower milestone is agreement on request and loan contracts,
+   followed by the one-item request workflow. Integration/system evaluation,
+   automatic-selection checks, repeat runs and detailed reflections remain
+   pending. Do not claim they have been done.
 5. Preserve the user's local data and staged work; do not commit, push, pull or
    switch branches automatically.
 
@@ -85,10 +101,12 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Repository: `CS3227-2610-MP2`
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
-- Inspected on 21 September 2026: branch `yikbing` at `bb25354`, matching
-  locally recorded `origin/main`; uncommitted work exists, and no fetch was run.
-- Recent commits include `bb25354 fix gradle wraper errors` and
-  `e03bec1 create foundation for MP2`.
+- Inspected on 24 September 2026: branch `yikbing` points to catalogue commit
+  `337edad` on `origin/yikbing` and is based on merged `origin/main` at
+  `f2748da`; the borrower session-boundary changes are uncommitted.
+- Recent commits include `337edad add catalogue filtering and review workflow`,
+  `f28e1d2 migrate LoanDesk storage from JSON to H2` and
+  `715e1b7 docs(agentic): formalize independent review checkpoints`.
 - Work from the repository root, not the parent `MP2` directory.
 
 ## Toolchain and commands
@@ -105,8 +123,9 @@ PowerShell commands from the repository root:
 .\gradlew.bat run --no-daemon
 ```
 
-The clean test suite has passed after the package flattening. Run it before
-claiming a change is ready.
+The clean test suite has passed after the H2 persistence migration, catalogue
+implementation and borrower catalogue session guard. Run it before claiming a
+change is ready.
 
 ## Current product foundation
 
@@ -118,13 +137,19 @@ The shared foundation currently provides:
 - Fixed supervisor and custodian entry pending their password-login work
 - Session and logout handling
 - Placeholder three-button dashboards
-- JSON persistence at `data/loandesk.json`
-- First-launch seed data: `testBorrower1`, `testBorrower2`, `camera1`, `camera2`
-- Temporary-file replacement for JSON saves
+- Embedded H2 persistence rooted at `data/loandesk`
+- First-launch schema and seed data: `testBorrower1`, `testBorrower2`, `camera1`, `camera2`
+- Transactional H2 saves through the shared data-store boundary
+- A fresh H2 database is used; old ignored JSON files are not imported
 - Tests for authentication, persistence, and username rules
+- Read-only borrower catalogue loaded through `DataStore`
+- Case-insensitive catalogue name filtering, clearing and empty-result feedback
+- Catalogue loading rejects logged-out and wrong-role sessions at the service
+  boundary
 
-Role-specific catalogue, approval, checkout, return, and maintenance features
-are not implemented yet.
+Request submission, approval, checkout, return, maintenance and loan-history
+features are not implemented yet. Catalogue category, condition and derived
+availability remain deferred until those workflows exist.
 
 Professor feedback changed the borrower plan: authentication must gate all
 protected dashboards and operations, including direct service calls. Login,
@@ -139,7 +164,7 @@ src/main/java/loandesk/
   LoanDeskApp.java
   domain/          shared models and roles
   application/     shared session/authentication logic
-  persistence/     shared JSON storage
+  persistence/     shared H2 database storage
   features/
     borrower/
       ui/
@@ -158,8 +183,8 @@ shared models, permissions, availability rules, and persistence centralized.
 
 ## Data and Git
 
-`data/`, `.gradle/`, and `build/` are ignored. Do not commit local
-`data/loandesk.json`; each developer should have independent local test data.
+`data/`, `.gradle/`, and `build/` are ignored. Do not commit local H2 database
+files under `data/`; each developer should have independent local test data.
 Do not add a hook that deletes data automatically. Tests should use temporary
 folders.
 
@@ -195,9 +220,12 @@ defect and accepted the correct case; other skill evaluations, repeat runs,
 Yikbing owns only the borrower role. Avoid supervisor/custodian edits unless
 unavoidable, and discuss shared-contract or major architecture changes first.
 When asked about skills or hooks again, consult **Yikbing's borrower setup**
-in `docs/AgenticSE.md` and the 21 September implementation log. The three
-skills and two hooks were explicitly authorized for implementation. Optional
-GitHub skill imports remain uninstalled.
+in `docs/AgenticSE.md` and the 21 September implementation log. The four
+skills and two hooks were explicitly authorized for implementation. The
+completeness skill and PR template now document the independent-review workflow.
+GitHub Actions already runs build/test checks; GitHub Copilot or another
+GitHub-integrated reviewer still requires repository/account-owner setup and
+is not configured by this local change.
 
 1. Inspect and preserve uncommitted work before updating from `main`; do not
    switch branches or pull over existing work blindly.

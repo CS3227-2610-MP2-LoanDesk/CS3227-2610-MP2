@@ -32,6 +32,9 @@ do not invent unresolved date, cancellation, or request-state policies.
   commit or push. Local hooks can be bypassed.
 - **CI:** checks run on GitHub; the repository already runs Gradle tests on
   pushes to `main` and pull requests targeting `main`.
+- **Independent reviewer:** a fresh agent invocation that reviews the change
+  without inheriting the implementing conversation's conclusions. It is
+  evidence for review quality, not a replacement for tests or human approval.
 
 ### Implemented custom skills
 
@@ -40,12 +43,44 @@ do not invent unresolved date, cancellation, or request-state policies.
 | `loandesk-borrower-ui-review` | Review catalogue filters, empty results, validation messages, request status, and enabled actions. | Detect an accepted invalid date range in an isolated fixture. |
 | `loandesk-borrower-ownership-review` | Review service-layer ownership and edits/cancellation against agreed policy. | Detect borrower A being allowed to cancel borrower B's request. |
 | `loandesk-borrower-edge-case-test-review` | Run and review existing tests, investigate failures, check valid success and safe rejection, and identify missing boundary, stale-state, repeated-action and save-failure tests. | Identify meaningful omissions and weak assertions in an incomplete test fixture. |
-| `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence and shared-contract coordination. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
+| `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review-panel evidence. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
 
 Each review should report concrete findings, file references, reproduction
 steps, and verification evidence. Evaluate against both defective and correct
 examples, and retain missed defects and false positives as well as successes.
 Do not leave intentional defects in production code.
+
+### Independent PR review workflow
+
+For a borrower feature or milestone completion check, or a meaningful borrower
+pull request, run the completeness skill and arrange the smallest fresh,
+read-only review panel covering the change surface, with no more than three
+reviewers. Use UI/interaction plus behaviour/test reviewers for catalogue or
+screen changes; authentication/security plus persistence/concurrency reviewers
+for password or database changes; and ownership/workflow plus behaviour/test
+reviewers for request/loan changes. Add a third reviewer only when the change
+surface warrants it.
+
+Each reviewer receives the requirements and raw staged change only, with no
+implementing-agent conclusions or other reviewer reports. Record each result as
+`RUN`, `UNAVAILABLE` or `INCONCLUSIVE`; a partial panel must not be described
+as a complete pass. Reconcile duplicate findings and disagreements, map
+findings to focused tests or decisions, and save prompts, responses and
+decision-relevant evidence in a dated log when the review affects milestone or
+PR readiness. Repeat the panel before a PR if meaningful changes were made
+after the last completion check. Report unavailable or inconclusive reviews
+honestly.
+
+The PR template records this evidence for GitHub reviewers. The repository's
+GitHub Actions workflow remains responsible for build/test checks. Local hooks
+do not launch agents or call GitHub because they must stay deterministic,
+offline-capable and quick. GitHub Copilot or another GitHub-integrated review
+service can add PR comments separately when enabled by the repository owners;
+that service is not configured by the local skill.
+
+Routine implementation substeps, small documentation edits and ordinary test
+runs use the relevant focused checks without automatically invoking a fresh
+reviewer. This keeps the independent pass at meaningful decision points.
 
 Location: `.agents/skills/<skill-name>/SKILL.md` inside this
 repository. Automatic selection is enabled by default. Example explicit invocation:

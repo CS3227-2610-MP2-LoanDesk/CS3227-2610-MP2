@@ -31,7 +31,7 @@ Controllers should not contain direct file or database access.
 ### Package responsibilities
 
 `domain/` contains the core application data and vocabulary, independent of
-JavaFX and JSON. Examples include `User`, `Equipment`, `LoanRequest`, `Role`,
+JavaFX and persistence technology. Examples include `User`, `Equipment`, `LoanRequest`, `Role`,
 and request or equipment status types.
 
 `application/` contains use cases and business rules between the UI and domain.
@@ -39,10 +39,11 @@ Examples include authentication, session management, permissions, request
 submission, approval, checkout, and return services. This layer must enforce
 rules even when a method is called without using the UI.
 
-`persistence/` contains local JSON storage and repository implementations. It
-converts JSON data to domain objects and writes domain data back to disk. Views
-and services use repository interfaces rather than reading or writing files
-directly.
+`persistence/` contains the embedded H2 database store and repository
+implementations. It converts database rows to domain objects and writes domain
+changes through transactions. The shared store has role-aware user records,
+credential records, equipment records and future request/loan tables. Views and
+services use persistence interfaces rather than issuing SQL directly.
 
 The intended dependency direction is:
 
@@ -60,6 +61,21 @@ on them.
 Borrower submits -> Supervisor approves -> Custodian checks out
 -> Custodian returns -> Borrower sees history after restart
 ```
+
+### Initial borrower catalogue contract
+
+The first catalogue slice is intentionally read-only and supports equipment
+identifier/name display, case-insensitive name filtering, clearing the filter,
+and an understandable empty-results message. It does not add category,
+condition, availability or loan fields yet. Those shared fields will be added
+with the request/loan foundation so availability can be derived from real
+workflow records rather than invented catalogue state.
+
+The agreed future vocabulary is equipment conditions `GOOD`, `DAMAGED`,
+`UNDER_MAINTENANCE` and `LOST`; request statuses `PENDING`, `APPROVED`,
+`REJECTED`, `NEEDS_CLARIFICATION` and `CANCELLED`; and loan statuses `ACTIVE`,
+`RETURNED`, `OVERDUE` and `LOST`. Availability will be derived as
+`AVAILABLE`, `ON_LOAN` or `UNAVAILABLE`.
 
 Important invariants include: only approved requests can be checked out; an item
 cannot be issued twice; damaged equipment becomes unavailable; borrowers can
@@ -91,28 +107,21 @@ active session before opening a role dashboard or performing role operations.
 Logout clears the active session and returns to role selection. Services must
 enforce this boundary as well as the UI, so direct calls cannot bypass it.
 
-Existing local files created before password support may contain users without
-credentials. They are not silently assigned passwords or overwritten; a
-fresh/reset local demonstration file or an explicit migration policy is
-required before those accounts can log in.
-
-The local file is `data/loandesk.json`. On first launch, if this file does not
-exist, the persistence layer creates it and writes the initial borrower accounts
-`testBorrower1` and `testBorrower2`, plus equipment records `camera1` and
-`camera2`. The application can access these records by loading the JSON file
-through its repositories after initialization. If the file already exists, it
+The local database is an embedded H2 store rooted at `data/loandesk`; H2
+creates its database files in that ignored directory. On first launch, if the
+database is empty, the persistence layer creates the schema and seeds the
+initial borrower accounts `testBorrower1` and `testBorrower2`, plus equipment
+records `camera1` and `camera2`. If the database already contains records, it
 is loaded unchanged and is never reseeded automatically. New borrower sign-ups
-remain possible after seeding. Complex request, damage, and maintenance
-scenarios will be added by role-feature developers after branching.
+are written transactionally. Each loaded store tracks a database revision, and
+an atomic revision update prevents stale or concurrent snapshots from
+overwriting a newer shared update. The same shared database is available to
+supervisor and custodian features through the common persistence package.
 
-If the JSON file is malformed, the application must show an understandable
-error and must not overwrite the original file. Normal saves should serialize
-the complete new state to a temporary file in the same data directory, verify
-that the write completed, and then replace the original file. A failed save
-leaves the previous valid file available for recovery. Saves should happen
-after successful operations, rather than only when the application exits, so a
-crash does not discard an entire session. The temporary file is discarded after
-failure and should not be committed to Git.
+The current migration policy is to start a fresh H2 database rather than read
+old JSON data. Existing ignored JSON files are not modified or imported; create
+new local accounts through sign-up. Future schema changes must use an explicit
+schema-version or migration policy before they are introduced.
 
 ## Proposed ownership layout
 
@@ -131,7 +140,7 @@ src/main/java/loandesk/
 	features/custodian/   custodian UI and role-specific application logic
 	domain/                shared models, roles, and statuses
 	application/           shared services and permission boundaries
-	persistence/           JSON repositories and local data initialization
+	persistence/           shared H2 database store and local data initialization
 ```
 
 Inside each role feature area, use `ui/` for views/controllers and
@@ -142,9 +151,9 @@ just to avoid coordination.
 
 ## Decisions still requiring team agreement
 
-- JSON persistence at `data/loandesk.json`
-- Seed only when the data file is absent; do not reseed existing data
-- Preserve the original file if parsing or replacement fails
+- H2 persistence rooted at `data/loandesk`
+- Seed only when the database is empty; do not reseed existing data
+- Schema versioning and database recovery policy
 - Keep supervisor and custodian as fixed singleton roles without usernames
 - Inclusive or exclusive date boundaries
 - Request and loan model boundaries

@@ -14,24 +14,24 @@ code unless a shared-contract gate below has been agreed with the team.
 - [x] Borrower login, sign-up, session and logout foundation.
 - [x] Borrower password login/sign-up with salted persisted hashes and the
       agreed 8-to-128-character rule.
-- [x] JSON loading, first-run seeding and atomic save foundation.
+- [x] H2 loading, first-run schema creation, seeding and transactional save foundation.
 - [x] Placeholder borrower dashboard with catalogue, requests and loans actions.
 - [x] Borrower UI, ownership, edge-case/test and change-completeness review
       skills.
 
 ## Milestone 0 — Authentication gate and session boundaries
 
-- [ ] Keep role selection and borrower log-in/sign-up available while logged
+- [x] Keep role selection and borrower log-in/sign-up available while logged
       out.
-- [ ] Require an active session before opening the borrower dashboard or any
+- [x] Require an active session before opening the borrower dashboard or any
       borrower operation.
-- [ ] Ensure logout clears the session and prevents returning to protected
+- [x] Ensure logout clears the session and prevents returning to protected
       screens through stale UI state.
-- [ ] Enforce the same session boundary in borrower application services, not
+- [x] Enforce the same session boundary in borrower application services, not
       only in JavaFX event handlers.
-- [ ] Test logged-out, logged-in and logged-out-again paths, including direct
+- [x] Test logged-out, logged-in and logged-out-again paths, including direct
       service calls where applicable.
-- [ ] Run the ownership, edge-case/test and change-completeness reviews.
+- [x] Run the ownership, edge-case/test and change-completeness reviews.
 
 Exit criteria: only authentication entry points are available while logged
 out; every protected borrower action requires a current session and rejects
@@ -39,28 +39,28 @@ direct unauthenticated calls safely.
 
 ## Milestone 1 — Confirm shared workflow contracts
 
-- [ ] Agree whether the first catalogue slice supports name only, or also
-      category and availability fields.
+- [x] Agree that the first catalogue slice supports name filtering only;
+      category, condition and availability are deferred to request/loan work.
 - [ ] Agree request and loan boundaries, request statuses and legal
       transitions.
 - [ ] Agree date boundaries, collection windows, cancellation,
       clarification/resubmission and overdue-borrower rules.
-- [ ] Record any shared `Equipment`, request, loan or repository changes in
-      `docs/ProjectContext.md` before implementing them.
+- [x] Record the agreed catalogue scope and future status vocabulary in
+      `docs/ProjectContext.md` before implementing the catalogue.
 
 Exit criteria: the next borrower slice can be implemented without inventing a
 shared policy. Shared changes have an agreed owner and review path.
 
 ## Milestone 2 — Catalogue and filtering
 
-- [ ] Load equipment through the existing persistence boundary.
-- [ ] Add borrower-owned catalogue application logic.
-- [ ] Wire the borrower dashboard's Catalogue action to a real screen.
-- [ ] Display equipment identifiers and names clearly.
-- [ ] Implement the agreed filters, including case handling and clearing.
-- [ ] Show an understandable empty-results state.
-- [ ] Test all records, matches, no matches and filter reset behaviour.
-- [ ] Run the UI and change-completeness reviews.
+- [x] Load equipment through the existing persistence boundary.
+- [x] Add borrower-owned catalogue application logic.
+- [x] Wire the borrower dashboard's Catalogue action to a real screen.
+- [x] Display equipment identifiers and names clearly.
+- [x] Implement name filtering, including case handling and clearing.
+- [x] Show an understandable empty-results state.
+- [x] Test all records, matches, no matches and filter reset behaviour.
+- [x] Run the UI and change-completeness reviews.
 
 Exit criteria: a logged-in borrower can open the catalogue, filter it, clear
 filters and understand an empty result without changing shared workflow state.
@@ -136,8 +136,8 @@ cross-role defects have explicit owners.
 - [ ] Update `docs/ProjectChecklist.md`, `docs/UserGuide.md` and the final
       dated session log.
 - [ ] Review local-data, packaging and clean-install assumptions with the team.
-- [ ] Confirm no deliberate fixture defects or personal `data/loandesk.json`
-      files are included.
+- [ ] Confirm no deliberate fixture defects or personal `data/` database files
+      are included.
 
 Exit criteria: borrower functionality, tests, documentation and integration
 evidence are complete enough for team review and release planning.
