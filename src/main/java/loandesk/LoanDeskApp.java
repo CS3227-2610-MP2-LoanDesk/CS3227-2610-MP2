@@ -26,11 +26,14 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import loandesk.application.AuthenticationService;
+import loandesk.application.BorrowerLoanService;
 import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
 import loandesk.domain.LoanRequest;
+import loandesk.domain.Loan;
+import loandesk.domain.LoanStatus;
 import loandesk.domain.RequestStatus;
 import loandesk.domain.Role;
 import loandesk.domain.User;
@@ -42,6 +45,7 @@ public final class LoanDeskApp extends Application {
     private AuthenticationService authenticationService;
     private CatalogueService catalogueService;
     private BorrowerRequestService borrowerRequestService;
+    private BorrowerLoanService borrowerLoanService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -53,6 +57,7 @@ public final class LoanDeskApp extends Application {
             authenticationService = new AuthenticationService(dataStore);
             catalogueService = new CatalogueService(dataStore, session);
             borrowerRequestService = new BorrowerRequestService(dataStore, session);
+            borrowerLoanService = new BorrowerLoanService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -123,7 +128,7 @@ public final class LoanDeskApp extends Application {
             content.getChildren().addAll(
                     catalogueButton(),
                     requestsButton(),
-                    new Button("My Loans"));
+                    loansButton());
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
                     new Button("Review Queue"),
@@ -154,6 +159,100 @@ public final class LoanDeskApp extends Application {
         Button requests = new Button("My Requests");
         requests.setOnAction(event -> showMyRequests());
         return requests;
+    }
+
+    private Button loansButton() {
+        Button loans = new Button("My Loans");
+        loans.setOnAction(event -> showMyLoans());
+        return loans;
+    }
+
+    private void showMyLoans() {
+        VBox content = layout("My Loans", "Your current loans and borrowing history.");
+        Label feedback = new Label();
+        Label activeHeading = new Label("Active loans");
+        activeHeading.setStyle("-fx-font-weight: bold;");
+        Label historyHeading = new Label("History");
+        historyHeading.setStyle("-fx-font-weight: bold;");
+        ListView<Loan> activeLoans = loanListView();
+        ListView<Loan> history = loanListView();
+        Map<String, String> equipmentNames;
+        boolean loadFailed = false;
+        try {
+            equipmentNames = catalogueService.loadCatalogue().stream()
+                    .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            java.util.List<Loan> loans = borrowerLoanService.listOwnLoans();
+            activeLoans.getItems().setAll(loans.stream()
+                    .filter(loan -> loan.status() != LoanStatus.RETURNED)
+                    .toList());
+            history.getItems().setAll(loans.stream()
+                    .filter(loan -> loan.status() == LoanStatus.RETURNED)
+                    .toList());
+            feedback.setText(loans.isEmpty()
+                    ? "You have no loans yet."
+                    : loans.size() + " loan(s) found.");
+        } catch (IOException | IllegalStateException exception) {
+            equipmentNames = Map.of();
+            loadFailed = true;
+            feedback.setText("Unable to load your loans: " + exception.getMessage());
+        }
+
+        Map<String, String> names = equipmentNames;
+        activeLoans.setCellFactory(list -> loanCell(names));
+        history.setCellFactory(list -> loanCell(names));
+        Label activeEmpty = new Label(loadFailed
+                ? "Unable to load active loans."
+                : "No active loans.");
+        Label historyEmpty = new Label(loadFailed
+                ? "Unable to load loan history."
+                : "No returned loans yet.");
+        activeLoans.setPlaceholder(activeEmpty);
+        history.setPlaceholder(historyEmpty);
+        Button back = new Button("Back to dashboard");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        VBox lists = new VBox(8, activeHeading, activeLoans, historyHeading, history, back);
+        ScrollPane scroll = new ScrollPane(lists);
+        scroll.setFitToWidth(true);
+        content.getChildren().addAll(feedback, scroll);
+        showScene(content, 600, 560);
+    }
+
+    private ListView<Loan> loanListView() {
+        ListView<Loan> loans = new ListView<>();
+        loans.setPrefHeight(150);
+        return loans;
+    }
+
+    private ListCell<Loan> loanCell(Map<String, String> equipmentNames) {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(Loan loan, boolean empty) {
+                super.updateItem(loan, empty);
+                if (empty || loan == null) {
+                    setText(null);
+                    return;
+                }
+                String equipmentName = equipmentNames.getOrDefault(
+                        loan.equipmentId(), "Unknown equipment");
+                String returnText = loan.returnedDate() == null
+                        ? ""
+                        : ", returned " + loan.returnedDate();
+                setText(equipmentName + " (" + loan.equipmentId() + ") — "
+                        + loanDisplayStatus(loan) + "\n"
+                        + "Checked out: " + loan.checkoutDate()
+                        + ", due: " + loan.dueDate() + returnText);
+            }
+        };
+    }
+
+    private String loanDisplayStatus(Loan loan) {
+        if (loan.status() == LoanStatus.LOST) {
+            return "LOST";
+        }
+        if (loan.isOverdue(LocalDate.now())) {
+            return "OVERDUE";
+        }
+        return loan.status().name();
     }
 
     private void showMyRequests() {

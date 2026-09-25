@@ -24,6 +24,8 @@ was addressed for the recorded scope; it does not claim exhaustive coverage.
 | RG-013 | 2026-09-25 | Cancellation tests | Cancellation lacked direct proof of approved-reservation release, fresh reload metadata and role-boundary rejection. | Test availability after cancellation, recreate H2 and test logged-out/wrong-role calls. | Resolved |
 | RG-014 | 2026-09-25 | Cancellation UI | A selected request could inherit a previous cancellation reason, and pending cancellation feedback incorrectly mentioned releasing a reservation. | Reset reason controls on selection and make success feedback status-aware. | Resolved |
 | RG-015 | 2026-09-25 | Cancellation UI | Ineligible cancellation feedback did not distinguish terminal status from same-day/past-date policy. | Render specific status/date guidance and verify the action remains unavailable. | Resolved |
+| RG-016 | 2026-09-26 | Loans ownership evidence | The initial active-loans test did not explicitly cover a custodian session, an empty borrower result, or the read-only save boundary. | Add wrong-role, empty-result and save-failure test-double coverage to borrower loan listing. | Resolved |
+| RG-017 | 2026-09-26 | Loans UI error state | A loan-load failure could leave empty-list placeholders that looked like a successful account with no loans. | Use failure-specific placeholders and record manual load-error verification as a GUI limitation. | Resolved |
 
 ## Deferred hardening or known limitations
 

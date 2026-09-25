@@ -396,3 +396,52 @@ ownership, password-save, catalogue restart/UI, request/loan integrity,
 documentation, My Requests and pre-commit review-process findings. Broader
 hardening recommendations and the lack of an automated JavaFX harness are
 recorded separately as deferred limitations rather than defects.
+
+## Borrower active loans and history slice — 26 September 2026
+
+The borrower dashboard now opens `My Loans`, backed by the shared H2 `Loan`
+records. `BorrowerLoanService` filters by the logged-in borrower and orders
+active/lost loans before returned history. The UI displays equipment, checkout
+date, due date, return date when applicable, and derived `ACTIVE`, `OVERDUE`,
+`LOST` or `RETURNED` status. The view is read-only and includes empty states.
+
+Focused tests cover owner filtering, logged-out/wrong-role access, active-before-
+history ordering, fresh-store reload and overdue date boundaries.
+
+Verification:
+
+- Implementation preflight: `RUN`; the registry was read and no shared-policy
+  blocker was found.
+- Full ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Ownership, edge-case/test and UI reviews plus independent panel: pending
+  before commit.
+- Manual JavaFX verification is pending; no automated JavaFX interaction test
+  exists for this project.
+
+The screen currently relies on persisted shared loans created by the future
+custodian checkout workflow; this slice does not implement checkout or return.
+
+## Milestone 6 review follow-up — 26 September 2026
+
+Two independent read-only reviewers ran against the uncommitted borrower loans
+and history slice. Both found no ownership or behavior defect. They identified
+two small evidence/UX gaps, which were fixed before manual verification:
+
+- `BorrowerLoanServiceTest` now covers an empty borrower result, rejects both
+  supervisor and custodian sessions, and uses a save-failing test double to
+  protect the read-only boundary.
+- The My Loans screen now uses failure-specific placeholders so a database/load
+  error is not presented as an empty active or history list.
+
+Focused `BorrowerLoanServiceTest` and `./gradlew.bat clean test --no-daemon`
+both passed with `BUILD SUCCESSFUL`. The review panel confirmed session-derived
+ownership filtering, fresh-store persistence reload, active/history ordering,
+overdue boundary behavior, equipment-name fallback and the absence of borrower
+mutation controls. JavaFX interaction remains a manual verification step because
+the project has no automated JavaFX harness.
+
+Manual GUI evidence — 26 September 2026: the borrower logged in and opened
+`My Loans`. The active-loans section appeared above the history section as
+intended, and the empty-state layout was visually confirmed. `OVERDUE`, `LOST`
+and `RETURNED` rendering remain pending because supervisor/custodian workflows
+have not yet created those records in the shared database.
