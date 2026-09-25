@@ -78,8 +78,8 @@ implementation order and exit criteria.
 - [x] Submit one-item request with purpose and date validation.
 - [x] View own requests and request details.
 - [ ] Read rejection reasons and create a new request after rejection.
-- [ ] Cancel only where policy permits.
-- [ ] View active loans, due dates, overdue indicators, and history.
+- [x] Cancel only where policy permits.
+- [x] View active loans, due dates, overdue indicators, and history.
 - [ ] Test ownership, invalid input, prohibited edits, filters, duplicate
   pending requests, eligibility blockers, stale availability and state rules.
 

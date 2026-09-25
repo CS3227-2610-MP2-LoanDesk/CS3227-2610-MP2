@@ -69,10 +69,11 @@ are not intended to replace the full conversation transcript.
 
 ## Borrower skills and personal hooks
 
-Four skills live under `.agents/skills/`: `loandesk-borrower-ui-review`,
+Five skills live under `.agents/skills/`: `loandesk-borrower-ui-review`,
 `loandesk-borrower-ownership-review`, and
-`loandesk-borrower-edge-case-test-review`, plus
-`loandesk-borrower-change-completeness-review`. Their descriptions enable automatic
+`loandesk-borrower-edge-case-test-review`,
+`loandesk-borrower-change-completeness-review` and
+`loandesk-borrower-implementation-preflight`. Their descriptions enable automatic
 selection for relevant borrower changes; this is agent selection, not background
 execution. You can also invoke a skill by its `$name`. If newly created skills
 are not visible, start a fresh session. Review-only requests produce findings;
@@ -92,6 +93,17 @@ suite; repeat the panel only for a material behavioral change or major finding.
 This independent pass is not launched by Git hooks; hooks stay deterministic and
 local. GitHub Actions runs the repository's build/test checks, while
 GitHub-native review services are an optional additional PR-comment layer.
+
+The completeness workflow also maintains `docs/ReviewGapRegistry.md`. Read it
+before a meaningful borrower review and add valid reviewer findings with their
+prevention and verification after reconciliation. Deferred recommendations and
+environment limitations are recorded separately from resolved gaps.
+
+Before implementing a meaningful borrower feature, invoke the implementation
+preflight skill. It converts applicable registry gaps into a short prevention
+checklist, identifies focused tests and GUI evidence, and flags unresolved
+shared-policy questions. It is planning guidance, not a substitute for the
+later implementation reviews or independent panel.
 
 Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
 `pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks

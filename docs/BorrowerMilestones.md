@@ -112,25 +112,27 @@ matches persisted state.
 
 ## Milestone 5 — Clarification, revision and cancellation
 
-- [ ] Implement only the state transitions approved in Milestone 1.
+- [x] Implement only the state transitions approved in Milestone 1 for
+      cancellation; clarification and revision remain deferred.
 - [ ] Allow revision/resubmission only in the agreed states.
-- [ ] Allow cancellation only where policy permits and require any agreed
+- [x] Allow cancellation only where policy permits and require any agreed
       reason.
-- [ ] Recheck ownership and current state at every service call.
-- [ ] Test repeated actions, foreign IDs, illegal transitions and no-mutation
+- [x] Recheck ownership and current state at every service call.
+- [x] Test repeated actions, foreign IDs, illegal transitions and no-mutation
       rejection behaviour.
-- [ ] Run the ownership and edge-case/test reviews.
+- [x] Run the ownership, edge-case/test and change-completeness reviews for
+      the cancellation slice.
 
 Exit criteria: every borrower mutation has a legal-state and ownership guard,
 with focused evidence for success and safe rejection.
 
 ## Milestone 6 — Active loans and history
 
-- [ ] Define the borrower-facing distinction between requests and loans.
-- [ ] Add active-loan and history views using persisted shared records.
-- [ ] Display due dates, overdue indicators and relevant return state.
-- [ ] Keep borrower access read-only unless an agreed borrower action exists.
-- [ ] Test empty history, restart persistence, ownership and overdue boundaries.
+- [x] Define the borrower-facing distinction between requests and loans.
+- [x] Add active-loan and history views using persisted shared records.
+- [x] Display due dates, overdue indicators and relevant return state.
+- [x] Keep borrower access read-only unless an agreed borrower action exists.
+- [x] Test empty history, restart persistence, ownership and overdue boundaries.
 
 Exit criteria: the borrower can understand current and past borrowing without
 seeing another borrower's records.

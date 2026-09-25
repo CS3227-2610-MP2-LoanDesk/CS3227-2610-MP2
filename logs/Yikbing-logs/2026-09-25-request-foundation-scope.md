@@ -332,3 +332,116 @@ the app and confirmed persistence, checked the empty state, and confirmed that
 another borrower could not see the first borrower's requests. The updated GUI
 behaved as expected. This is manual user evidence; no automated JavaFX
 interaction test was claimed.
+
+## Implementation preflight skill — 25 September 2026
+
+Added `loandesk-borrower-implementation-preflight` as a fifth automatically
+selectable borrower skill. Before meaningful implementation, it reads the
+project policies and `ReviewGapRegistry.md`, turns applicable prior lapses into
+a prevention checklist, identifies focused tests and GUI evidence, and flags
+unresolved shared decisions. It does not replace the post-implementation
+reviews or independent panel, and it does not run from Git hooks.
+
+## Borrower cancellation slice — 25 September 2026
+
+The borrower can now cancel an own future `PENDING` or `APPROVED` request. The
+service requires a non-blank reason, rechecks the session owner, current
+status and start date, changes the request to `CANCELLED`, preserves approval
+metadata where present, records the borrower and timestamp, and saves through
+the shared H2 boundary. The UI exposes the action only for eligible selected
+requests, uses the agreed reason dropdown with a required `Other` explanation,
+requires confirmation and reports that the reservation was released.
+
+Focused tests cover successful pending and approved cancellation, same-day
+rejection, terminal/repeated cancellation, foreign and unknown IDs, blank
+reasons and failed-save state preservation.
+
+Verification:
+
+- Preflight: `RUN`; the review-gap registry produced the prevention checklist
+  for ownership, state/date rechecks, repeated actions and save failure.
+- Focused `BorrowerRequestServiceTest`: `BUILD SUCCESSFUL`.
+- Full ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Ownership, edge-case/test, UI and independent panel reviews: `RUN`; manual
+  JavaFX verification was completed by the user on 26 September 2026.
+
+Independent panel evidence:
+
+- Ownership/workflow reviewer: `RUN`; no service authorization defect found,
+  but requested direct proof for reservation release, terminal/date boundaries,
+  session boundaries and fresh cancellation metadata reload.
+- Behaviour/UI reviewer: `RUN`; identified stale reason controls between
+  selections, outdated empty-detail wording, inaccurate pending success text,
+  and generic ineligible-action feedback. The reviewer environment could not
+  run Gradle because its wrapper/network access was unavailable.
+
+Panel findings were fixed by adding the requested service tests, H2 reload and
+availability assertions, logged-out/wrong-role cancellation tests, resetting
+reason controls on selection, status-aware success feedback and specific
+status/date guidance. Focused and full clean suites passed after the fixes.
+No second panel was run because these were scoped evidence and UI-feedback
+corrections without a new workflow boundary.
+
+Manual GUI evidence — 26 September 2026: the user tested future-request
+cancellation, reason selection, confirmation, resulting `CANCELLED` status,
+same-day ineligibility feedback, and clearing of `Other` reason text when
+changing selection. The UI behaved as expected. This is manual JavaFX evidence;
+no automated JavaFX interaction test was claimed.
+
+## Review gap registry — 25 September 2026
+
+Added `docs/ReviewGapRegistry.md` to preserve valid independent-review gaps,
+their prevention measures and focused verification. It includes the earlier
+ownership, password-save, catalogue restart/UI, request/loan integrity,
+documentation, My Requests and pre-commit review-process findings. Broader
+hardening recommendations and the lack of an automated JavaFX harness are
+recorded separately as deferred limitations rather than defects.
+
+## Borrower active loans and history slice — 26 September 2026
+
+The borrower dashboard now opens `My Loans`, backed by the shared H2 `Loan`
+records. `BorrowerLoanService` filters by the logged-in borrower and orders
+active/lost loans before returned history. The UI displays equipment, checkout
+date, due date, return date when applicable, and derived `ACTIVE`, `OVERDUE`,
+`LOST` or `RETURNED` status. The view is read-only and includes empty states.
+
+Focused tests cover owner filtering, logged-out/wrong-role access, active-before-
+history ordering, fresh-store reload and overdue date boundaries.
+
+Verification:
+
+- Implementation preflight: `RUN`; the registry was read and no shared-policy
+  blocker was found.
+- Full ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Ownership, edge-case/test and UI reviews plus independent panel: pending
+  before commit.
+- Manual JavaFX verification is pending; no automated JavaFX interaction test
+  exists for this project.
+
+The screen currently relies on persisted shared loans created by the future
+custodian checkout workflow; this slice does not implement checkout or return.
+
+## Milestone 6 review follow-up — 26 September 2026
+
+Two independent read-only reviewers ran against the uncommitted borrower loans
+and history slice. Both found no ownership or behavior defect. They identified
+two small evidence/UX gaps, which were fixed before manual verification:
+
+- `BorrowerLoanServiceTest` now covers an empty borrower result, rejects both
+  supervisor and custodian sessions, and uses a save-failing test double to
+  protect the read-only boundary.
+- The My Loans screen now uses failure-specific placeholders so a database/load
+  error is not presented as an empty active or history list.
+
+Focused `BorrowerLoanServiceTest` and `./gradlew.bat clean test --no-daemon`
+both passed with `BUILD SUCCESSFUL`. The review panel confirmed session-derived
+ownership filtering, fresh-store persistence reload, active/history ordering,
+overdue boundary behavior, equipment-name fallback and the absence of borrower
+mutation controls. JavaFX interaction remains a manual verification step because
+the project has no automated JavaFX harness.
+
+Manual GUI evidence — 26 September 2026: the borrower logged in and opened
+`My Loans`. The active-loans section appeared above the history section as
+intended, and the empty-state layout was visually confirmed. `OVERDUE`, `LOST`
+and `RETURNED` rendering remain pending because supervisor/custodian workflows
+have not yet created those records in the shared database.

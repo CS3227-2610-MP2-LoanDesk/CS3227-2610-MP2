@@ -6,9 +6,11 @@ description: Review whether a LoanDesk borrower change has the necessary focused
 # Borrower change-completeness review
 
 Read `docs/ProjectContext.md`, `docs/ProjectChecklist.md` and the relevant
-requirements before reviewing. Inspect the current diff and changed files from
-the repository root. Keep the review limited to the borrower change and its
-direct shared dependencies; do not edit the parent workspace or other roles.
+requirements before reviewing. Also read `docs/ReviewGapRegistry.md` and check
+whether its known gap patterns apply to the current change. Inspect the current
+diff and changed files from the repository root. Keep the review limited to the
+borrower change and its direct shared dependencies; do not edit the parent
+workspace or other roles.
 
 ## Review trigger and depth
 
@@ -91,6 +93,12 @@ rerun affected checks before deciding readiness.
 For a meaningful review, retain the panel prompts, responses and
 decision-relevant verification evidence in a dated `logs/Yikbing-logs/` entry.
 Never describe an unavailable or inconclusive reviewer as a pass.
+
+After reconciling the panel, update `docs/ReviewGapRegistry.md` with every
+valid new gap, its root cause, prevention and focused verification. Mark a gap
+as resolved only after the relevant fix and test evidence exist. Record broader
+recommendations or environment limitations in the deferred section instead of
+turning them into unsupported defects.
 
 If the panel identifies a valid defect, fix it and rerun the affected focused
 tests plus the full clean suite before committing. Run another independent

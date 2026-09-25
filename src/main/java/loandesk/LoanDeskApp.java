@@ -12,6 +12,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -25,11 +26,15 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import loandesk.application.AuthenticationService;
+import loandesk.application.BorrowerLoanService;
 import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
 import loandesk.domain.LoanRequest;
+import loandesk.domain.Loan;
+import loandesk.domain.LoanStatus;
+import loandesk.domain.RequestStatus;
 import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
@@ -40,6 +45,7 @@ public final class LoanDeskApp extends Application {
     private AuthenticationService authenticationService;
     private CatalogueService catalogueService;
     private BorrowerRequestService borrowerRequestService;
+    private BorrowerLoanService borrowerLoanService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -51,6 +57,7 @@ public final class LoanDeskApp extends Application {
             authenticationService = new AuthenticationService(dataStore);
             catalogueService = new CatalogueService(dataStore, session);
             borrowerRequestService = new BorrowerRequestService(dataStore, session);
+            borrowerLoanService = new BorrowerLoanService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -121,7 +128,7 @@ public final class LoanDeskApp extends Application {
             content.getChildren().addAll(
                     catalogueButton(),
                     requestsButton(),
-                    new Button("My Loans"));
+                    loansButton());
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
                     new Button("Review Queue"),
@@ -154,6 +161,100 @@ public final class LoanDeskApp extends Application {
         return requests;
     }
 
+    private Button loansButton() {
+        Button loans = new Button("My Loans");
+        loans.setOnAction(event -> showMyLoans());
+        return loans;
+    }
+
+    private void showMyLoans() {
+        VBox content = layout("My Loans", "Your current loans and borrowing history.");
+        Label feedback = new Label();
+        Label activeHeading = new Label("Active loans");
+        activeHeading.setStyle("-fx-font-weight: bold;");
+        Label historyHeading = new Label("History");
+        historyHeading.setStyle("-fx-font-weight: bold;");
+        ListView<Loan> activeLoans = loanListView();
+        ListView<Loan> history = loanListView();
+        Map<String, String> equipmentNames;
+        boolean loadFailed = false;
+        try {
+            equipmentNames = catalogueService.loadCatalogue().stream()
+                    .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            java.util.List<Loan> loans = borrowerLoanService.listOwnLoans();
+            activeLoans.getItems().setAll(loans.stream()
+                    .filter(loan -> loan.status() != LoanStatus.RETURNED)
+                    .toList());
+            history.getItems().setAll(loans.stream()
+                    .filter(loan -> loan.status() == LoanStatus.RETURNED)
+                    .toList());
+            feedback.setText(loans.isEmpty()
+                    ? "You have no loans yet."
+                    : loans.size() + " loan(s) found.");
+        } catch (IOException | IllegalStateException exception) {
+            equipmentNames = Map.of();
+            loadFailed = true;
+            feedback.setText("Unable to load your loans: " + exception.getMessage());
+        }
+
+        Map<String, String> names = equipmentNames;
+        activeLoans.setCellFactory(list -> loanCell(names));
+        history.setCellFactory(list -> loanCell(names));
+        Label activeEmpty = new Label(loadFailed
+                ? "Unable to load active loans."
+                : "No active loans.");
+        Label historyEmpty = new Label(loadFailed
+                ? "Unable to load loan history."
+                : "No returned loans yet.");
+        activeLoans.setPlaceholder(activeEmpty);
+        history.setPlaceholder(historyEmpty);
+        Button back = new Button("Back to dashboard");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        VBox lists = new VBox(8, activeHeading, activeLoans, historyHeading, history, back);
+        ScrollPane scroll = new ScrollPane(lists);
+        scroll.setFitToWidth(true);
+        content.getChildren().addAll(feedback, scroll);
+        showScene(content, 600, 560);
+    }
+
+    private ListView<Loan> loanListView() {
+        ListView<Loan> loans = new ListView<>();
+        loans.setPrefHeight(150);
+        return loans;
+    }
+
+    private ListCell<Loan> loanCell(Map<String, String> equipmentNames) {
+        return new ListCell<>() {
+            @Override
+            protected void updateItem(Loan loan, boolean empty) {
+                super.updateItem(loan, empty);
+                if (empty || loan == null) {
+                    setText(null);
+                    return;
+                }
+                String equipmentName = equipmentNames.getOrDefault(
+                        loan.equipmentId(), "Unknown equipment");
+                String returnText = loan.returnedDate() == null
+                        ? ""
+                        : ", returned " + loan.returnedDate();
+                setText(equipmentName + " (" + loan.equipmentId() + ") — "
+                        + loanDisplayStatus(loan) + "\n"
+                        + "Checked out: " + loan.checkoutDate()
+                        + ", due: " + loan.dueDate() + returnText);
+            }
+        };
+    }
+
+    private String loanDisplayStatus(Loan loan) {
+        if (loan.status() == LoanStatus.LOST) {
+            return "LOST";
+        }
+        if (loan.isOverdue(LocalDate.now())) {
+            return "OVERDUE";
+        }
+        return loan.status().name();
+    }
+
     private void showMyRequests() {
         VBox content = layout("My Requests", "Your active requests and request history.");
         Label feedback = new Label();
@@ -177,6 +278,26 @@ public final class LoanDeskApp extends Application {
         ScrollPane detailsPane = new ScrollPane(details);
         detailsPane.setFitToWidth(true);
         detailsPane.setPrefViewportHeight(140);
+        Label cancellationInfo = new Label();
+        ComboBox<String> cancellationReason = new ComboBox<>();
+        cancellationReason.getItems().addAll(
+                "No longer needed",
+                "Plans changed",
+                "Requested dates changed",
+                "Unable to collect the equipment",
+                "Submitted the request by mistake",
+                "Other");
+        cancellationReason.setPromptText("Cancellation reason");
+        TextField otherCancellationReason = new TextField();
+        otherCancellationReason.setPromptText("Explain the cancellation");
+        Button cancel = new Button("Cancel request");
+        otherCancellationReason.setVisible(false);
+        otherCancellationReason.setManaged(false);
+        cancellationReason.setVisible(false);
+        cancellationReason.setManaged(false);
+        cancel.setVisible(false);
+        cancel.setManaged(false);
+        cancel.setDisable(true);
         Map<String, String> equipmentNames;
         try {
             equipmentNames = catalogueService.loadCatalogue().stream()
@@ -194,17 +315,106 @@ public final class LoanDeskApp extends Application {
 
         Map<String, String> names = equipmentNames;
         requests.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldValue, selected) -> renderRequestDetails(details, selected, names));
+                (observable, oldValue, selected) -> {
+                    cancellationReason.setValue(null);
+                    otherCancellationReason.clear();
+                    renderRequestDetails(details, selected, names);
+                    refreshCancellationControls(
+                            selected, cancellationInfo, cancellationReason,
+                            otherCancellationReason, cancel);
+                });
+        cancellationReason.valueProperty().addListener((observable, oldValue, newValue) -> {
+            boolean isOther = "Other".equals(newValue);
+            otherCancellationReason.setVisible(isOther);
+            otherCancellationReason.setManaged(isOther);
+            refreshCancellationControls(
+                    requests.getSelectionModel().getSelectedItem(), cancellationInfo,
+                    cancellationReason, otherCancellationReason, cancel);
+        });
+        otherCancellationReason.textProperty().addListener((observable, oldValue, newValue) ->
+                refreshCancellationControls(
+                        requests.getSelectionModel().getSelectedItem(), cancellationInfo,
+                        cancellationReason, otherCancellationReason, cancel));
+        cancel.setOnAction(event -> {
+            LoanRequest selected = requests.getSelectionModel().getSelectedItem();
+            String reason = "Other".equals(cancellationReason.getValue())
+                    ? otherCancellationReason.getText()
+                    : cancellationReason.getValue();
+            Alert confirmation = new Alert(
+                    Alert.AlertType.CONFIRMATION,
+                    "Cancel this borrowing request?\nReason: " + reason);
+            confirmation.setTitle("Confirm cancellation");
+            confirmation.setHeaderText("Cancel request");
+            if (confirmation.showAndWait().filter(ButtonType.OK::equals).isEmpty()) {
+                return;
+            }
+            try {
+                borrowerRequestService.cancelRequest(selected.requestId(), reason);
+                String successMessage = selected.status() == RequestStatus.APPROVED
+                        ? "The request was cancelled and its reservation was released."
+                        : "The request was cancelled.";
+                new Alert(Alert.AlertType.INFORMATION,
+                        successMessage)
+                        .showAndWait();
+                showMyRequests();
+            } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.setStyle("-fx-text-fill: #b00020;");
+            }
+        });
         Button back = new Button("Back to dashboard");
         back.setOnAction(event -> openDashboard(session.requireUser()));
-        content.getChildren().addAll(feedback, requests, detailsPane, back);
+        content.getChildren().addAll(
+                feedback,
+                requests,
+                detailsPane,
+                cancellationInfo,
+                cancellationReason,
+                otherCancellationReason,
+                cancel,
+                back);
         showScene(content, 560, 500);
+    }
+
+    private void refreshCancellationControls(
+            LoanRequest request,
+            Label info,
+            ComboBox<String> reason,
+            TextField otherReason,
+            Button cancel) {
+        boolean eligible = request != null
+                && (request.status() == RequestStatus.PENDING
+                || request.status() == RequestStatus.APPROVED)
+                && request.startDate().isAfter(LocalDate.now());
+        String message;
+        if (request == null) {
+            message = "";
+        } else if (request.status() != RequestStatus.PENDING
+                && request.status() != RequestStatus.APPROVED) {
+            message = "Cancellation is unavailable because this request is "
+                    + request.status() + ".";
+        } else if (!request.startDate().isAfter(LocalDate.now())) {
+            message = "Cancellation is unavailable because the start date is today or has passed.";
+        } else {
+            message = "Cancellation is available for this future request.";
+        }
+        info.setText(message);
+        reason.setVisible(eligible);
+        reason.setManaged(eligible);
+        otherReason.setVisible(eligible && "Other".equals(reason.getValue()));
+        otherReason.setManaged(eligible && "Other".equals(reason.getValue()));
+        cancel.setVisible(eligible);
+        cancel.setManaged(eligible);
+        boolean hasReason = reason.getValue() != null
+                && (!"Other".equals(reason.getValue()) || !otherReason.getText().isBlank());
+        cancel.setDisable(!eligible || !hasReason);
     }
 
     private void renderRequestDetails(
             Label details, LoanRequest request, Map<String, String> equipmentNames) {
         if (request == null) {
-            details.setText("Select a request to view its details.");
+            details.setText("Select a request to view its details.\n"
+                    + "This MVP screen is read-only apart from eligible request cancellation.");
             return;
         }
         String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");

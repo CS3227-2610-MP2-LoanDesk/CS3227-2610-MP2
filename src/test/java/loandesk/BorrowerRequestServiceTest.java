@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import loandesk.application.BorrowerRequestService;
+import loandesk.application.AvailabilityService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
 import loandesk.domain.EquipmentCondition;
@@ -115,6 +116,10 @@ class BorrowerRequestServiceTest {
                 store, loggedOut, CLOCK).submitRequest("camera1", "Academic project", TODAY, TODAY));
         assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
                 store, supervisor, CLOCK).submitRequest("camera1", "Academic project", TODAY, TODAY));
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, loggedOut, CLOCK).cancelRequest("missing", "Plans changed"));
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, supervisor, CLOCK).cancelRequest("missing", "Plans changed"));
     }
 
     @Test
@@ -166,6 +171,144 @@ class BorrowerRequestServiceTest {
                 store, loggedOut, CLOCK).listOwnRequests());
         assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
                 store, supervisor, CLOCK).listOwnRequests());
+    }
+
+    @Test
+    void cancelsEligibleFuturePendingRequestAndPersistsReason() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        BorrowerRequestService service = service(store);
+        LoanRequest submitted = service.submitRequest(
+                "camera1", "Academic project", TODAY.plusDays(1), TODAY.plusDays(2));
+
+        LoanRequest cancelled = service.cancelRequest(submitted.requestId(), "Plans changed");
+
+        assertEquals(RequestStatus.CANCELLED, cancelled.status());
+        assertEquals("borrower", cancelled.cancelledBy());
+        assertEquals("Plans changed", cancelled.cancellationReason());
+        assertEquals(List.of(cancelled), store.loadOrSeed().requests());
+        assertThrows(IllegalStateException.class, () -> service.cancelRequest(
+                submitted.requestId(), "Plans changed"));
+    }
+
+    @Test
+    void rejectsSameDayTerminalForeignUnknownAndBlankCancellation() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        BorrowerRequestService service = service(store);
+        LoanRequest sameDay = service.submitRequest("camera1", "Academic project", TODAY, TODAY);
+
+        assertThrows(IllegalStateException.class, () -> service.cancelRequest(
+                sameDay.requestId(), "No longer needed"));
+        assertThrows(IllegalArgumentException.class, () -> service.cancelRequest(
+                sameDay.requestId(), "   "));
+        assertThrows(IllegalArgumentException.class, () -> service.cancelRequest(
+                "missing", "No longer needed"));
+
+        Session otherBorrower = new Session();
+        otherBorrower.start(new User("other", Role.BORROWER));
+        assertThrows(IllegalArgumentException.class, () -> new BorrowerRequestService(
+                store, otherBorrower, CLOCK).cancelRequest(
+                        sameDay.requestId(), "No longer needed"));
+    }
+
+    @Test
+    void cancelsEligibleFutureApprovedRequest() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest approved = new LoanRequest(
+                "approved",
+                "borrower",
+                "camera1",
+                "Academic project",
+                TODAY.plusDays(1),
+                TODAY.plusDays(2),
+                RequestStatus.APPROVED,
+                null,
+                NOW.minusSeconds(2),
+                NOW.minusSeconds(1),
+                "supervisor",
+                NOW.minusSeconds(1),
+                "Approved for project",
+                null,
+                null,
+                null);
+        store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(approved),
+                List.of()));
+
+        LoanRequest cancelled = service(store).cancelRequest(
+                "approved", "No longer needed");
+
+        assertEquals(RequestStatus.CANCELLED, cancelled.status());
+        assertEquals("supervisor", cancelled.decisionBy());
+        assertEquals("Approved for project", cancelled.decisionReason());
+
+        DatabaseDataStore restartedStore = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        LoanRequest reloaded = restartedStore.loadOrSeed().requests().get(0);
+        assertEquals(cancelled, reloaded);
+        assertEquals(loandesk.domain.AvailabilityStatus.AVAILABLE,
+                new AvailabilityService().calculate(
+                        restartedStore.loadOrSeed().equipment().get(0),
+                        restartedStore.loadOrSeed().requests(),
+                        restartedStore.loadOrSeed().loans(),
+                        TODAY));
+    }
+
+    @Test
+    void rejectsRejectedAndExpiredRequests() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest rejected = request(
+                "rejected", "borrower", RequestStatus.REJECTED,
+                NOW, "supervisor", "Not available");
+        LoanRequest expired = request(
+                "expired", "borrower", RequestStatus.EXPIRED,
+                NOW, null, null);
+        store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(rejected, expired),
+                List.of()));
+
+        BorrowerRequestService service = service(store);
+        assertThrows(IllegalStateException.class, () -> service.cancelRequest(
+                "rejected", "Plans changed"));
+        assertThrows(IllegalStateException.class, () -> service.cancelRequest(
+                "expired", "Plans changed"));
+    }
+
+    @Test
+    void failedCancellationSavePreservesPreviousRequestState() throws Exception {
+        LoanRequest pending = new LoanRequest(
+                "pending",
+                "borrower",
+                "camera1",
+                "Academic project",
+                TODAY.plusDays(1),
+                TODAY.plusDays(2),
+                RequestStatus.PENDING,
+                null,
+                NOW.minusSeconds(1),
+                NOW,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        LoanDeskData original = new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(pending),
+                List.of());
+        FailingDataStore store = new FailingDataStore(original);
+
+        assertThrows(IOException.class, () -> new BorrowerRequestService(
+                store, borrowerSession(), CLOCK).cancelRequest(
+                        "pending", "Plans changed"));
+        assertEquals(original, store.loadOrSeed());
     }
 
     private LoanRequest request(
