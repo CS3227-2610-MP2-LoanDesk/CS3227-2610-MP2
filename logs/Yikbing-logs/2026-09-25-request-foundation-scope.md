@@ -342,6 +342,52 @@ a prevention checklist, identifies focused tests and GUI evidence, and flags
 unresolved shared decisions. It does not replace the post-implementation
 reviews or independent panel, and it does not run from Git hooks.
 
+## Borrower cancellation slice — 25 September 2026
+
+The borrower can now cancel an own future `PENDING` or `APPROVED` request. The
+service requires a non-blank reason, rechecks the session owner, current
+status and start date, changes the request to `CANCELLED`, preserves approval
+metadata where present, records the borrower and timestamp, and saves through
+the shared H2 boundary. The UI exposes the action only for eligible selected
+requests, uses the agreed reason dropdown with a required `Other` explanation,
+requires confirmation and reports that the reservation was released.
+
+Focused tests cover successful pending and approved cancellation, same-day
+rejection, terminal/repeated cancellation, foreign and unknown IDs, blank
+reasons and failed-save state preservation.
+
+Verification:
+
+- Preflight: `RUN`; the review-gap registry produced the prevention checklist
+  for ownership, state/date rechecks, repeated actions and save failure.
+- Focused `BorrowerRequestServiceTest`: `BUILD SUCCESSFUL`.
+- Full ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Ownership, edge-case/test, UI and independent panel reviews: `RUN`; manual
+  JavaFX verification was completed by the user on 26 September 2026.
+
+Independent panel evidence:
+
+- Ownership/workflow reviewer: `RUN`; no service authorization defect found,
+  but requested direct proof for reservation release, terminal/date boundaries,
+  session boundaries and fresh cancellation metadata reload.
+- Behaviour/UI reviewer: `RUN`; identified stale reason controls between
+  selections, outdated empty-detail wording, inaccurate pending success text,
+  and generic ineligible-action feedback. The reviewer environment could not
+  run Gradle because its wrapper/network access was unavailable.
+
+Panel findings were fixed by adding the requested service tests, H2 reload and
+availability assertions, logged-out/wrong-role cancellation tests, resetting
+reason controls on selection, status-aware success feedback and specific
+status/date guidance. Focused and full clean suites passed after the fixes.
+No second panel was run because these were scoped evidence and UI-feedback
+corrections without a new workflow boundary.
+
+Manual GUI evidence — 26 September 2026: the user tested future-request
+cancellation, reason selection, confirmation, resulting `CANCELLED` status,
+same-day ineligibility feedback, and clearing of `Other` reason text when
+changing selection. The UI behaved as expected. This is manual JavaFX evidence;
+no automated JavaFX interaction test was claimed.
+
 ## Review gap registry — 25 September 2026
 
 Added `docs/ReviewGapRegistry.md` to preserve valid independent-review gaps,

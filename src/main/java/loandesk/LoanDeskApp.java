@@ -12,6 +12,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
@@ -30,6 +31,7 @@ import loandesk.application.CatalogueService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
 import loandesk.domain.LoanRequest;
+import loandesk.domain.RequestStatus;
 import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
@@ -177,6 +179,26 @@ public final class LoanDeskApp extends Application {
         ScrollPane detailsPane = new ScrollPane(details);
         detailsPane.setFitToWidth(true);
         detailsPane.setPrefViewportHeight(140);
+        Label cancellationInfo = new Label();
+        ComboBox<String> cancellationReason = new ComboBox<>();
+        cancellationReason.getItems().addAll(
+                "No longer needed",
+                "Plans changed",
+                "Requested dates changed",
+                "Unable to collect the equipment",
+                "Submitted the request by mistake",
+                "Other");
+        cancellationReason.setPromptText("Cancellation reason");
+        TextField otherCancellationReason = new TextField();
+        otherCancellationReason.setPromptText("Explain the cancellation");
+        Button cancel = new Button("Cancel request");
+        otherCancellationReason.setVisible(false);
+        otherCancellationReason.setManaged(false);
+        cancellationReason.setVisible(false);
+        cancellationReason.setManaged(false);
+        cancel.setVisible(false);
+        cancel.setManaged(false);
+        cancel.setDisable(true);
         Map<String, String> equipmentNames;
         try {
             equipmentNames = catalogueService.loadCatalogue().stream()
@@ -194,17 +216,106 @@ public final class LoanDeskApp extends Application {
 
         Map<String, String> names = equipmentNames;
         requests.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldValue, selected) -> renderRequestDetails(details, selected, names));
+                (observable, oldValue, selected) -> {
+                    cancellationReason.setValue(null);
+                    otherCancellationReason.clear();
+                    renderRequestDetails(details, selected, names);
+                    refreshCancellationControls(
+                            selected, cancellationInfo, cancellationReason,
+                            otherCancellationReason, cancel);
+                });
+        cancellationReason.valueProperty().addListener((observable, oldValue, newValue) -> {
+            boolean isOther = "Other".equals(newValue);
+            otherCancellationReason.setVisible(isOther);
+            otherCancellationReason.setManaged(isOther);
+            refreshCancellationControls(
+                    requests.getSelectionModel().getSelectedItem(), cancellationInfo,
+                    cancellationReason, otherCancellationReason, cancel);
+        });
+        otherCancellationReason.textProperty().addListener((observable, oldValue, newValue) ->
+                refreshCancellationControls(
+                        requests.getSelectionModel().getSelectedItem(), cancellationInfo,
+                        cancellationReason, otherCancellationReason, cancel));
+        cancel.setOnAction(event -> {
+            LoanRequest selected = requests.getSelectionModel().getSelectedItem();
+            String reason = "Other".equals(cancellationReason.getValue())
+                    ? otherCancellationReason.getText()
+                    : cancellationReason.getValue();
+            Alert confirmation = new Alert(
+                    Alert.AlertType.CONFIRMATION,
+                    "Cancel this borrowing request?\nReason: " + reason);
+            confirmation.setTitle("Confirm cancellation");
+            confirmation.setHeaderText("Cancel request");
+            if (confirmation.showAndWait().filter(ButtonType.OK::equals).isEmpty()) {
+                return;
+            }
+            try {
+                borrowerRequestService.cancelRequest(selected.requestId(), reason);
+                String successMessage = selected.status() == RequestStatus.APPROVED
+                        ? "The request was cancelled and its reservation was released."
+                        : "The request was cancelled.";
+                new Alert(Alert.AlertType.INFORMATION,
+                        successMessage)
+                        .showAndWait();
+                showMyRequests();
+            } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.setStyle("-fx-text-fill: #b00020;");
+            }
+        });
         Button back = new Button("Back to dashboard");
         back.setOnAction(event -> openDashboard(session.requireUser()));
-        content.getChildren().addAll(feedback, requests, detailsPane, back);
+        content.getChildren().addAll(
+                feedback,
+                requests,
+                detailsPane,
+                cancellationInfo,
+                cancellationReason,
+                otherCancellationReason,
+                cancel,
+                back);
         showScene(content, 560, 500);
+    }
+
+    private void refreshCancellationControls(
+            LoanRequest request,
+            Label info,
+            ComboBox<String> reason,
+            TextField otherReason,
+            Button cancel) {
+        boolean eligible = request != null
+                && (request.status() == RequestStatus.PENDING
+                || request.status() == RequestStatus.APPROVED)
+                && request.startDate().isAfter(LocalDate.now());
+        String message;
+        if (request == null) {
+            message = "";
+        } else if (request.status() != RequestStatus.PENDING
+                && request.status() != RequestStatus.APPROVED) {
+            message = "Cancellation is unavailable because this request is "
+                    + request.status() + ".";
+        } else if (!request.startDate().isAfter(LocalDate.now())) {
+            message = "Cancellation is unavailable because the start date is today or has passed.";
+        } else {
+            message = "Cancellation is available for this future request.";
+        }
+        info.setText(message);
+        reason.setVisible(eligible);
+        reason.setManaged(eligible);
+        otherReason.setVisible(eligible && "Other".equals(reason.getValue()));
+        otherReason.setManaged(eligible && "Other".equals(reason.getValue()));
+        cancel.setVisible(eligible);
+        cancel.setManaged(eligible);
+        boolean hasReason = reason.getValue() != null
+                && (!"Other".equals(reason.getValue()) || !otherReason.getText().isBlank());
+        cancel.setDisable(!eligible || !hasReason);
     }
 
     private void renderRequestDetails(
             Label details, LoanRequest request, Map<String, String> equipmentNames) {
         if (request == null) {
-            details.setText("Select a request to view its details.");
+            details.setText("Select a request to view its details.\n"
+                    + "This MVP screen is read-only apart from eligible request cancellation.");
             return;
         }
         String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");

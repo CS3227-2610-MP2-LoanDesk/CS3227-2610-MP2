@@ -21,6 +21,9 @@ was addressed for the recorded scope; it does not claim exhaustive coverage.
 | RG-010 | 2026-09-25 | My Requests UI | A read-only screen did not explain why edit/cancel actions were unavailable. | State deferred actions explicitly in the UI and keep the scope documented. | Resolved |
 | RG-011 | 2026-09-25 | My Requests UI/tests | Request details could be clipped, and the list lacked a fresh-store reload assertion. | Use a scrollable details area and recreate H2 in a request-list persistence test. | Resolved |
 | RG-012 | 2026-09-25 | Review process | Independent review was not consistently invoked before meaningful feature commits. | Completeness skill now requires a pre-commit panel and this registry is read before review. | Resolved |
+| RG-013 | 2026-09-25 | Cancellation tests | Cancellation lacked direct proof of approved-reservation release, fresh reload metadata and role-boundary rejection. | Test availability after cancellation, recreate H2 and test logged-out/wrong-role calls. | Resolved |
+| RG-014 | 2026-09-25 | Cancellation UI | A selected request could inherit a previous cancellation reason, and pending cancellation feedback incorrectly mentioned releasing a reservation. | Reset reason controls on selection and make success feedback status-aware. | Resolved |
+| RG-015 | 2026-09-25 | Cancellation UI | Ineligible cancellation feedback did not distinguish terminal status from same-day/past-date policy. | Render specific status/date guidance and verify the action remains unavailable. | Resolved |
 
 ## Deferred hardening or known limitations
 

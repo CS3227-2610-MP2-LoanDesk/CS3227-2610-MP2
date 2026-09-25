@@ -112,14 +112,16 @@ matches persisted state.
 
 ## Milestone 5 — Clarification, revision and cancellation
 
-- [ ] Implement only the state transitions approved in Milestone 1.
+- [x] Implement only the state transitions approved in Milestone 1 for
+      cancellation; clarification and revision remain deferred.
 - [ ] Allow revision/resubmission only in the agreed states.
-- [ ] Allow cancellation only where policy permits and require any agreed
+- [x] Allow cancellation only where policy permits and require any agreed
       reason.
-- [ ] Recheck ownership and current state at every service call.
-- [ ] Test repeated actions, foreign IDs, illegal transitions and no-mutation
+- [x] Recheck ownership and current state at every service call.
+- [x] Test repeated actions, foreign IDs, illegal transitions and no-mutation
       rejection behaviour.
-- [ ] Run the ownership and edge-case/test reviews.
+- [x] Run the ownership, edge-case/test and change-completeness reviews for
+      the cancellation slice.
 
 Exit criteria: every borrower mutation has a legal-state and ownership guard,
 with focused evidence for success and safe rejection.

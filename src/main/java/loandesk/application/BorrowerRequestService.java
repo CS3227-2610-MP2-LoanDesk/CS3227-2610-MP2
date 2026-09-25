@@ -134,6 +134,60 @@ public final class BorrowerRequestService {
                 .orElseThrow(() -> new IllegalArgumentException("Request was not found."));
     }
 
+    /** Cancels one eligible future request owned by the current borrower. */
+    public LoanRequest cancelRequest(String requestId, String cancellationReason) throws IOException {
+        var borrower = session.requireRole(Role.BORROWER);
+        String normalizedReason = requireText(cancellationReason, "Cancellation reason");
+        LocalDate today = LocalDate.now(clock);
+        LoanDeskData data = dataStore.loadOrSeed();
+        int requestIndex = -1;
+        for (int index = 0; index < data.requests().size(); index++) {
+            LoanRequest candidate = data.requests().get(index);
+            if (candidate.requestId().equals(requestId)
+                    && candidate.borrowerUsername().equals(borrower.username())) {
+                requestIndex = index;
+                break;
+            }
+        }
+        if (requestIndex < 0) {
+            throw new IllegalArgumentException("Request was not found.");
+        }
+
+        LoanRequest current = data.requests().get(requestIndex);
+        if (current.status() != RequestStatus.PENDING
+                && current.status() != RequestStatus.APPROVED) {
+            throw new IllegalStateException("Only pending or approved requests can be cancelled.");
+        }
+        if (!current.startDate().isAfter(today)) {
+            throw new IllegalStateException("Only future requests can be cancelled.");
+        }
+
+        Instant now = clock.instant();
+        LoanRequest cancelled = new LoanRequest(
+                current.requestId(),
+                current.borrowerUsername(),
+                current.equipmentId(),
+                current.purpose(),
+                current.startDate(),
+                current.dueDate(),
+                RequestStatus.CANCELLED,
+                null,
+                current.createdAt(),
+                now,
+                current.decisionBy(),
+                current.decisionAt(),
+                current.decisionReason(),
+                borrower.username(),
+                now,
+                normalizedReason);
+
+        List<LoanRequest> requests = new java.util.ArrayList<>(data.requests());
+        requests.set(requestIndex, cancelled);
+        dataStore.save(new LoanDeskData(
+                data.users(), data.credentials(), data.equipment(), requests, data.loans()));
+        return cancelled;
+    }
+
     private static boolean isActive(RequestStatus status) {
         return status == RequestStatus.PENDING
                 || status == RequestStatus.APPROVED
