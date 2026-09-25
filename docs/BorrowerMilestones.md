@@ -74,10 +74,10 @@ filters and understand an empty result without changing shared workflow state.
       messages; decisions are recorded in `docs/ProjectContext.md`.
 - [x] Add the shared request/loan domain vocabulary and persistence contract
       needed by the team.
-- [ ] Add a borrower request form from the catalogue.
+- [x] Add a borrower request form from the catalogue.
 - [x] Validate required purpose, selected equipment and agreed date rules in
       the borrower request service.
-- [ ] Recheck the selected equipment at submission time.
+- [x] Recheck the selected equipment at submission time.
 - [x] Persist a successful request without corrupting existing data.
 - [ ] Test success, invalid input, stale/unavailable equipment and save failure.
 - [ ] Run ownership, edge-case/test and change-completeness reviews.

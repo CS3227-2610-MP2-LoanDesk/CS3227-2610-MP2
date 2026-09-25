@@ -177,6 +177,32 @@ precedence. Date-range conflict resolution, supervisor approval, request
 editing/cancellation services and the borrower request form remain later
 slices.
 
+## Borrower request form — 25 September 2026
+
+The request-submission service is now connected to the borrower catalogue.
+Borrowers can select an equipment item, choose a purpose or enter an `Other`
+explanation, choose start and due dates, submit the form, see inline failure
+feedback and acknowledge a `PENDING` confirmation before returning to the
+dashboard. The form delegates authorization, eligibility, availability,
+validation and persistence to `BorrowerRequestService`.
+
+Verification:
+
+- Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- UI review: `RUN` for source and wiring inspection.
+- Actual JavaFX interaction: pending manual verification; no automated GUI
+  interaction test exists for this project yet, so no interaction result is
+  claimed here.
+
+Remaining limitations for this slice are date-range availability conflicts,
+request list/history screens, edit/cancel actions, and supervisor/custodian
+workflow screens.
+
+Manual GUI evidence: the user tested the borrower catalogue selection and
+request form flow, including successful submission, confirmation acknowledgement
+and the listed invalid-input cases. The UI behaved as expected. This is manual
+user evidence; no automated JavaFX interaction test was claimed.
+
 ## Follow-up request/loan linkage fix — 25 September 2026
 
 The final review found that two different collected requests could reference
