@@ -67,7 +67,7 @@ completed tooling, storage, catalogue or session-boundary work.
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
    Report actual status; the merged main commit is `a18f29f` and the shared
-   request-foundation changes may be uncommitted.
+   request-foundation commits are currently local on `yikbing` and not pushed.
 3. Report the shared foundation test status before any further changes. The
    next implementation slice is the borrower request service/form; discuss its
    exact files and scope before editing.
@@ -100,8 +100,9 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Repository: `CS3227-2610-MP2`
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
-- Inspected on 25 September 2026: branch `yikbing` points to merged main
-  commit `a18f29f`; the shared request-foundation changes are uncommitted.
+- Inspected on 25 September 2026: branch `yikbing` contains merged main commit
+  `a18f29f` plus local shared request-foundation commits through `155dadf`;
+  they are committed locally but not pushed.
 - Recent commits include `337edad add catalogue filtering and review workflow`,
   `f28e1d2 migrate LoanDesk storage from JSON to H2` and
   `715e1b7 docs(agentic): formalize independent review checkpoints`.
@@ -155,9 +156,9 @@ slices.
 
 The borrower request-flow design discussion is complete and the shared
 foundation scope was circulated to the group on 25 September 2026. The shared
-domain/persistence checkpoint is implemented and tested. Preserve the
-small-commit boundary: let the user review and commit this foundation before
-adding the borrower UI or role-specific workflow screens.
+domain/persistence checkpoint is implemented, tested and committed locally.
+Preserve the small-commit boundary: let the user review and push this
+foundation before adding the borrower UI or role-specific workflow screens.
 
 Professor feedback changed the borrower plan: authentication must gate all
 protected dashboards and operations, including direct service calls. Login,

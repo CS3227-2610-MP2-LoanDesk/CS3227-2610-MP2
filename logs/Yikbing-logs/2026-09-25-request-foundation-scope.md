@@ -134,6 +134,22 @@ was already clear, but the shared domain record did not enforce that rule.
 - Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
   fix.
 
+## Final PR-readiness review — 25 September 2026
+
+A fresh read-only three-reviewer panel inspected committed `HEAD 155dadf`.
+The panel confirmed the reciprocal request/loan linkage fix and the
+foundation-only scope. It also identified stale handoff/checklist wording,
+which was corrected in the follow-up documentation commit. Schema-version
+tracking, database-level foreign keys for the reciprocal nullable link, and a
+purpose-built mid-write failure-injection test remain broader hardening work;
+the current additive H2 boundary validates snapshots before replacement and
+has passing rollback coverage for the implemented save paths.
+
+The project-local ` .\gradlew.bat clean test --no-daemon` run after the latest
+code fix passed. Reviewer environments could not independently reproduce the
+Gradle run because of their separate wrapper-lock/network context; this is
+recorded as a reviewer-environment limitation, not a project test failure.
+
 ## Follow-up request/loan linkage fix — 25 September 2026
 
 The final review found that two different collected requests could reference

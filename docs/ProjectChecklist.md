@@ -17,7 +17,7 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Add `.gitignore` entries for build, IDE, and local data files.
 - [x] Add initial CI workflow.
 - [x] Review foundation with the team.
-- [x] Commit and push the foundation to `main`.
+- [ ] Push the committed foundation branch and open its pull request.
 - [ ] Tag the shared baseline, for example `foundation-0.1`.
 - [ ] Protect `main` and require pull-request review.
 
@@ -171,9 +171,9 @@ implementation order and exit criteria.
 
 ## Verified current progress
 
-- Working branch `yikbing` is based on merged `origin/main` at `f2748da`, with
-  the merged PR #2 commit `a18f29f`; the shared request-foundation changes are
-  currently uncommitted.
+- Working branch `yikbing` is based on merged `origin/main` at `a18f29f` and
+  contains the committed shared request-foundation changes through `155dadf`.
+  They are committed locally and remain unpushed.
 - The H2 migration, catalogue and catalogue session-boundary work are merged
   into `main`; request submission and role-specific workflow features remain
   unfinished.
