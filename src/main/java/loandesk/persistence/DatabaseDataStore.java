@@ -370,9 +370,12 @@ public final class DatabaseDataStore implements DataStore {
             }
         }
         for (LoanRequest request : data.requests()) {
-            if (request.status() == RequestStatus.COLLECTED
-                    && !loansById.containsKey(request.loanId())) {
-                throw new SQLException("Collected request loan does not exist: " + request.requestId());
+            if (request.status() == RequestStatus.COLLECTED) {
+                Loan loan = loansById.get(request.loanId());
+                if (loan == null || !loan.requestId().equals(request.requestId())) {
+                    throw new SQLException("Collected request loan link is inconsistent: "
+                            + request.requestId());
+                }
             }
         }
     }

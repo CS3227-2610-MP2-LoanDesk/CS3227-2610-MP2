@@ -144,6 +144,39 @@ class DatabaseDataStoreTest {
     }
 
     @Test
+    void rejectsCollectedRequestsSharingOneLoan() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant timestamp = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest firstRequest = new LoanRequest(
+                "request-a", "alice", "camera1", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.COLLECTED, "loan-shared", timestamp, timestamp,
+                "supervisor", timestamp, "Approved", null, null, null);
+        LoanRequest secondRequest = new LoanRequest(
+                "request-b", "bob", "camera2", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.COLLECTED, "loan-shared", timestamp, timestamp,
+                "supervisor", timestamp, "Approved", null, null, null);
+        Loan loan = new Loan(
+                "loan-shared", "request-a", "alice", "camera1",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9), null,
+                LoanStatus.ACTIVE);
+
+        store.loadOrSeed();
+
+        assertThrows(java.io.IOException.class, () -> store.save(new LoanDeskData(
+                List.of(
+                        new User("alice", Role.BORROWER),
+                        new User("bob", Role.BORROWER)),
+                List.of(),
+                List.of(
+                        new Equipment("camera1", "Camera 1"),
+                        new Equipment("camera2", "Camera 2")),
+                List.of(firstRequest, secondRequest),
+                List.of(loan))));
+    }
+
+    @Test
     void additiveSchemaUpdatePreservesExistingLegacyEquipment() throws Exception {
         Path databasePath = temporaryDirectory.resolve("legacy");
         String jdbcUrl = "jdbc:h2:file:" + databasePath.toAbsolutePath().normalize()

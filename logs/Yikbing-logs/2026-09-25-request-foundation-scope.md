@@ -134,6 +134,20 @@ was already clear, but the shared domain record did not enforce that rule.
 - Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
   fix.
 
+## Follow-up request/loan linkage fix — 25 September 2026
+
+The final review found that two different collected requests could reference
+the same loan ID while only one loan pointed back to one of those requests.
+The persistence validator now requires every collected request to link to a
+loan whose `requestId` points back to that exact request.
+
+- Added the reciprocal collected-request/loan linkage validation.
+- Added `DatabaseDataStoreTest.rejectsCollectedRequestsSharingOneLoan`.
+- Baseline ` .\gradlew.bat clean test --no-daemon`: passed after retrying a
+  transient Gradle wrapper download/unzip failure.
+- Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
+  fix.
+
 ## Follow-up cancellation-ownership fix — 25 September 2026
 
 The remaining known contract gap was that persistence accepted a cancelled
