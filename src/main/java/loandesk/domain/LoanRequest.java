@@ -47,6 +47,9 @@ public record LoanRequest(
                 throw new IllegalArgumentException("Decision time is required.");
             }
             requireText(decisionReason, "Decision reason");
+        } else if (status == RequestStatus.PENDING
+                && (decisionBy != null || decisionAt != null || decisionReason != null)) {
+            throw new IllegalArgumentException("Pending requests cannot have decision metadata.");
         }
         if (status == RequestStatus.CANCELLED) {
             requireText(cancelledBy, "Cancellation owner");

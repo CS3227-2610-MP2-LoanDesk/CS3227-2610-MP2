@@ -137,3 +137,15 @@ was already clear, but the shared domain record did not enforce that rule.
 This is a small follow-up commit to the foundation. The remaining review items
 about request lifecycle metadata and broader persistence coverage will be
 handled before the corresponding mutation workflow is implemented.
+
+## Follow-up request-state fix — 25 September 2026
+
+The next review finding was that a `PENDING` request could be constructed with
+approval or rejection metadata. This contradicted the request lifecycle policy:
+decision metadata belongs only after a supervisor decision.
+
+- Added a `LoanRequest` invariant rejecting decision metadata on `PENDING`.
+- Added `WorkflowDomainTest.pendingRequestRejectsDecisionMetadata`.
+- Baseline ` .\gradlew.bat clean test --no-daemon`: passed before the fix.
+- Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
+  fix.

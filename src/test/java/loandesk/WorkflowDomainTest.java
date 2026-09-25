@@ -99,4 +99,25 @@ class WorkflowDomainTest {
                 null,
                 null));
     }
+
+    @Test
+    void pendingRequestRejectsDecisionMetadata() {
+        assertThrows(IllegalArgumentException.class, () -> new LoanRequest(
+                "request-1",
+                "borrower",
+                "camera1",
+                "Academic project",
+                LocalDate.of(2026, 9, 25),
+                LocalDate.of(2026, 10, 9),
+                RequestStatus.PENDING,
+                null,
+                java.time.Instant.parse("2026-09-25T08:00:00Z"),
+                java.time.Instant.parse("2026-09-25T08:00:00Z"),
+                "supervisor",
+                java.time.Instant.parse("2026-09-25T09:00:00Z"),
+                "Approved",
+                null,
+                null,
+                null));
+    }
 }
