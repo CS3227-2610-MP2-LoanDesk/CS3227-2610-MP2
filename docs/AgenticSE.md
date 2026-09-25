@@ -86,6 +86,12 @@ and rerun affected tests plus the full clean suite; repeat the panel only for a
 material behavioural change or major finding. This keeps the independent pass
 at meaningful decision points.
 
+`docs/ReviewGapRegistry.md` preserves valid independent-review gaps and the
+prevention or test added for each one. The completeness skill reads it before
+new meaningful borrower reviews and updates it after findings are reconciled.
+It distinguishes resolved gaps from deferred hardening and does not turn
+unsupported reviewer suggestions into production requirements.
+
 Location: `.agents/skills/<skill-name>/SKILL.md` inside this
 repository. Automatic selection is enabled by default. Example explicit invocation:
 `$loandesk-borrower-ownership-review Review my borrower changes.`

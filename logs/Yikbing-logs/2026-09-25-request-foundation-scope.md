@@ -332,3 +332,12 @@ the app and confirmed persistence, checked the empty state, and confirmed that
 another borrower could not see the first borrower's requests. The updated GUI
 behaved as expected. This is manual user evidence; no automated JavaFX
 interaction test was claimed.
+
+## Review gap registry — 25 September 2026
+
+Added `docs/ReviewGapRegistry.md` to preserve valid independent-review gaps,
+their prevention measures and focused verification. It includes the earlier
+ownership, password-save, catalogue restart/UI, request/loan integrity,
+documentation, My Requests and pre-commit review-process findings. Broader
+hardening recommendations and the lack of an automated JavaFX harness are
+recorded separately as deferred limitations rather than defects.

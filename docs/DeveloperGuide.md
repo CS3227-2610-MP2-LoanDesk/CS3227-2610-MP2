@@ -93,6 +93,11 @@ This independent pass is not launched by Git hooks; hooks stay deterministic and
 local. GitHub Actions runs the repository's build/test checks, while
 GitHub-native review services are an optional additional PR-comment layer.
 
+The completeness workflow also maintains `docs/ReviewGapRegistry.md`. Read it
+before a meaningful borrower review and add valid reviewer findings with their
+prevention and verification after reconciliation. Deferred recommendations and
+environment limitations are recorded separately from resolved gaps.
+
 Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
 `pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks
 staged content for local data, conflict markers and whitespace, and warns about
