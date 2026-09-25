@@ -66,7 +66,7 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Add the coordinated shared request/loan domain and additive H2 tables.
 - [x] Add read-only eligibility and availability queries for borrower services.
 - [ ] Add logging that excludes passwords and sensitive credentials.
-- [ ] Add meaningful unit tests for shared rules.
+- [x] Add meaningful unit tests for shared rules.
 
 ## 4. Borrower workflow
 

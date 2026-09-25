@@ -150,6 +150,33 @@ code fix passed. Reviewer environments could not independently reproduce the
 Gradle run because of their separate wrapper-lock/network context; this is
 recorded as a reviewer-environment limitation, not a project test failure.
 
+## Borrower request-submission service — 25 September 2026
+
+The next MVP slice adds the borrower application service without adding the
+JavaFX form yet. `BorrowerRequestService` requires an active borrower session,
+normalizes the equipment ID and purpose, validates today-or-future start dates
+and a maximum fourteen-day period, rechecks borrower eligibility and current
+equipment availability, rejects duplicate pending requests for the same item,
+and saves one new `PENDING` request through the shared `DataStore` boundary.
+
+Focused tests cover successful persistence, same-day and fourteen-day
+boundaries, past dates, blank purpose, unknown equipment, duplicate pending
+requests, unavailable equipment, logged-out/wrong-role calls and a synthetic
+save failure that leaves the loaded snapshot unchanged.
+
+Review status:
+
+- Edge-case/test review: `RUN`; final ` .\gradlew.bat clean test --no-daemon`
+  passed.
+- Ownership review: `RUN`; borrower identity comes from `Session.requireRole`
+  and the service has no caller-supplied owner field.
+- UI review: `NOT APPLICABLE`; no JavaFX screen changed in this slice.
+
+The current availability check uses the existing read-only availability
+precedence. Date-range conflict resolution, supervisor approval, request
+editing/cancellation services and the borrower request form remain later
+slices.
+
 ## Follow-up request/loan linkage fix — 25 September 2026
 
 The final review found that two different collected requests could reference
