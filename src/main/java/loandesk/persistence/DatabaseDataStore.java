@@ -342,6 +342,11 @@ public final class DatabaseDataStore implements DataStore {
                 throw new SQLException("Loan request equipment does not exist: "
                         + request.equipmentId());
             }
+            if (request.status() == RequestStatus.CANCELLED
+                    && !request.cancelledBy().equals(request.borrowerUsername())) {
+                throw new SQLException("Cancelled request owner differs from borrower: "
+                        + request.requestId());
+            }
         }
         for (Loan loan : data.loans()) {
             if (loansById.put(loan.loanId(), loan) != null) {

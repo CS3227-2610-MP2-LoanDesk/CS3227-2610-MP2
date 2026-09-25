@@ -134,6 +134,20 @@ was already clear, but the shared domain record did not enforce that rule.
 - Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
   fix.
 
+## Follow-up cancellation-ownership fix — 25 September 2026
+
+The remaining known contract gap was that persistence accepted a cancelled
+request whose cancellation actor differed from the borrower owner. The shared
+validation now rejects that mismatch; automated missed collection remains the
+separate `EXPIRED` status.
+
+- Added persistence validation requiring `cancelledBy` to equal the request
+  borrower.
+- Added `DatabaseDataStoreTest.rejectsCancellationByAnotherBorrower`.
+- Baseline ` .\gradlew.bat clean test --no-daemon`: passed before the fix.
+- Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
+  fix.
+
 This is a small follow-up commit to the foundation. The remaining review items
 about request lifecycle metadata and broader persistence coverage will be
 handled before the corresponding mutation workflow is implemented.

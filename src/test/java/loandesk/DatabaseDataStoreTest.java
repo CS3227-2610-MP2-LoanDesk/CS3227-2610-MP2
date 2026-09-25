@@ -122,6 +122,28 @@ class DatabaseDataStoreTest {
     }
 
     @Test
+    void rejectsCancellationByAnotherBorrower() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant timestamp = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest cancelledByAnotherBorrower = new LoanRequest(
+                "request-cancelled", "alice", "camera1", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.CANCELLED, null, timestamp, timestamp, null, null, null,
+                "bob", timestamp, "No longer needed");
+
+        store.loadOrSeed();
+
+        assertThrows(java.io.IOException.class, () -> store.save(new LoanDeskData(
+                List.of(
+                        new User("alice", Role.BORROWER),
+                        new User("bob", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(cancelledByAnotherBorrower),
+                List.of())));
+    }
+
+    @Test
     void additiveSchemaUpdatePreservesExistingLegacyEquipment() throws Exception {
         Path databasePath = temporaryDirectory.resolve("legacy");
         String jdbcUrl = "jdbc:h2:file:" + databasePath.toAbsolutePath().normalize()
