@@ -120,3 +120,20 @@ ready for PR review.
 This is an implementation checkpoint, not a PR-readiness claim. The next
 slice is the borrower request service/form and should be started only after
 this foundation is reviewed and committed separately.
+
+## Follow-up invariant fix — 25 September 2026
+
+The final PR-readiness review identified one valid small domain gap: a returned
+loan could contain a return date earlier than its checkout date if a caller
+constructed the record directly. The intended checkout-before-return workflow
+was already clear, but the shared domain record did not enforce that rule.
+
+- Added a `Loan` invariant rejecting `returnedDate` before `checkoutDate`.
+- Added `WorkflowDomainTest.loanRejectsReturnDateBeforeCheckoutDate`.
+- Baseline ` .\gradlew.bat clean test --no-daemon`: passed before the fix.
+- Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
+  fix.
+
+This is a small follow-up commit to the foundation. The remaining review items
+about request lifecycle metadata and broader persistence coverage will be
+handled before the corresponding mutation workflow is implemented.

@@ -22,6 +22,9 @@ public record Loan(
         if (dueDate.isBefore(checkoutDate)) {
             throw new IllegalArgumentException("Due date cannot be before checkout date.");
         }
+        if (returnedDate != null && returnedDate.isBefore(checkoutDate)) {
+            throw new IllegalArgumentException("Return date cannot be before checkout date.");
+        }
         if (status == null) {
             throw new IllegalArgumentException("Loan status is required.");
         }

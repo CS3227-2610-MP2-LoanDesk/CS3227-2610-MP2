@@ -46,6 +46,19 @@ class WorkflowDomainTest {
     }
 
     @Test
+    void loanRejectsReturnDateBeforeCheckoutDate() {
+        assertThrows(IllegalArgumentException.class, () -> new Loan(
+                "loan-1",
+                "request-1",
+                "borrower",
+                "camera1",
+                LocalDate.of(2026, 9, 25),
+                LocalDate.of(2026, 10, 9),
+                LocalDate.of(2026, 9, 24),
+                LoanStatus.RETURNED));
+    }
+
+    @Test
     void requestRejectsDueDateBeforeStartDate() {
         assertThrows(IllegalArgumentException.class, () -> new LoanRequest(
                 "request-1",
