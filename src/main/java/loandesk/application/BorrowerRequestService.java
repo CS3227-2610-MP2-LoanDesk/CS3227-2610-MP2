@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Comparator;
 
 import loandesk.domain.AvailabilityStatus;
 import loandesk.domain.Equipment;
@@ -108,6 +109,35 @@ public final class BorrowerRequestService {
         dataStore.save(new LoanDeskData(
                 data.users(), data.credentials(), data.equipment(), requests, data.loans()));
         return request;
+    }
+
+    /** Returns only the current borrower's requests, with active requests first. */
+    public List<LoanRequest> listOwnRequests() throws IOException {
+        String borrowerUsername = session.requireRole(Role.BORROWER).username();
+        return dataStore.loadOrSeed().requests().stream()
+                .filter(request -> request.borrowerUsername().equals(borrowerUsername))
+                .sorted(Comparator
+                        .comparingInt((LoanRequest request) -> isActive(request.status()) ? 0 : 1)
+                        .thenComparing(LoanRequest::updatedAt, Comparator.reverseOrder())
+                        .thenComparing(LoanRequest::requestId))
+                .toList();
+    }
+
+    /** Finds a request only when it belongs to the current borrower. */
+    public LoanRequest findOwnRequest(String requestId) throws IOException {
+        if (requestId == null || requestId.isBlank()) {
+            throw new IllegalArgumentException("Request was not found.");
+        }
+        return listOwnRequests().stream()
+                .filter(request -> request.requestId().equals(requestId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Request was not found."));
+    }
+
+    private static boolean isActive(RequestStatus status) {
+        return status == RequestStatus.PENDING
+                || status == RequestStatus.APPROVED
+                || status == RequestStatus.COLLECTED;
     }
 
     private static String requireText(String value, String field) {

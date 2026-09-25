@@ -3,6 +3,8 @@ package loandesk;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -16,6 +18,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -26,6 +29,7 @@ import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
+import loandesk.domain.LoanRequest;
 import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
@@ -36,13 +40,14 @@ public final class LoanDeskApp extends Application {
     private AuthenticationService authenticationService;
     private CatalogueService catalogueService;
     private BorrowerRequestService borrowerRequestService;
+    private DataStore dataStore;
     private Stage stage;
 
     @Override
     public void start(Stage primaryStage) {
         stage = primaryStage;
         try {
-            DataStore dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
+            dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
             authenticationService = new AuthenticationService(dataStore);
             catalogueService = new CatalogueService(dataStore, session);
             borrowerRequestService = new BorrowerRequestService(dataStore, session);
@@ -115,7 +120,7 @@ public final class LoanDeskApp extends Application {
         if (user.role() == Role.BORROWER) {
             content.getChildren().addAll(
                     catalogueButton(),
-                    new Button("My Requests"),
+                    requestsButton(),
                     new Button("My Loans"));
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
@@ -141,6 +146,80 @@ public final class LoanDeskApp extends Application {
         Button catalogue = new Button("Catalogue");
         catalogue.setOnAction(event -> showCatalogue());
         return catalogue;
+    }
+
+    private Button requestsButton() {
+        Button requests = new Button("My Requests");
+        requests.setOnAction(event -> showMyRequests());
+        return requests;
+    }
+
+    private void showMyRequests() {
+        VBox content = layout("My Requests", "Your active requests and request history.");
+        Label feedback = new Label();
+        ListView<LoanRequest> requests = new ListView<>();
+        requests.setPrefHeight(220);
+        requests.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(LoanRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null
+                        ? null
+                        : item.status() + " — " + item.equipmentId()
+                                + " (" + item.startDate() + " to " + item.dueDate() + ")");
+            }
+        });
+
+        Label details = new Label(
+                "Select a request to view its details.\n"
+                        + "This MVP screen is read-only; editing and cancellation will be added later.");
+        details.setWrapText(true);
+        ScrollPane detailsPane = new ScrollPane(details);
+        detailsPane.setFitToWidth(true);
+        detailsPane.setPrefViewportHeight(140);
+        Map<String, String> equipmentNames;
+        try {
+            equipmentNames = catalogueService.loadCatalogue().stream()
+                    .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            requests.getItems().setAll(borrowerRequestService.listOwnRequests());
+            if (requests.getItems().isEmpty()) {
+                feedback.setText("You have no requests yet.");
+            } else {
+                feedback.setText(requests.getItems().size() + " request(s) found.");
+            }
+        } catch (IOException | IllegalStateException exception) {
+            feedback.setText("Unable to load your requests: " + exception.getMessage());
+            equipmentNames = Map.of();
+        }
+
+        Map<String, String> names = equipmentNames;
+        requests.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, selected) -> renderRequestDetails(details, selected, names));
+        Button back = new Button("Back to dashboard");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        content.getChildren().addAll(feedback, requests, detailsPane, back);
+        showScene(content, 560, 500);
+    }
+
+    private void renderRequestDetails(
+            Label details, LoanRequest request, Map<String, String> equipmentNames) {
+        if (request == null) {
+            details.setText("Select a request to view its details.");
+            return;
+        }
+        String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");
+        StringBuilder text = new StringBuilder()
+                .append("Equipment: ").append(equipmentName).append(" (" ).append(request.equipmentId()).append(")\n")
+                .append("Purpose: ").append(request.purpose()).append("\n")
+                .append("Dates: ").append(request.startDate()).append(" to ").append(request.dueDate()).append("\n")
+                .append("Status: ").append(request.status());
+        if (request.decisionReason() != null) {
+            text.append("\nDecision reason: ").append(request.decisionReason());
+        }
+        if (request.cancellationReason() != null) {
+            text.append("\nCancellation reason: ").append(request.cancellationReason());
+        }
+        details.setText(text.toString());
     }
 
     private void showCatalogue() {

@@ -75,8 +75,8 @@ implementation order and exit criteria.
 
 - [x] Catalogue and equipment name filtering.
 - [ ] Availability search by name, category, and dates.
-- [ ] Submit one-item request with purpose and date validation.
-- [ ] View own requests and request details.
+- [x] Submit one-item request with purpose and date validation.
+- [x] View own requests and request details.
 - [ ] Read rejection reasons and create a new request after rejection.
 - [ ] Cancel only where policy permits.
 - [ ] View active loans, due dates, overdue indicators, and history.

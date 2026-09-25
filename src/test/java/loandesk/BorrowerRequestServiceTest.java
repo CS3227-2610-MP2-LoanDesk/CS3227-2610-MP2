@@ -18,7 +18,9 @@ import loandesk.application.BorrowerRequestService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
 import loandesk.domain.EquipmentCondition;
+import loandesk.domain.LoanRequest;
 import loandesk.domain.Role;
+import loandesk.domain.RequestStatus;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.DatabaseDataStore;
@@ -113,6 +115,84 @@ class BorrowerRequestServiceTest {
                 store, loggedOut, CLOCK).submitRequest("camera1", "Academic project", TODAY, TODAY));
         assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
                 store, supervisor, CLOCK).submitRequest("camera1", "Academic project", TODAY, TODAY));
+    }
+
+    @Test
+    void listsOnlyOwnRequestsWithActiveRequestsBeforeHistory() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest ownHistory = request(
+                "history", "borrower", RequestStatus.REJECTED,
+                NOW.minusSeconds(30), "supervisor", "Not available");
+        LoanRequest foreignActive = request(
+                "foreign", "other", RequestStatus.PENDING,
+                NOW.plusSeconds(10), null, null);
+        LoanRequest ownActive = request(
+                "active", "borrower", RequestStatus.PENDING,
+                NOW, null, null);
+        store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER), new User("other", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(ownHistory, foreignActive, ownActive),
+                List.of()));
+
+        BorrowerRequestService service = service(store);
+        assertEquals(List.of("active", "history"), service.listOwnRequests().stream()
+                .map(LoanRequest::requestId).toList());
+        assertEquals(ownActive, service.findOwnRequest("active"));
+        assertThrows(IllegalArgumentException.class, () -> service.findOwnRequest("foreign"));
+        assertThrows(IllegalArgumentException.class, () -> service.findOwnRequest("missing"));
+    }
+
+    @Test
+    void reloadsOwnRequestsFromAFreshStoreInstance() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest saved = service(store).submitRequest(
+                "camera1", "Academic project", TODAY, TODAY.plusDays(14));
+
+        DatabaseDataStore restartedStore = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        assertEquals(List.of(saved), new BorrowerRequestService(
+                restartedStore, borrowerSession(), CLOCK).listOwnRequests());
+    }
+
+    @Test
+    void requestQueriesRequireBorrowerSession() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        Session loggedOut = new Session();
+        Session supervisor = new Session();
+        supervisor.start(new User("supervisor", Role.SUPERVISOR));
+
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, loggedOut, CLOCK).listOwnRequests());
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, supervisor, CLOCK).listOwnRequests());
+    }
+
+    private LoanRequest request(
+            String id,
+            String borrower,
+            RequestStatus status,
+            Instant updatedAt,
+            String decisionBy,
+            String decisionReason) {
+        Instant createdAt = updatedAt.minusSeconds(1);
+        return new LoanRequest(
+                id,
+                borrower,
+                "camera1",
+                "Academic project",
+                TODAY,
+                TODAY.plusDays(14),
+                status,
+                null,
+                createdAt,
+                updatedAt,
+                decisionBy,
+                decisionBy == null ? null : updatedAt,
+                decisionReason,
+                null,
+                null,
+                null);
     }
 
     private DatabaseDataStore storeWith(List<Equipment> equipment) throws Exception {

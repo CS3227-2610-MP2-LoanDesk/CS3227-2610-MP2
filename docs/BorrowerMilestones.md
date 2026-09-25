@@ -79,7 +79,7 @@ filters and understand an empty result without changing shared workflow state.
       the borrower request service.
 - [x] Recheck the selected equipment at submission time.
 - [x] Persist a successful request without corrupting existing data.
-- [ ] Test success, invalid input, stale/unavailable equipment and save failure.
+- [x] Test success, invalid input, stale/unavailable equipment and save failure.
 - [ ] Run ownership, edge-case/test and change-completeness reviews.
 
 Exit criteria: valid requests persist once; invalid or stale submissions fail
@@ -101,11 +101,11 @@ later slices.
 
 ## Milestone 4 — View own requests and details
 
-- [ ] Add a borrower request list and detail view.
-- [ ] Show status, equipment, dates, purpose and permitted next actions.
-- [ ] Enforce borrower ownership in the service layer, not only the UI.
-- [ ] Add empty, unknown, stale and wrong-role cases.
-- [ ] Verify the list reloads correctly after restart.
+- [x] Add a borrower request list and detail view.
+- [x] Show status, equipment, dates, purpose and permitted next actions.
+- [x] Enforce borrower ownership in the service layer, not only the UI.
+- [x] Add empty, unknown, stale and wrong-role cases.
+- [x] Verify the list reloads correctly after restart.
 
 Exit criteria: a borrower sees only their own requests and the displayed status
 matches persisted state.

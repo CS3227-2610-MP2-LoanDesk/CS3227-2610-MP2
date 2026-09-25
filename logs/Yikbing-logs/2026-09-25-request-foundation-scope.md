@@ -246,3 +246,89 @@ decision metadata belongs only after a supervisor decision.
 - Baseline ` .\gradlew.bat clean test --no-daemon`: passed before the fix.
 - Final ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL` after the
   fix.
+
+## Borrower request list and details — 25 September 2026
+
+The borrower dashboard now opens a read-only `My Requests` screen. It loads
+requests through `BorrowerRequestService`, filters them by the logged-in
+borrower's session identity, places active statuses before terminal history,
+and displays equipment, purpose, dates, status and available decision or
+cancellation reasons. Empty results and load failures have visible feedback.
+
+Verification:
+
+- Focused `BorrowerRequestServiceTest`: `BUILD SUCCESSFUL`.
+- Query tests cover owner filtering, active-before-history ordering, unknown
+  and foreign request IDs, logged-out access and wrong-role access.
+- Ownership review: `RUN`; query methods require `Session.requireRole(BORROWER)`
+  and do not accept a caller-supplied owner.
+- Edge-case/test review: `RUN`; valid query, empty result, foreign/unknown ID,
+  wrong-role and logged-out cases are covered. Full clean verification remains
+  required after this implementation slice.
+- UI review: `RUN` for source and wiring inspection. Manual JavaFX verification
+  of `My Requests`, including empty state and selected details, is still pending;
+  no automated JavaFX interaction result is claimed.
+
+The restart-specific check remains open until a fresh store instance is used to
+verify persisted request data. Editing, cancellation, supervisor decisions and
+loan history remain later slices.
+
+## Independent review checkpoint update — 25 September 2026
+
+The change-completeness workflow now explicitly requires a fresh, read-only
+independent reviewer panel before finalizing each meaningful borrower feature
+or milestone commit, not only when checking PR readiness. Routine tests,
+small documentation edits and trivial formatting changes remain exempt. Valid
+panel findings require affected-test and full-clean-suite reruns; a second
+panel is needed only when the fix materially changes behavior or addresses a
+major finding.
+
+## Independent panel for My Requests — 25 September 2026
+
+Before committing the My Requests slice, two fresh read-only reviewers were
+invoked with the current uncommitted diff and relevant requirements.
+
+- Ownership/workflow reviewer: `RUN`; no authorization defect found. The
+  service requires a borrower session, filters by session username, and
+  safely rejects foreign and unknown request IDs.
+- Behaviour/test/UI reviewer: `RUN`; confirmed the ownership and basic display
+  behavior, but identified three findings:
+  - the read-only screen should explicitly explain that edit/cancel actions
+    are deferred rather than appearing to omit permitted actions;
+  - a fresh-store restart test and stronger evidence for empty/stale/UI cases
+    are still missing, so the restart milestone checkbox remains open;
+  - long purpose or reason text may be clipped in the fixed details area.
+
+The panel was not treated as a pass. No reviewer edited files, committed,
+pushed, changed local data or ran JavaFX interaction. The focused and full
+Gradle suites had already passed in the main session before this panel; one
+reviewer could not rerun Gradle because of its isolated environment's lock or
+cached-JavaFX access restrictions. Fixes and verification are pending.
+
+## My Requests review fixes — 25 September 2026
+
+The panel findings were addressed within the current read-only scope:
+
+- The details view now explicitly explains that editing and cancellation are
+  deferred, rather than implying that permitted actions were accidentally
+  omitted.
+- `BorrowerRequestServiceTest.reloadsOwnRequestsFromAFreshStoreInstance`
+  recreates the H2 store and verifies the persisted request is returned.
+- The details label is displayed inside a scrollable pane so long purpose or
+  decision/cancellation text remains accessible.
+
+Verification after the fixes:
+
+- Focused `BorrowerRequestServiceTest`: `BUILD SUCCESSFUL`.
+- Full ` .\gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- The restart-specific milestone checkbox is now complete.
+- Manual JavaFX verification of the updated screen remains pending. No second
+  panel was needed because the fixes clarified and hardened the existing
+  read-only behavior without introducing a new workflow.
+
+Manual GUI evidence: the user logged in as a borrower, opened `My Requests`,
+verified the read-only explanation, selected and inspected a request, restarted
+the app and confirmed persistence, checked the empty state, and confirmed that
+another borrower could not see the first borrower's requests. The updated GUI
+behaved as expected. This is manual user evidence; no automated JavaFX
+interaction test was claimed.
