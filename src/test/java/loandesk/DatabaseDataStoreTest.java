@@ -3,8 +3,14 @@ package loandesk;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -15,7 +21,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import loandesk.domain.Equipment;
+import loandesk.domain.EquipmentCondition;
+import loandesk.domain.Loan;
+import loandesk.domain.LoanRequest;
+import loandesk.domain.LoanStatus;
 import loandesk.domain.Role;
+import loandesk.domain.RequestStatus;
 import loandesk.domain.User;
 import loandesk.persistence.DatabaseDataStore;
 import loandesk.persistence.LoanDeskData;
@@ -79,6 +90,127 @@ class DatabaseDataStoreTest {
     }
 
     @Test
+    void failedWorkflowSaveDoesNotPartiallyReplaceExistingState() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant timestamp = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest originalRequest = new LoanRequest(
+                "request-original", "borrower", "camera1", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9), RequestStatus.PENDING,
+                null, timestamp, timestamp, null, null, null, null, null, null);
+        LoanDeskData original = new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(originalRequest),
+                List.of());
+        store.loadOrSeed();
+        store.save(original);
+
+        LoanRequest invalidRequest = new LoanRequest(
+                "request-invalid", "borrower", "missing-equipment", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9), RequestStatus.PENDING,
+                null, timestamp, timestamp, null, null, null, null, null, null);
+
+        assertThrows(java.io.IOException.class, () -> store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(originalRequest, invalidRequest),
+                List.of())));
+
+        assertEquals(original, store.loadOrSeed());
+    }
+
+    @Test
+    void rejectsCancellationByAnotherBorrower() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant timestamp = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest cancelledByAnotherBorrower = new LoanRequest(
+                "request-cancelled", "alice", "camera1", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.CANCELLED, null, timestamp, timestamp, null, null, null,
+                "bob", timestamp, "No longer needed");
+
+        store.loadOrSeed();
+
+        assertThrows(java.io.IOException.class, () -> store.save(new LoanDeskData(
+                List.of(
+                        new User("alice", Role.BORROWER),
+                        new User("bob", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(cancelledByAnotherBorrower),
+                List.of())));
+    }
+
+    @Test
+    void rejectsCollectedRequestsSharingOneLoan() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant timestamp = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest firstRequest = new LoanRequest(
+                "request-a", "alice", "camera1", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.COLLECTED, "loan-shared", timestamp, timestamp,
+                "supervisor", timestamp, "Approved", null, null, null);
+        LoanRequest secondRequest = new LoanRequest(
+                "request-b", "bob", "camera2", "Academic project",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9),
+                RequestStatus.COLLECTED, "loan-shared", timestamp, timestamp,
+                "supervisor", timestamp, "Approved", null, null, null);
+        Loan loan = new Loan(
+                "loan-shared", "request-a", "alice", "camera1",
+                LocalDate.of(2026, 9, 25), LocalDate.of(2026, 10, 9), null,
+                LoanStatus.ACTIVE);
+
+        store.loadOrSeed();
+
+        assertThrows(java.io.IOException.class, () -> store.save(new LoanDeskData(
+                List.of(
+                        new User("alice", Role.BORROWER),
+                        new User("bob", Role.BORROWER)),
+                List.of(),
+                List.of(
+                        new Equipment("camera1", "Camera 1"),
+                        new Equipment("camera2", "Camera 2")),
+                List.of(firstRequest, secondRequest),
+                List.of(loan))));
+    }
+
+    @Test
+    void additiveSchemaUpdatePreservesExistingLegacyEquipment() throws Exception {
+        Path databasePath = temporaryDirectory.resolve("legacy");
+        String jdbcUrl = "jdbc:h2:file:" + databasePath.toAbsolutePath().normalize()
+                .toString().replace('\\', '/');
+        try (Connection connection = DriverManager.getConnection(jdbcUrl);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE users ("
+                    + "username VARCHAR(30) PRIMARY KEY, "
+                    + "username_key VARCHAR(30) NOT NULL UNIQUE, "
+                    + "role VARCHAR(20) NOT NULL)");
+            statement.executeUpdate("CREATE TABLE credentials ("
+                    + "username VARCHAR(30) PRIMARY KEY, algorithm VARCHAR(100) NOT NULL, "
+                    + "iterations INT NOT NULL, salt VARCHAR(255) NOT NULL, "
+                    + "password_hash VARCHAR(255) NOT NULL)");
+            statement.executeUpdate("CREATE TABLE equipment ("
+                    + "id VARCHAR(100) PRIMARY KEY, name VARCHAR(255) NOT NULL)");
+            statement.executeUpdate("CREATE TABLE database_state ("
+                    + "id INT PRIMARY KEY, revision BIGINT NOT NULL)");
+            statement.executeUpdate("INSERT INTO database_state (id, revision) VALUES (1, 7)");
+            statement.executeUpdate("INSERT INTO users (username, username_key, role) "
+                    + "VALUES ('legacy', 'legacy', 'BORROWER')");
+            statement.executeUpdate("INSERT INTO equipment (id, name) "
+                    + "VALUES ('legacy-camera', 'Legacy Camera')");
+        }
+
+        LoanDeskData loaded = new DatabaseDataStore(databasePath).loadOrSeed();
+
+        assertEquals(List.of(new User("legacy", Role.BORROWER)), loaded.users());
+        assertEquals(List.of(new Equipment("legacy-camera", "Legacy Camera")), loaded.equipment());
+        assertTrue(loaded.requests().isEmpty());
+        assertTrue(loaded.loans().isEmpty());
+    }
+
+    @Test
     void staleSnapshotCannotReplaceNewerSharedDatabaseState() throws Exception {
         Path databasePath = temporaryDirectory.resolve("loandesk");
         DatabaseDataStore firstStore = new DatabaseDataStore(databasePath);
@@ -135,6 +267,50 @@ class DatabaseDataStoreTest {
         assertEquals(1, loaded.users().stream()
                 .filter(user -> user.username().equals("one") || user.username().equals("two"))
                 .count());
+    }
+
+    @Test
+    void persistsWorkflowRecordsAndEquipmentCondition() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        Instant createdAt = Instant.parse("2026-09-25T08:00:00Z");
+        LoanRequest request = new LoanRequest(
+                "request-1",
+                "borrower",
+                "camera1",
+                "Academic project",
+                LocalDate.of(2026, 9, 25),
+                LocalDate.of(2026, 10, 9),
+                RequestStatus.COLLECTED,
+                "loan-1",
+                createdAt,
+                createdAt,
+                "supervisor",
+                createdAt,
+                "Approved",
+                null,
+                null,
+                null);
+        Loan loan = new Loan(
+                "loan-1",
+                "request-1",
+                "borrower",
+                "camera1",
+                LocalDate.of(2026, 9, 25),
+                LocalDate.of(2026, 10, 9),
+                null,
+                LoanStatus.ACTIVE);
+        LoanDeskData expected = new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1", EquipmentCondition.DAMAGED)),
+                List.of(request),
+                List.of(loan));
+
+        store.loadOrSeed();
+        store.save(expected);
+
+        assertEquals(expected, new DatabaseDataStore(temporaryDirectory.resolve("loandesk"))
+                .loadOrSeed());
     }
 
     private static Void saveAfterStart(CountDownLatch start, DatabaseDataStore store, String username)

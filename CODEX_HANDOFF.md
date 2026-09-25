@@ -2,7 +2,7 @@
 
 Read this file first when continuing the project from a terminal.
 
-## Resume here: 24 September 2026
+## Resume here: 25 September 2026
 
 The user is continuing after implementing borrower review tooling, borrower
 password authentication, the shared H2 persistence foundation, the first
@@ -66,14 +66,13 @@ completed tooling, storage, catalogue or session-boundary work.
 1. Read this handoff, `docs/ProjectContext.md`, `docs/ProjectChecklist.md`,
    `docs/DeveloperGuide.md`, `docs/AgenticSE.md`, and the ownership evaluation log.
 2. Inspect `git status --short --branch` and `git log --oneline --decorate -5`.
-   Report actual status; the catalogue commits are pushed through `337edad`,
-   while the borrower session-boundary changes may still be uncommitted.
-3. Report the catalogue implementation summary and actual test status before
-   any further changes. Discuss the exact files and scope before editing.
-4. The next borrower milestone is agreement on request and loan contracts,
-   followed by the one-item request workflow. Integration/system evaluation,
-   automatic-selection checks, repeat runs and detailed reflections remain
-   pending. Do not claim they have been done.
+   Report actual status; the merged main commit is `a18f29f` and the shared
+   request-foundation commits are currently local on `yikbing` and not pushed.
+3. Report the shared foundation test status before any further changes. The
+   next implementation slice is the borrower request service/form; discuss its
+   exact files and scope before editing.
+4. Integration/system evaluation, automatic-selection checks, repeat runs and
+   detailed reflections remain pending. Do not claim they have been done.
 5. Preserve the user's local data and staged work; do not commit, push, pull or
    switch branches automatically.
 
@@ -101,9 +100,9 @@ was changed. Source: https://learn.chatgpt.com/docs/models
 - Repository: `CS3227-2610-MP2`
 - Remote: `https://github.com/CS3227-2610-MP2-LoanDesk/CS3227-2610-MP2.git`
 - Default branch: `main`
-- Inspected on 24 September 2026: branch `yikbing` points to catalogue commit
-  `337edad` on `origin/yikbing` and is based on merged `origin/main` at
-  `f2748da`; the borrower session-boundary changes are uncommitted.
+- Inspected on 25 September 2026: branch `yikbing` contains merged main commit
+  `a18f29f` plus local shared request-foundation commits through `155dadf`;
+  they are committed locally but not pushed.
 - Recent commits include `337edad add catalogue filtering and review workflow`,
   `f28e1d2 migrate LoanDesk storage from JSON to H2` and
   `715e1b7 docs(agentic): formalize independent review checkpoints`.
@@ -148,8 +147,18 @@ The shared foundation currently provides:
   boundary
 
 Request submission, approval, checkout, return, maintenance and loan-history
-features are not implemented yet. Catalogue category, condition and derived
-availability remain deferred until those workflows exist.
+features are not implemented yet. The agreed request/loan policy and borrower
+request UX are recorded in `docs/ProjectContext.md`. The shared request/loan
+domain vocabulary, additive H2 persistence and read-only eligibility/
+availability queries are now implemented and tested. Supervisor approval,
+custodian checkout/return UI and borrower request screens remain separate
+slices.
+
+The borrower request-flow design discussion is complete and the shared
+foundation scope was circulated to the group on 25 September 2026. The shared
+domain/persistence checkpoint is implemented, tested and committed locally.
+Preserve the small-commit boundary: let the user review and push this
+foundation before adding the borrower UI or role-specific workflow screens.
 
 Professor feedback changed the borrower plan: authentication must gate all
 protected dashboards and operations, including direct service calls. Login,

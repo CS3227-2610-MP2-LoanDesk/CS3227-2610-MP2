@@ -52,8 +52,9 @@ Do not leave intentional defects in production code.
 
 ### Independent PR review workflow
 
-For a borrower feature or milestone completion check, or a meaningful borrower
-pull request, run the completeness skill and arrange the smallest fresh,
+For a borrower feature or milestone completion check, and before finalizing a
+meaningful borrower feature commit or pull request, run the completeness skill
+and arrange the smallest fresh,
 read-only review panel covering the change surface, with no more than three
 reviewers. Use UI/interaction plus behaviour/test reviewers for catalogue or
 screen changes; authentication/security plus persistence/concurrency reviewers
@@ -78,9 +79,12 @@ offline-capable and quick. GitHub Copilot or another GitHub-integrated review
 service can add PR comments separately when enabled by the repository owners;
 that service is not configured by the local skill.
 
-Routine implementation substeps, small documentation edits and ordinary test
-runs use the relevant focused checks without automatically invoking a fresh
-reviewer. This keeps the independent pass at meaningful decision points.
+Routine implementation substeps, small documentation edits, trivial formatting
+changes and ordinary test runs use the relevant focused checks without
+automatically invoking a fresh reviewer. If a panel finds a valid issue, fix it
+and rerun affected tests plus the full clean suite; repeat the panel only for a
+material behavioural change or major finding. This keeps the independent pass
+at meaningful decision points.
 
 Location: `.agents/skills/<skill-name>/SKILL.md` inside this
 repository. Automatic selection is enabled by default. Example explicit invocation:

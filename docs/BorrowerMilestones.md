@@ -41,12 +41,15 @@ direct unauthenticated calls safely.
 
 - [x] Agree that the first catalogue slice supports name filtering only;
       category, condition and availability are deferred to request/loan work.
-- [ ] Agree request and loan boundaries, request statuses and legal
+- [x] Agree request and loan boundaries, request statuses and legal
       transitions.
-- [ ] Agree date boundaries, collection windows, cancellation,
+- [x] Agree date boundaries, collection windows, cancellation,
       clarification/resubmission and overdue-borrower rules.
 - [x] Record the agreed catalogue scope and future status vocabulary in
       `docs/ProjectContext.md` before implementing the catalogue.
+
+The agreed request/loan policy is recorded in `docs/ProjectContext.md` and is
+the shared basis for the next implementation milestone.
 
 Exit criteria: the next borrower slice can be implemented without inventing a
 shared policy. Shared changes have an agreed owner and review path.
@@ -67,25 +70,42 @@ filters and understand an empty result without changing shared workflow state.
 
 ## Milestone 3 — Submit a one-item request
 
-- [ ] Agree or confirm the request input fields and validation messages.
-- [ ] Add the smallest request domain/application contract needed by the team.
-- [ ] Add a borrower request form from the catalogue.
-- [ ] Validate required purpose, selected equipment and agreed date rules.
-- [ ] Recheck the selected equipment at submission time.
-- [ ] Persist a successful request without corrupting existing data.
-- [ ] Test success, invalid input, stale/unavailable equipment and save failure.
+- [x] Agree or confirm the request input fields, borrower UX and validation
+      messages; decisions are recorded in `docs/ProjectContext.md`.
+- [x] Add the shared request/loan domain vocabulary and persistence contract
+      needed by the team.
+- [x] Add a borrower request form from the catalogue.
+- [x] Validate required purpose, selected equipment and agreed date rules in
+      the borrower request service.
+- [x] Recheck the selected equipment at submission time.
+- [x] Persist a successful request without corrupting existing data.
+- [x] Test success, invalid input, stale/unavailable equipment and save failure.
 - [ ] Run ownership, edge-case/test and change-completeness reviews.
 
 Exit criteria: valid requests persist once; invalid or stale submissions fail
 clearly and do not create partial records.
 
+The agreed borrower UX includes a dashboard-first login destination, prominent
+overdue and collection reminders, active-loan/history tables, active-request
+and terminal-history ordering, inline validation, a confirmation dialog after
+submission, a purpose dropdown with an `Other` explanation, one pending request
+per equipment item, disabled request actions for blocked borrowers, and
+service-layer rechecks at submission time. These are design commitments, not
+evidence that the milestone is implemented.
+
+The first implementation slice is intentionally narrower than the full
+borrower workflow: add the shared request/loan domain vocabulary, additive H2
+persistence and read-only eligibility/availability queries. Supervisor approval,
+custodian checkout/return UI and the borrower request screens remain separate
+later slices.
+
 ## Milestone 4 — View own requests and details
 
-- [ ] Add a borrower request list and detail view.
-- [ ] Show status, equipment, dates, purpose and permitted next actions.
-- [ ] Enforce borrower ownership in the service layer, not only the UI.
-- [ ] Add empty, unknown, stale and wrong-role cases.
-- [ ] Verify the list reloads correctly after restart.
+- [x] Add a borrower request list and detail view.
+- [x] Show status, equipment, dates, purpose and permitted next actions.
+- [x] Enforce borrower ownership in the service layer, not only the UI.
+- [x] Add empty, unknown, stale and wrong-role cases.
+- [x] Verify the list reloads correctly after restart.
 
 Exit criteria: a borrower sees only their own requests and the displayed status
 matches persisted state.

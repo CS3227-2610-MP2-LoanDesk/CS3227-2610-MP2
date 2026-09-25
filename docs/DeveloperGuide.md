@@ -78,15 +78,18 @@ execution. You can also invoke a skill by its `$name`. If newly created skills
 are not visible, start a fresh session. Review-only requests produce findings;
 fixes/tests are made only within an authorized implementation task.
 
-For a borrower feature or milestone completion check, and for a meaningful PR,
-the completeness skill arranges a fresh, read-only reviewer pass over the
+For a meaningful borrower feature or milestone slice, before finalizing its
+commit or PR, the completeness skill arranges a fresh, read-only reviewer pass
+over the
 relevant change diff. The reviewer must not receive the implementing agent's
 conclusions and must report findings with severity, file/line references,
 reasoning and next actions. Repeat it before a PR if meaningful changes were
 made after the last completion check. Save decision-relevant prompt/output
-evidence in a dated log. Routine substeps, small documentation edits and
-ordinary test runs do not automatically invoke a fresh reviewer. This
-independent pass is not launched by Git hooks; hooks stay deterministic and
+evidence in a dated log. Routine substeps, small documentation edits, trivial
+formatting changes and ordinary test runs do not automatically invoke a fresh
+reviewer. If a valid finding is fixed, rerun affected tests and the full clean
+suite; repeat the panel only for a material behavioral change or major finding.
+This independent pass is not launched by Git hooks; hooks stay deterministic and
 local. GitHub Actions runs the repository's build/test checks, while
 GitHub-native review services are an optional additional PR-comment layer.
 
@@ -149,9 +152,28 @@ start with `CODEX_HANDOFF.md` for the current stopping point and user preference
 
 ## Open workflow policies
 
-The team still needs to agree on date-boundary rules, request state names,
-request/loan model boundaries, and workflow policy before implementing those
-contracts.
+The agreed request/loan policy is recorded in `ProjectContext.md`. It covers
+separate request and loan records, supervisor approval, custodian
+checkout/return, fourteen-day default due dates, expiry after a missed
+collection, cancellation, overdue eligibility and derived availability. Shared
+request and loan contracts should follow those decisions rather than inventing
+role-specific alternatives.
+
+The borrower request UX is also recorded in `ProjectContext.md`. Its important
+implementation boundaries are that the UI may explain or disable actions, but
+the application service must remain authoritative for eligibility, duplicate
+pending requests, ownership, date rules and fresh availability checks. The
+dashboard may summarize active loans, overdue warnings, approved collection
+reminders and request history, while shared persistence remains responsible for
+the underlying records. Supervisor reasons and custodian condition data are
+shared inputs; they are not reimplemented as borrower-only state.
+
+The first request implementation slice adds shared request/loan vocabulary,
+additive H2 persistence and read-only eligibility/availability queries. It does
+not add supervisor approval or custodian checkout/return screens. A checked-out
+request is `COLLECTED` and links to a separate loan; `OVERDUE` is derived from
+an active loan and its due date. Existing local H2 data must remain readable
+after the additive schema change.
 
 See [ProjectContext.md](ProjectContext.md) for the current context snapshot and
 [AgenticSE.md](AgenticSE.md) for the skill and hook proposal.

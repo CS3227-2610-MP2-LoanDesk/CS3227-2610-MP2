@@ -2,6 +2,9 @@ package loandesk;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -9,18 +12,24 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import loandesk.application.AuthenticationService;
+import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.Session;
 import loandesk.domain.Equipment;
+import loandesk.domain.LoanRequest;
 import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
@@ -30,15 +39,18 @@ public final class LoanDeskApp extends Application {
     private final Session session = new Session();
     private AuthenticationService authenticationService;
     private CatalogueService catalogueService;
+    private BorrowerRequestService borrowerRequestService;
+    private DataStore dataStore;
     private Stage stage;
 
     @Override
     public void start(Stage primaryStage) {
         stage = primaryStage;
         try {
-            DataStore dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
+            dataStore = new DatabaseDataStore(Path.of("data", "loandesk"));
             authenticationService = new AuthenticationService(dataStore);
             catalogueService = new CatalogueService(dataStore, session);
+            borrowerRequestService = new BorrowerRequestService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -108,7 +120,7 @@ public final class LoanDeskApp extends Application {
         if (user.role() == Role.BORROWER) {
             content.getChildren().addAll(
                     catalogueButton(),
-                    new Button("My Requests"),
+                    requestsButton(),
                     new Button("My Loans"));
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
@@ -136,18 +148,101 @@ public final class LoanDeskApp extends Application {
         return catalogue;
     }
 
+    private Button requestsButton() {
+        Button requests = new Button("My Requests");
+        requests.setOnAction(event -> showMyRequests());
+        return requests;
+    }
+
+    private void showMyRequests() {
+        VBox content = layout("My Requests", "Your active requests and request history.");
+        Label feedback = new Label();
+        ListView<LoanRequest> requests = new ListView<>();
+        requests.setPrefHeight(220);
+        requests.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(LoanRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null
+                        ? null
+                        : item.status() + " — " + item.equipmentId()
+                                + " (" + item.startDate() + " to " + item.dueDate() + ")");
+            }
+        });
+
+        Label details = new Label(
+                "Select a request to view its details.\n"
+                        + "This MVP screen is read-only; editing and cancellation will be added later.");
+        details.setWrapText(true);
+        ScrollPane detailsPane = new ScrollPane(details);
+        detailsPane.setFitToWidth(true);
+        detailsPane.setPrefViewportHeight(140);
+        Map<String, String> equipmentNames;
+        try {
+            equipmentNames = catalogueService.loadCatalogue().stream()
+                    .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            requests.getItems().setAll(borrowerRequestService.listOwnRequests());
+            if (requests.getItems().isEmpty()) {
+                feedback.setText("You have no requests yet.");
+            } else {
+                feedback.setText(requests.getItems().size() + " request(s) found.");
+            }
+        } catch (IOException | IllegalStateException exception) {
+            feedback.setText("Unable to load your requests: " + exception.getMessage());
+            equipmentNames = Map.of();
+        }
+
+        Map<String, String> names = equipmentNames;
+        requests.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, selected) -> renderRequestDetails(details, selected, names));
+        Button back = new Button("Back to dashboard");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        content.getChildren().addAll(feedback, requests, detailsPane, back);
+        showScene(content, 560, 500);
+    }
+
+    private void renderRequestDetails(
+            Label details, LoanRequest request, Map<String, String> equipmentNames) {
+        if (request == null) {
+            details.setText("Select a request to view its details.");
+            return;
+        }
+        String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");
+        StringBuilder text = new StringBuilder()
+                .append("Equipment: ").append(equipmentName).append(" (" ).append(request.equipmentId()).append(")\n")
+                .append("Purpose: ").append(request.purpose()).append("\n")
+                .append("Dates: ").append(request.startDate()).append(" to ").append(request.dueDate()).append("\n")
+                .append("Status: ").append(request.status());
+        if (request.decisionReason() != null) {
+            text.append("\nDecision reason: ").append(request.decisionReason());
+        }
+        if (request.cancellationReason() != null) {
+            text.append("\nCancellation reason: ").append(request.cancellationReason());
+        }
+        details.setText(text.toString());
+    }
+
     private void showCatalogue() {
         VBox content = layout("Catalogue", "Search equipment by name.");
         TextField filter = new TextField();
         filter.setPromptText("Name filter");
         Button apply = new Button("Filter");
         Button clear = new Button("Clear");
+        Button request = new Button("Request selected equipment");
         Button back = new Button("Back");
         HBox filterActions = new HBox(12, apply, clear);
         filterActions.setAlignment(Pos.CENTER);
         Label feedback = new Label();
-        ListView<String> results = new ListView<>();
+        ListView<Equipment> results = new ListView<>();
         results.setPrefHeight(180);
+        results.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(Equipment item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : item.id() + " — " + item.name());
+            }
+        });
+        request.disableProperty().bind(results.getSelectionModel().selectedItemProperty().isNull());
 
         final java.util.List<Equipment> equipment;
         try {
@@ -162,9 +257,7 @@ public final class LoanDeskApp extends Application {
 
         Runnable renderResults = () -> {
             java.util.List<Equipment> filtered = catalogueService.filterByName(equipment, filter.getText());
-            results.getItems().setAll(filtered.stream()
-                    .map(item -> item.id() + " — " + item.name())
-                    .toList());
+            results.getItems().setAll(filtered);
             feedback.setText(filtered.isEmpty()
                     ? (equipment.isEmpty()
                             ? "The catalogue is currently empty."
@@ -177,11 +270,87 @@ public final class LoanDeskApp extends Application {
             renderResults.run();
         });
         filter.setOnAction(event -> renderResults.run());
+        request.setOnAction(event -> showRequestForm(results.getSelectionModel().getSelectedItem()));
         back.setOnAction(event -> openDashboard(session.requireUser()));
         renderResults.run();
 
-        content.getChildren().addAll(filter, filterActions, feedback, results, back);
+        content.getChildren().addAll(filter, filterActions, feedback, results, request, back);
         showScene(content, 480, 420);
+    }
+
+    private void showRequestForm(Equipment equipment) {
+        VBox content = layout("Request equipment", "Submit one borrowing request.");
+        Label selected = new Label(equipment.id() + " — " + equipment.name());
+        ComboBox<String> purpose = new ComboBox<>();
+        purpose.getItems().addAll(
+                "Academic project",
+                "Personal use",
+                "Event or club activity",
+                "Research or lab work",
+                "Other");
+        purpose.setValue(purpose.getItems().get(0));
+
+        TextField otherPurpose = new TextField();
+        otherPurpose.setPromptText("Explain the purpose");
+        otherPurpose.setVisible(false);
+        otherPurpose.setManaged(false);
+        purpose.valueProperty().addListener((observable, oldValue, newValue) -> {
+            boolean isOther = "Other".equals(newValue);
+            otherPurpose.setVisible(isOther);
+            otherPurpose.setManaged(isOther);
+        });
+
+        DatePicker startDate = new DatePicker(LocalDate.now());
+        DatePicker dueDate = new DatePicker(startDate.getValue().plusDays(14));
+        startDate.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null
+                    && (dueDate.getValue() == null
+                    || oldValue != null && dueDate.getValue().equals(oldValue.plusDays(14)))) {
+                dueDate.setValue(newValue.plusDays(14));
+            }
+        });
+
+        Label feedback = new Label();
+        feedback.setWrapText(true);
+        Button submit = new Button("Submit request");
+        Button back = new Button("Back to catalogue");
+        submit.setOnAction(event -> {
+            String selectedPurpose = "Other".equals(purpose.getValue())
+                    ? otherPurpose.getText()
+                    : purpose.getValue();
+            try {
+                var request = borrowerRequestService.submitRequest(
+                        equipment.id(), selectedPurpose, startDate.getValue(), dueDate.getValue());
+                Alert confirmation = new Alert(
+                        Alert.AlertType.INFORMATION,
+                        "Request submitted.\n"
+                                + equipment.name() + "\n"
+                                + request.startDate() + " to " + request.dueDate() + "\n"
+                                + "Status: " + request.status());
+                confirmation.setTitle("Request submitted");
+                confirmation.setHeaderText("Your request is pending review.");
+                confirmation.showAndWait();
+                openDashboard(session.requireUser());
+            } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.setStyle("-fx-text-fill: #b00020;");
+            }
+        });
+        back.setOnAction(event -> showCatalogue());
+
+        content.getChildren().addAll(
+                selected,
+                new Label("Purpose"),
+                purpose,
+                otherPurpose,
+                new Label("Start date"),
+                startDate,
+                new Label("Due date"),
+                dueDate,
+                feedback,
+                submit,
+                back);
+        showScene(content, 520, 600);
     }
 
     private VBox layout(String title, String subtitle) {
