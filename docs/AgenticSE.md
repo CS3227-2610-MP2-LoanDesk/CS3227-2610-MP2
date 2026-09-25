@@ -6,14 +6,14 @@ AI functionality to the LoanDesk product.
 
 ## Yikbing's borrower setup (implemented 21 September 2026)
 
-Four repository skills and two personal Git hooks implement the setup agreed
+Five repository skills and two personal Git hooks implement the setup agreed
 with Yikbing. Skills allow automatic selection when their descriptions match;
 they do not run continuously. Hooks run at commit/push after local activation.
 See [DeveloperGuide.md](DeveloperGuide.md#borrower-skills-and-personal-hooks)
 for usage, activation, disabling and verification. No online imports were installed.
 The hooks were activated in Yikbing's checkout on 21 September 2026. Nine hook
-fixture tests and the three original skill format checks passed. The fourth
-skill passed manual frontmatter checks; its official validator could not run
+fixture tests and the three original skill format checks passed. The later
+skills passed manual frontmatter checks; the official validator could not run
 because the available Python runtime lacked PyYAML. The real
 pre-push hook also passed the full Gradle clean test suite. See the dated
 [implementation log](../logs/Yikbing-logs/2026-09-21-borrower-skills-hooks-implementation.md).
@@ -44,6 +44,7 @@ do not invent unresolved date, cancellation, or request-state policies.
 | `loandesk-borrower-ownership-review` | Review service-layer ownership and edits/cancellation against agreed policy. | Detect borrower A being allowed to cancel borrower B's request. |
 | `loandesk-borrower-edge-case-test-review` | Run and review existing tests, investigate failures, check valid success and safe rejection, and identify missing boundary, stale-state, repeated-action and save-failure tests. | Identify meaningful omissions and weak assertions in an incomplete test fixture. |
 | `loandesk-borrower-change-completeness-review` | Check whether a borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review-panel evidence. | Review change completeness without duplicating detailed UI, ownership or edge-case analysis. |
+| `loandesk-borrower-implementation-preflight` | Prepare a meaningful borrower feature using project policy, the review-gap registry and a prevention-focused test/UI checklist before coding. | Confirm that known review gaps become implementation safeguards rather than only post-review fixes. |
 
 Each review should report concrete findings, file references, reproduction
 steps, and verification evidence. Evaluate against both defective and correct

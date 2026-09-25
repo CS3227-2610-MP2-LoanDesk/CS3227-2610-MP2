@@ -211,9 +211,10 @@ parent `.vscode` folder are not part of this repository.
 - `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
 - `logs/Yikbing-logs/`: verified summaries of Yikbing's AI sessions
 
-Four borrower `SKILL.md` files now live in `.agents/skills/`; the third covers
-edge cases and existing test failures, and the fourth covers change
-completeness. Automatic selection is enabled by default.
+Five borrower `SKILL.md` files now live in `.agents/skills/`; the third covers
+edge cases and existing test failures, the fourth covers change completeness,
+and the fifth performs pre-implementation gap preflight. Automatic selection
+is enabled by default.
 Two personal hooks live in `tools/borrower/hooks/`, with a reproducible harness
 at `tools/borrower/test_hooks.py`. Activated in Yikbing's checkout on 21 September
 2026 via local `core.hooksPath=tools/borrower/hooks`; activation is not cloned.
@@ -229,7 +230,7 @@ defect and accepted the correct case; other skill evaluations, repeat runs,
 Yikbing owns only the borrower role. Avoid supervisor/custodian edits unless
 unavoidable, and discuss shared-contract or major architecture changes first.
 When asked about skills or hooks again, consult **Yikbing's borrower setup**
-in `docs/AgenticSE.md` and the 21 September implementation log. The four
+in `docs/AgenticSE.md` and the 21 September implementation log. The five
 skills and two hooks were explicitly authorized for implementation. The
 completeness skill and PR template now document the independent-review workflow.
 GitHub Actions already runs build/test checks; GitHub Copilot or another

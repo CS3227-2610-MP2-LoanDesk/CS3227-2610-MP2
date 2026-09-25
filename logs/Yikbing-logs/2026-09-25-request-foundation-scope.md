@@ -333,6 +333,15 @@ another borrower could not see the first borrower's requests. The updated GUI
 behaved as expected. This is manual user evidence; no automated JavaFX
 interaction test was claimed.
 
+## Implementation preflight skill — 25 September 2026
+
+Added `loandesk-borrower-implementation-preflight` as a fifth automatically
+selectable borrower skill. Before meaningful implementation, it reads the
+project policies and `ReviewGapRegistry.md`, turns applicable prior lapses into
+a prevention checklist, identifies focused tests and GUI evidence, and flags
+unresolved shared decisions. It does not replace the post-implementation
+reviews or independent panel, and it does not run from Git hooks.
+
 ## Review gap registry — 25 September 2026
 
 Added `docs/ReviewGapRegistry.md` to preserve valid independent-review gaps,
