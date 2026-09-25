@@ -78,15 +78,18 @@ execution. You can also invoke a skill by its `$name`. If newly created skills
 are not visible, start a fresh session. Review-only requests produce findings;
 fixes/tests are made only within an authorized implementation task.
 
-For a borrower feature or milestone completion check, and for a meaningful PR,
-the completeness skill arranges a fresh, read-only reviewer pass over the
+For a meaningful borrower feature or milestone slice, before finalizing its
+commit or PR, the completeness skill arranges a fresh, read-only reviewer pass
+over the
 relevant change diff. The reviewer must not receive the implementing agent's
 conclusions and must report findings with severity, file/line references,
 reasoning and next actions. Repeat it before a PR if meaningful changes were
 made after the last completion check. Save decision-relevant prompt/output
-evidence in a dated log. Routine substeps, small documentation edits and
-ordinary test runs do not automatically invoke a fresh reviewer. This
-independent pass is not launched by Git hooks; hooks stay deterministic and
+evidence in a dated log. Routine substeps, small documentation edits, trivial
+formatting changes and ordinary test runs do not automatically invoke a fresh
+reviewer. If a valid finding is fixed, rerun affected tests and the full clean
+suite; repeat the panel only for a material behavioral change or major finding.
+This independent pass is not launched by Git hooks; hooks stay deterministic and
 local. GitHub Actions runs the repository's build/test checks, while
 GitHub-native review services are an optional additional PR-comment layer.
 

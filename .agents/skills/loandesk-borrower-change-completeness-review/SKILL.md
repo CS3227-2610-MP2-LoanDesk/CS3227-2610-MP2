@@ -15,8 +15,9 @@ direct shared dependencies; do not edit the parent workspace or other roles.
 Use the full completion review, including a fresh independent reviewer, when
 the user asks whether a borrower feature or milestone is complete, whether the
 work is ready to move to the next milestone, or whether it is ready for a pull
-request. Repeat it before a PR if meaningful changes were made after the last
-completion check.
+request. For every meaningful borrower feature or milestone slice, run this
+review before its commit is finalized. Repeat it before a PR if meaningful
+changes were made after the last completion check.
 
 For an ordinary implementation step, run only the relevant focused checks and
 the applicable detailed review skills. Do not invoke a fresh reviewer for a
@@ -55,10 +56,11 @@ suggested tests or documentation as proposed rather than complete.
 
 ## Independent PR review panel
 
-For a meaningful borrower change intended for a pull request, arrange a fresh,
-read-only independent review panel before declaring the change PR-ready. Use a
-maximum of three reviewers and choose the smallest panel covering the change
-surface; do not spawn a panel for a routine test run or tiny documentation edit.
+For a meaningful borrower change intended for a commit or pull request, arrange
+a fresh, read-only independent review panel before declaring the change
+complete or PR-ready. Use a maximum of three reviewers and choose the smallest
+panel covering the change surface. Do not spawn a panel for a routine test run,
+small documentation edit or trivial formatting-only change.
 Each reviewer is a separate agent invocation, not the implementing conversation
 or another panel member. Give each only the repository path, relevant
 requirements and the staged diff (or verified PR diff). Do not provide
@@ -89,6 +91,12 @@ rerun affected checks before deciding readiness.
 For a meaningful review, retain the panel prompts, responses and
 decision-relevant verification evidence in a dated `logs/Yikbing-logs/` entry.
 Never describe an unavailable or inconclusive reviewer as a pass.
+
+If the panel identifies a valid defect, fix it and rerun the affected focused
+tests plus the full clean suite before committing. Run another independent
+panel only when the fix materially changes behavior or addresses a major
+finding; otherwise record the original panel, the fix and its verification in
+the session log.
 
 This skill may coordinate the panel, but it does not itself guarantee that
 agents return successfully. Git hooks must remain deterministic and local; they
