@@ -459,3 +459,36 @@ gate for meaningful commit and PR preparation. It now requires explicitly
 comparing both guides with the changed behavior, correcting stale promises,
 labelling deferred cross-role behavior and recording the documentation review
 in the session log.
+
+## Milestone 7 borrower-only integration slice — 26 September 2026
+
+Implementation began only within the borrower-owned boundary. Added
+`BorrowerLifecycleIntegrationTest` using synthetic H2 snapshots to represent
+the agreed shared lifecycle: `PENDING`, `APPROVED`, `COLLECTED` with an active
+loan, and a returned loan. The test verifies borrower request/loan visibility,
+availability transitions (`AVAILABLE`, `RESERVED`, `ON_LOAN`, `AVAILABLE`),
+fresh-store reload and returned-history state.
+
+Verification:
+
+- Focused `BorrowerLifecycleIntegrationTest`: `BUILD SUCCESSFUL`.
+- Full `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- This is simulated borrower-side integration evidence, not full system
+  evidence. Real supervisor approval and custodian checkout/return remain
+  blocked until those role implementations are available.
+
+Independent panel evidence:
+
+- Two fresh read-only reviewers ran. Both found the synthetic lifecycle and
+  reciprocal request/loan persistence structurally sound, and both confirmed
+  that the test must not be described as real supervisor/custodian execution.
+- The panel identified a medium evidence gap: the fixture did not include
+  foreign records or supervisor/custodian/logged-out session rejection. The
+  integration test was expanded with those assertions, and the focused plus
+  full clean suites passed again.
+- One reviewer environment reported an H2/temporary-directory cleanup failure
+  and another reported an isolated JavaFX-cache access failure. The local
+  project runs reproduced neither failure; both are recorded as reviewer
+  environment limitations rather than project test failures.
+- No second panel was run because the fix added test coverage only and did not
+  change production behavior.

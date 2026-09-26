@@ -26,6 +26,7 @@ was addressed for the recorded scope; it does not claim exhaustive coverage.
 | RG-015 | 2026-09-25 | Cancellation UI | Ineligible cancellation feedback did not distinguish terminal status from same-day/past-date policy. | Render specific status/date guidance and verify the action remains unavailable. | Resolved |
 | RG-016 | 2026-09-26 | Loans ownership evidence | The initial active-loans test did not explicitly cover a custodian session, an empty borrower result, or the read-only save boundary. | Add wrong-role, empty-result and save-failure test-double coverage to borrower loan listing. | Resolved |
 | RG-017 | 2026-09-26 | Loans UI error state | A loan-load failure could leave empty-list placeholders that looked like a successful account with no loans. | Use failure-specific placeholders and record manual load-error verification as a GUI limitation. | Resolved |
+| RG-018 | 2026-09-26 | Synthetic lifecycle ownership evidence | The initial borrower-only lifecycle fixture did not include foreign records or all non-borrower session boundaries. | Add foreign request/loan filtering plus logged-out, supervisor and custodian rejection assertions, and confirm persisted state is unchanged. | Resolved |
 
 ## Deferred hardening or known limitations
 
