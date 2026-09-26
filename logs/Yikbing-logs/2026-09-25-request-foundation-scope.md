@@ -445,3 +445,17 @@ Manual GUI evidence — 26 September 2026: the borrower logged in and opened
 intended, and the empty-state layout was visually confirmed. `OVERDUE`, `LOST`
 and `RETURNED` rendering remain pending because supervisor/custodian workflows
 have not yet created those records in the shared database.
+
+## Documentation currency and review-skill update — 26 September 2026
+
+The User Guide and Developer Guide were reconciled with the implemented
+borrower workflow. The User Guide now documents request submission, request
+history, eligible cancellation and the read-only My Loans/history screen. The
+Developer Guide now documents the current H2 request/loan state, borrower
+service responsibilities, testing command and the manual JavaFX limitation.
+
+The change-completeness skill was strengthened with a documentation currency
+gate for meaningful commit and PR preparation. It now requires explicitly
+comparing both guides with the changed behavior, correcting stale promises,
+labelling deferred cross-role behavior and recording the documentation review
+in the session log.
