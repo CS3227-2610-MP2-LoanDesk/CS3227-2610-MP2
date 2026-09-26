@@ -46,7 +46,8 @@ identifiers and names. Enter part of an equipment name and select `Filter` to
 perform a case-insensitive search. Select `Clear` to restore the full catalogue.
 If no item matches, the screen displays an empty-results message. The current
 catalogue slice is read-only; category, condition, availability and borrowing
-actions will be added with later workflow milestones.
+metadata will be added with later workflow milestones, while eligible borrowers
+can already start a request from the catalogue.
 
 ## Borrower requests
 

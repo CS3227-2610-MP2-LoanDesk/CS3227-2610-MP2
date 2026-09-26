@@ -492,3 +492,80 @@ Independent panel evidence:
   environment limitations rather than project test failures.
 - No second panel was run because the fix added test coverage only and did not
   change production behavior.
+
+## Borrower UI foundation slice — 26 September 2026
+
+The first borrower UI polish slice was implemented without changing services,
+permissions, persistence or supervisor/custodian screens. Added the shared
+`src/main/resources/loandesk.css` stylesheet with consistent typography,
+colours, buttons, controls, lists and card styling. Updated the dashboard to
+show the signed-in borrower, a borrowing-workspace heading and hierarchical
+Catalogue, My Requests and My Loans cards. Existing actions and navigation are
+unchanged.
+
+Verification:
+
+- `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- The first Gradle attempts failed during distribution unpacking before the
+  build started; a later retry completed successfully.
+- Manual JavaFX visual verification and the independent UI review remain
+  pending before this slice is considered commit-ready.
+
+Independent UI review follow-up:
+
+- The first panel identified likely dashboard clipping, globally scoped CSS and
+  inconsistent error styling. The dashboard was made scrollable with a larger
+  scene, detailed styling was scoped to borrower pages, and all borrower error
+  paths now use the shared `error-label` class.
+- A second review confirmed the selector mismatch and remaining cancellation
+  inline style; both were fixed. The final fresh review found no remaining UI
+  code defect and confirmed dashboard scrolling, CSS scoping, error styling and
+  navigation by inspection.
+- Local focused/full clean tests passed after the fixes. Reviewer test attempts
+  were limited by isolated Gradle/H2 cache permissions; no JavaFX reviewer run
+  was claimed.
+- The stylesheet is a required commit file; generated `.gradle-ui-home/` cache
+  output is excluded.
+
+UI refinement follow-up — 26 September 2026: based on manual feedback and the
+official JavaFX CSS/layout guidance, the borrower page root now intentionally
+centres its content, cards have larger internal padding and bounded widths,
+and the dashboard remains scrollable. The request form now uses unboxed field
+groups with start/due date pickers arranged side-by-side, avoiding redundant
+nested borders. The visual system continues to use one borrower-scoped CSS
+stylesheet, consistent spacing, primary/secondary button hierarchy and shared
+error styling.
+
+After these refinements, `./gradlew.bat clean test --no-daemon` completed with
+`BUILD SUCCESSFUL`. JavaFX visual verification remains manual; no automated
+JavaFX interaction test was claimed.
+
+Final UI review follow-up — 26 September 2026: a fresh read-only review found
+no remaining source defect in centering, card spacing, date-field grouping,
+borrower CSS scoping, dashboard scrolling, shared error styling or navigation.
+The reviewer identified one stale User Guide sentence, which was corrected to
+state that request submission is available while catalogue metadata remains
+deferred. Local focused/full clean tests had already passed after the UI fixes;
+reviewer cache failures are recorded as environment limitations. The required
+stylesheet remains an explicit commit file, while generated Gradle cache output
+is excluded. Manual JavaFX verification is still pending.
+
+Role-selection and My Loans refinement — 26 September 2026: the initial role
+choices are now presented as one centred vertical group, with the borrower
+action visually primary and the unfinished staff placeholders visually
+secondary. My Loans now uses a wider scene, a transparent outer scroll layer,
+larger section spacing and bounded list widths so the empty-state panels do not
+appear unnecessarily cramped. No service, persistence, permission or shared
+contract behaviour changed.
+
+Verification:
+
+- `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Manual JavaFX interaction remains pending. The required GUI checks are role
+  selection centring, dashboard centring, My Loans spacing/empty states and
+  navigation back to the dashboard.
+
+Manual GUI verification — 26 September 2026: the borrower confirmed that the
+role-selection centring, dashboard layout and My Loans spacing now look good.
+The UI refinement slice is therefore ready for a focused commit; no automated
+JavaFX interaction test was claimed.
