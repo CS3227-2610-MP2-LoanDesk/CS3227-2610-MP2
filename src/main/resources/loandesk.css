@@ -1,0 +1,152 @@
+.borrower-page {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #f4f7fb;
+    -fx-alignment: top-center;
+}
+
+.borrower-page .page-heading {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+}
+
+.borrower-page .page-subtitle {
+    -fx-text-fill: #526579;
+    -fx-font-size: 14px;
+}
+
+.borrower-page .welcome-label {
+    -fx-text-fill: #526579;
+    -fx-font-size: 14px;
+}
+
+.borrower-page .section-heading {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.borrower-page .dashboard-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: #dbe5ef;
+    -fx-border-radius: 10px;
+    -fx-padding: 18px;
+    -fx-min-width: 360px;
+    -fx-max-width: 520px;
+    -fx-effect: dropshadow(gaussian, rgba(23, 50, 77, 0.08), 8, 0.2, 0, 2);
+}
+
+.borrower-page .card-title {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+.borrower-page .card-description {
+    -fx-text-fill: #526579;
+}
+
+.borrower-page .button {
+    -fx-background-radius: 7px;
+    -fx-padding: 9px 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.borrower-page .primary-button {
+    -fx-background-color: #1769aa;
+    -fx-text-fill: white;
+}
+
+.borrower-page .primary-button:hover {
+    -fx-background-color: #125789;
+}
+
+.borrower-page .secondary-button {
+    -fx-background-color: #e7eef6;
+    -fx-text-fill: #17324d;
+}
+
+.borrower-page .secondary-button:hover {
+    -fx-background-color: #d5e2ef;
+}
+
+.borrower-page .text-field,
+.borrower-page .password-field,
+.borrower-page .combo-box,
+.borrower-page .date-picker {
+    -fx-background-color: white;
+    -fx-border-color: #c5d3e1;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px;
+}
+
+.borrower-page .form-group {
+    -fx-spacing: 6px;
+    -fx-max-width: 360px;
+}
+
+.borrower-page .form-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #17324d;
+}
+
+.borrower-page .date-fields {
+    -fx-alignment: center;
+    -fx-spacing: 18px;
+}
+
+.borrower-page .list-view {
+    -fx-background-color: white;
+    -fx-border-color: #dbe5ef;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.borrower-page .label {
+    -fx-text-fill: #243b53;
+}
+
+.borrower-page .error-label {
+    -fx-text-fill: #b42318;
+    -fx-font-weight: bold;
+}
+
+.dashboard-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.dashboard-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.loan-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.loan-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.loan-section-heading {
+    -fx-text-fill: #17324d;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 0 2px 0;
+}
+
+.role-choice {
+    -fx-spacing: 12px;
+    -fx-alignment: center;
+    -fx-max-width: 260px;
+}
+
+.role-choice .button {
+    -fx-max-width: 260px;
+}
