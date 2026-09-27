@@ -32,8 +32,18 @@ public final class BorrowerEligibilityService {
 
     public BorrowerEligibility currentEligibility() throws IOException {
         String borrowerUsername = permissions.require(Permission.SUBMIT_REQUEST).username();
-        LoanDeskData data = dataStore.loadOrSeed();
-        LocalDate today = LocalDate.now(clock);
+        return evaluate(dataStore.loadOrSeed(), borrowerUsername, LocalDate.now(clock));
+    }
+
+    /**
+     * Applies the borrowing rules to one borrower without needing their session,
+     * so the supervisor can recheck the same rules at approval time.
+     */
+    public static BorrowerEligibility evaluate(
+            LoanDeskData data, String borrowerUsername, LocalDate today) {
+        Objects.requireNonNull(data);
+        Objects.requireNonNull(borrowerUsername);
+        Objects.requireNonNull(today);
         List<EligibilityBlocker> blockers = new ArrayList<>();
 
         List<Loan> borrowerLoans = data.loans().stream()

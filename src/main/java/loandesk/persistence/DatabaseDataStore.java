@@ -348,9 +348,10 @@ public final class DatabaseDataStore implements DataStore {
                         + request.equipmentId());
             }
             if (request.status() == RequestStatus.CANCELLED
-                    && !request.cancelledBy().equals(request.borrowerUsername())) {
-                throw new SQLException("Cancelled request owner differs from borrower: "
-                        + request.requestId());
+                    && !request.cancelledBy().equals(request.borrowerUsername())
+                    && !hasUser(data, request.cancelledBy(), Role.SUPERVISOR)) {
+                throw new SQLException("Cancelled request owner is neither the borrower nor a "
+                        + "supervisor: " + request.requestId());
             }
         }
         for (Loan loan : data.loans()) {
