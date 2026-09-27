@@ -161,7 +161,8 @@ The following borrower-facing design decisions were agreed on 24 September
 - `My Requests` keeps active requests above terminal history. It shows
   equipment, purpose, dates, status and permitted actions. Borrowers may edit
   only purpose and dates on an eligible pending request; equipment cannot be
-  changed. Rejected requests remain read-only history and require a new
+  changed. Editing rechecks the borrower's current eligibility before saving.
+  Rejected requests remain read-only history and require a new
   request. Cancellation uses confirmation, a required reason dropdown
   (`No longer needed`, `Plans changed`, `Requested dates changed`, `Unable to
   collect the equipment`, `Submitted the request by mistake`, and `Other`),
@@ -270,10 +271,13 @@ For a new chat/model, read `CODEX_HANDOFF.md` first. Yikbing prefers a guided
 explanation and agreement on the next scope before new implementation. We paused
 after a first isolated ownership skill evaluation: executable JUnit checks and
 a separate fresh agent review, not an automated agent-invoking JUnit test.
+Repository-side contract tests now cover all five skill definitions and their
+controlled evaluation cases, but they do not prove external automatic skill
+selection.
 The fixture policy is not a production cancellation-policy decision.
 
 Yikbing owns borrower work; other team members own supervisor and custodian.
-The agreed development setup (21 September 2026) includes three automatically
+The agreed development setup (21 September 2026) includes five automatically
 selectable borrower review skills under `.agents/skills/` and personal Git
 hooks under `tools/borrower/hooks/`. See `docs/AgenticSE.md` for their scope and
 `docs/DeveloperGuide.md` for local activation. Skills cover UI, ownership and

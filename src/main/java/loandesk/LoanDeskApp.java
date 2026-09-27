@@ -3,6 +3,7 @@ package loandesk;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,9 @@ import loandesk.persistence.DataStore;
 import loandesk.persistence.DatabaseDataStore;
 
 public final class LoanDeskApp extends Application {
+    private static final double WINDOW_WIDTH = 680;
+    private static final double WINDOW_HEIGHT = 640;
+
     private final Session session = new Session();
     private AuthenticationService authenticationService;
     private CatalogueService catalogueService;
@@ -145,7 +149,11 @@ public final class LoanDeskApp extends Application {
                             requestsButton()),
                     dashboardCard("My Loans", "See active loans and returned history.",
                             loansButton()));
-            content.getChildren().addAll(welcome, section, actions);
+            actions.setMaxWidth(520);
+            actions.setAlignment(Pos.CENTER);
+            HBox actionContainer = centeredContainer(actions);
+            actionContainer.getStyleClass().add("dashboard-actions");
+            content.getChildren().addAll(welcome, section, actionContainer);
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
                     new Button("Review Queue"),
@@ -169,7 +177,7 @@ public final class LoanDeskApp extends Application {
             dashboard.setFitToWidth(true);
             dashboard.setFitToHeight(true);
             dashboard.getStyleClass().add("dashboard-scroll");
-            showScene(dashboard, 560, 620);
+            showScene(dashboard);
         } else {
             showScene(content);
         }
@@ -250,11 +258,13 @@ public final class LoanDeskApp extends Application {
         back.setOnAction(event -> openDashboard(session.requireUser()));
         VBox lists = new VBox(18, activeHeading, activeLoans, historyHeading, history, back);
         lists.setMaxWidth(620);
-        ScrollPane scroll = new ScrollPane(lists);
+        lists.setAlignment(Pos.TOP_CENTER);
+        ScrollPane scroll = new ScrollPane(centeredContainer(lists));
         scroll.setFitToWidth(true);
+        scroll.setFitToHeight(false);
         scroll.getStyleClass().add("loan-scroll");
         content.getChildren().addAll(feedback, scroll);
-        showScene(content, 680, 640);
+        showScene(content);
     }
 
     private ListView<Loan> loanListView() {
@@ -314,11 +324,13 @@ public final class LoanDeskApp extends Application {
 
         Label details = new Label(
                 "Select a request to view its details.\n"
-                        + "This MVP screen is read-only; editing and cancellation will be added later.");
+                        + "Eligible pending requests can be edited before their start date.");
         details.setWrapText(true);
         ScrollPane detailsPane = new ScrollPane(details);
         detailsPane.setFitToWidth(true);
         detailsPane.setPrefViewportHeight(140);
+        Label editInfo = new Label();
+        Button edit = new Button("Edit request");
         Label cancellationInfo = new Label();
         ComboBox<String> cancellationReason = new ComboBox<>();
         cancellationReason.getItems().addAll(
@@ -340,9 +352,13 @@ public final class LoanDeskApp extends Application {
         cancel.setManaged(false);
         cancel.setDisable(true);
         Map<String, String> equipmentNames;
+        Map<String, Equipment> equipmentById;
         try {
-            equipmentNames = catalogueService.loadCatalogue().stream()
+            var catalogue = catalogueService.loadCatalogue();
+            equipmentNames = catalogue.stream()
                     .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            equipmentById = catalogue.stream()
+                    .collect(Collectors.toMap(Equipment::id, equipment -> equipment));
             requests.getItems().setAll(borrowerRequestService.listOwnRequests());
             if (requests.getItems().isEmpty()) {
                 feedback.setText("You have no requests yet.");
@@ -352,19 +368,35 @@ public final class LoanDeskApp extends Application {
         } catch (IOException | IllegalStateException exception) {
             feedback.setText("Unable to load your requests: " + exception.getMessage());
             equipmentNames = Map.of();
+            equipmentById = Map.of();
             feedback.getStyleClass().add("error-label");
         }
 
         Map<String, String> names = equipmentNames;
+        Map<String, Equipment> equipment = equipmentById;
         requests.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, selected) -> {
                     cancellationReason.setValue(null);
                     otherCancellationReason.clear();
                     renderRequestDetails(details, selected, names);
+                    refreshEditControls(selected, editInfo, edit);
                     refreshCancellationControls(
                             selected, cancellationInfo, cancellationReason,
                             otherCancellationReason, cancel);
                 });
+        edit.setOnAction(event -> {
+            LoanRequest selected = requests.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                return;
+            }
+            Equipment selectedEquipment = equipment.get(selected.equipmentId());
+            if (selectedEquipment == null) {
+                feedback.setText("Unable to edit because the equipment was not found.");
+                feedback.getStyleClass().add("error-label");
+                return;
+            }
+            showRequestForm(selectedEquipment, selected);
+        });
         cancellationReason.valueProperty().addListener((observable, oldValue, newValue) -> {
             boolean isOther = "Other".equals(newValue);
             otherCancellationReason.setVisible(isOther);
@@ -410,12 +442,44 @@ public final class LoanDeskApp extends Application {
                 feedback,
                 requests,
                 detailsPane,
+                editInfo,
+                edit,
                 cancellationInfo,
                 cancellationReason,
                 otherCancellationReason,
                 cancel,
                 back);
-        showScene(content, 560, 500);
+        ScrollPane requestScroll = new ScrollPane(content);
+        requestScroll.setFitToWidth(true);
+        requestScroll.setFitToHeight(false);
+        requestScroll.getStyleClass().add("request-scroll");
+        showScene(requestScroll);
+    }
+
+    private HBox centeredContainer(Node child) {
+        HBox container = new HBox(child);
+        container.setAlignment(Pos.TOP_CENTER);
+        container.setMaxWidth(Double.MAX_VALUE);
+        return container;
+    }
+
+    private void refreshEditControls(LoanRequest request, Label info, Button edit) {
+        boolean eligible = request != null
+                && request.status() == RequestStatus.PENDING
+                && request.startDate().isAfter(LocalDate.now());
+        if (request == null) {
+            info.setText("");
+        } else if (request.status() != RequestStatus.PENDING) {
+            info.setText("Editing is unavailable because this request is "
+                    + request.status() + ".");
+        } else if (!request.startDate().isAfter(LocalDate.now())) {
+            info.setText("Editing is unavailable because the start date is today or has passed.");
+        } else {
+            info.setText("You can edit the purpose and dates of this pending request.");
+        }
+        edit.setVisible(eligible);
+        edit.setManaged(eligible);
+        edit.setDisable(!eligible);
     }
 
     private void refreshCancellationControls(
@@ -456,7 +520,7 @@ public final class LoanDeskApp extends Application {
             Label details, LoanRequest request, Map<String, String> equipmentNames) {
         if (request == null) {
             details.setText("Select a request to view its details.\n"
-                    + "This MVP screen is read-only apart from eligible request cancellation.");
+                    + "Eligible pending requests can be edited before their start date.");
             return;
         }
         String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");
@@ -528,12 +592,21 @@ public final class LoanDeskApp extends Application {
         renderResults.run();
 
         content.getChildren().addAll(filter, filterActions, feedback, results, request, back);
-        showScene(content, 480, 420);
+        showScene(content);
     }
 
     private void showRequestForm(Equipment equipment) {
-        VBox content = borrowerLayout("Request equipment", "Submit one borrowing request.");
+        showRequestForm(equipment, null);
+    }
+
+    private void showRequestForm(Equipment equipment, LoanRequest existingRequest) {
+        boolean editing = existingRequest != null;
+        VBox content = borrowerLayout(
+                editing ? "Edit request" : "Request equipment",
+                editing ? "Update the purpose and dates before the request starts."
+                        : "Submit one borrowing request.");
         Label selected = new Label(equipment.id() + " — " + equipment.name());
+        selected.getStyleClass().add("selected-equipment");
         ComboBox<String> purpose = new ComboBox<>();
         purpose.getItems().addAll(
                 "Academic project",
@@ -541,29 +614,42 @@ public final class LoanDeskApp extends Application {
                 "Event or club activity",
                 "Research or lab work",
                 "Other");
-        purpose.setValue(purpose.getItems().get(0));
 
         TextField otherPurpose = new TextField();
         otherPurpose.setPromptText("Explain the purpose");
-        otherPurpose.setVisible(false);
-        otherPurpose.setManaged(false);
+        if (editing) {
+            if (purpose.getItems().contains(existingRequest.purpose())) {
+                purpose.setValue(existingRequest.purpose());
+            } else {
+                purpose.setValue("Other");
+                otherPurpose.setText(existingRequest.purpose());
+            }
+        } else {
+            purpose.setValue(purpose.getItems().get(0));
+        }
         VBox purposeGroup = formGroup("Purpose", purpose);
         VBox otherPurposeGroup = formGroup("Other purpose", otherPurpose);
-        otherPurposeGroup.setVisible(false);
-        otherPurposeGroup.setManaged(false);
+        boolean initialOtherPurpose = "Other".equals(purpose.getValue());
+        otherPurposeGroup.setVisible(initialOtherPurpose);
+        otherPurposeGroup.setManaged(initialOtherPurpose);
         purpose.valueProperty().addListener((observable, oldValue, newValue) -> {
             boolean isOther = "Other".equals(newValue);
             otherPurposeGroup.setVisible(isOther);
             otherPurposeGroup.setManaged(isOther);
         });
 
-        DatePicker startDate = new DatePicker(LocalDate.now());
-        DatePicker dueDate = new DatePicker(startDate.getValue().plusDays(14));
+        LocalDate initialStartDate = editing ? existingRequest.startDate() : LocalDate.now();
+        LocalDate initialDueDate = editing
+                ? existingRequest.dueDate()
+                : initialStartDate.plusDays(14);
+        DatePicker startDate = new DatePicker(initialStartDate);
+        DatePicker dueDate = new DatePicker(initialDueDate);
         startDate.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null
-                    && (dueDate.getValue() == null
-                    || oldValue != null && dueDate.getValue().equals(oldValue.plusDays(14)))) {
-                dueDate.setValue(newValue.plusDays(14));
+            if (newValue != null && oldValue != null && dueDate.getValue() != null) {
+                long currentDuration = ChronoUnit.DAYS.between(oldValue, dueDate.getValue());
+                if (currentDuration >= 0 && currentDuration <= 14) {
+                    dueDate.setValue(newValue.plusDays(currentDuration));
+                }
             }
         });
         HBox dateFields = new HBox(
@@ -573,31 +659,48 @@ public final class LoanDeskApp extends Application {
 
         Label feedback = new Label();
         feedback.setWrapText(true);
-        Button submit = new Button("Submit request");
-        Button back = new Button("Back to catalogue");
+        Button submit = new Button(editing ? "Save changes" : "Submit request");
+        Button back = new Button(editing ? "Back to requests" : "Back to catalogue");
         submit.setOnAction(event -> {
             String selectedPurpose = "Other".equals(purpose.getValue())
                     ? otherPurpose.getText()
                     : purpose.getValue();
             try {
-                var request = borrowerRequestService.submitRequest(
-                        equipment.id(), selectedPurpose, startDate.getValue(), dueDate.getValue());
+                var request = editing
+                        ? borrowerRequestService.editRequest(
+                                existingRequest.requestId(), selectedPurpose,
+                                startDate.getValue(), dueDate.getValue())
+                        : borrowerRequestService.submitRequest(
+                                equipment.id(), selectedPurpose,
+                                startDate.getValue(), dueDate.getValue());
                 Alert confirmation = new Alert(
                         Alert.AlertType.INFORMATION,
-                        "Request submitted.\n"
+                        (editing ? "Request updated.\n" : "Request submitted.\n")
                                 + equipment.name() + "\n"
                                 + request.startDate() + " to " + request.dueDate() + "\n"
                                 + "Status: " + request.status());
-                confirmation.setTitle("Request submitted");
-                confirmation.setHeaderText("Your request is pending review.");
+                confirmation.setTitle(editing ? "Request updated" : "Request submitted");
+                confirmation.setHeaderText(
+                        editing ? "Your pending request was updated."
+                                : "Your request is pending review.");
                 confirmation.showAndWait();
-                openDashboard(session.requireUser());
+                if (editing) {
+                    showMyRequests();
+                } else {
+                    openDashboard(session.requireUser());
+                }
             } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
                 feedback.setText(exception.getMessage());
                 feedback.getStyleClass().add("error-label");
             }
         });
-        back.setOnAction(event -> showCatalogue());
+        back.setOnAction(event -> {
+            if (editing) {
+                showMyRequests();
+            } else {
+                showCatalogue();
+            }
+        });
 
         content.getChildren().addAll(
                 selected,
@@ -607,7 +710,10 @@ public final class LoanDeskApp extends Application {
                 feedback,
                 submit,
                 back);
-        showScene(content, 520, 600);
+        ScrollPane formScroll = new ScrollPane(content);
+        formScroll.setFitToWidth(true);
+        formScroll.getStyleClass().add("form-scroll");
+        showScene(formScroll);
     }
 
     private VBox formGroup(String labelText, Node input) {
@@ -637,15 +743,26 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showScene(Parent content) {
-        showScene(content, 480, 360);
-    }
-
-    private void showScene(Parent content, double width, double height) {
+        boolean wasShowing = stage.isShowing();
+        boolean wasMaximized = stage.isMaximized();
+        boolean wasFullScreen = stage.isFullScreen();
+        double previousWidth = stage.getWidth();
+        double previousHeight = stage.getHeight();
         stage.setTitle("LoanDesk");
-        Scene scene = new Scene(content, width, height);
+        Scene scene = new Scene(content, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(getClass().getResource("/loandesk.css").toExternalForm());
+        stage.setMinWidth(WINDOW_WIDTH);
+        stage.setMinHeight(WINDOW_HEIGHT);
         stage.setScene(scene);
         stage.show();
+        if (wasFullScreen) {
+            stage.setFullScreen(true);
+        } else if (wasMaximized) {
+            stage.setMaximized(true);
+        } else if (wasShowing && previousWidth > 0 && previousHeight > 0) {
+            stage.setWidth(previousWidth);
+            stage.setHeight(previousHeight);
+        }
     }
 
     private void showError(String title, String message) {

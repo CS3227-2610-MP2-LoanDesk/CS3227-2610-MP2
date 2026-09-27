@@ -1,0 +1,34 @@
+{
+  "skills": [
+    {
+      "name": "loandesk-borrower-ui-review",
+      "trigger": "borrower JavaFX UI",
+      "case": "ui/reversed-date-validation.md",
+      "expected": "Identify that a reversed date range is accepted and request a focused validation test."
+    },
+    {
+      "name": "loandesk-borrower-ownership-review",
+      "trigger": "request, loan, history, edit or cancellation",
+      "case": "ownership/README.md",
+      "expected": "Identify a foreign-owner mutation while accepting the correct implementation."
+    },
+    {
+      "name": "loandesk-borrower-edge-case-test-review",
+      "trigger": "borrower change that touches authentication",
+      "case": "edge-case/missing-boundaries-and-save-failure.md",
+      "expected": "Identify missing boundary, failed-save and restart-persistence coverage."
+    },
+    {
+      "name": "loandesk-borrower-change-completeness-review",
+      "trigger": "borrower feature or milestone is complete",
+      "case": "completeness/stale-evidence.md",
+      "expected": "Identify missing focused tests, stale guides and missing session evidence."
+    },
+    {
+      "name": "loandesk-borrower-implementation-preflight",
+      "trigger": "meaningful borrower feature",
+      "case": "preflight/request-edit.md",
+      "expected": "Produce scope, ownership, persistence, test, UI-evidence and documentation checks before coding."
+    }
+  ]
+}

@@ -49,16 +49,7 @@ public final class BorrowerRequestService {
             throw new IllegalArgumentException("Request dates are required.");
         }
 
-        LocalDate today = LocalDate.now(clock);
-        if (startDate.isBefore(today)) {
-            throw new IllegalArgumentException("Start date cannot be in the past.");
-        }
-        if (dueDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("Due date cannot be before the start date.");
-        }
-        if (dueDate.isAfter(startDate.plusDays(MAX_REQUESTED_DAYS_AFTER_START))) {
-            throw new IllegalArgumentException("Borrowing period cannot exceed 14 days.");
-        }
+        LocalDate today = validateDates(startDate, dueDate);
 
         BorrowerEligibility eligibility = new BorrowerEligibilityService(dataStore, session, clock)
                 .currentEligibility();
@@ -109,6 +100,72 @@ public final class BorrowerRequestService {
         dataStore.save(new LoanDeskData(
                 data.users(), data.credentials(), data.equipment(), requests, data.loans()));
         return request;
+    }
+
+    /** Edits the purpose and dates of one eligible pending request. */
+    public LoanRequest editRequest(
+            String requestId,
+            String purpose,
+            LocalDate startDate,
+            LocalDate dueDate) throws IOException {
+        var borrower = session.requireRole(Role.BORROWER);
+        String normalizedRequestId = requireText(requestId, "Request ID");
+        String normalizedPurpose = requireText(purpose, "Purpose");
+        LocalDate today = validateDates(startDate, dueDate);
+
+        BorrowerEligibility eligibility = new BorrowerEligibilityService(dataStore, session, clock)
+                .currentEligibility();
+        if (!eligibility.canSubmitRequest()) {
+            throw new IllegalStateException("Borrower cannot edit a request: "
+                    + eligibility.blockers());
+        }
+
+        LoanDeskData data = dataStore.loadOrSeed();
+        int requestIndex = -1;
+        for (int index = 0; index < data.requests().size(); index++) {
+            LoanRequest candidate = data.requests().get(index);
+            if (candidate.requestId().equals(normalizedRequestId)
+                    && candidate.borrowerUsername().equals(borrower.username())) {
+                requestIndex = index;
+                break;
+            }
+        }
+        if (requestIndex < 0) {
+            throw new IllegalArgumentException("Request was not found.");
+        }
+
+        LoanRequest current = data.requests().get(requestIndex);
+        if (current.status() != RequestStatus.PENDING) {
+            throw new IllegalStateException("Only pending requests can be edited.");
+        }
+        if (!current.startDate().isAfter(today)) {
+            throw new IllegalStateException("Only requests before their start date can be edited.");
+        }
+
+        Instant now = clock.instant();
+        LoanRequest edited = new LoanRequest(
+                current.requestId(),
+                current.borrowerUsername(),
+                current.equipmentId(),
+                normalizedPurpose,
+                startDate,
+                dueDate,
+                current.status(),
+                current.loanId(),
+                current.createdAt(),
+                now,
+                current.decisionBy(),
+                current.decisionAt(),
+                current.decisionReason(),
+                current.cancelledBy(),
+                current.cancelledAt(),
+                current.cancellationReason());
+
+        List<LoanRequest> requests = new java.util.ArrayList<>(data.requests());
+        requests.set(requestIndex, edited);
+        dataStore.save(new LoanDeskData(
+                data.users(), data.credentials(), data.equipment(), requests, data.loans()));
+        return edited;
     }
 
     /** Returns only the current borrower's requests, with active requests first. */
@@ -199,5 +256,23 @@ public final class BorrowerRequestService {
             throw new IllegalArgumentException(field + " must not be blank.");
         }
         return value.trim();
+    }
+
+    private LocalDate validateDates(LocalDate startDate, LocalDate dueDate) {
+        if (startDate == null || dueDate == null) {
+            throw new IllegalArgumentException("Request dates are required.");
+        }
+
+        LocalDate today = LocalDate.now(clock);
+        if (startDate.isBefore(today)) {
+            throw new IllegalArgumentException("Start date cannot be in the past.");
+        }
+        if (dueDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Due date cannot be before the start date.");
+        }
+        if (dueDate.isAfter(startDate.plusDays(MAX_REQUESTED_DAYS_AFTER_START))) {
+            throw new IllegalArgumentException("Borrowing period cannot exceed 14 days.");
+        }
+        return today;
     }
 }

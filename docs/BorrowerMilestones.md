@@ -113,7 +113,9 @@ matches persisted state.
 ## Milestone 5 — Clarification, revision and cancellation
 
 - [x] Implement only the state transitions approved in Milestone 1 for
-      cancellation; clarification and revision remain deferred.
+      cancellation; clarification and revision/resubmission remain deferred.
+- [x] Allow borrowers to edit the purpose and dates of eligible pending
+      requests while keeping equipment and request identity unchanged.
 - [ ] Allow revision/resubmission only in the agreed states.
 - [x] Allow cancellation only where policy permits and require any agreed
       reason.

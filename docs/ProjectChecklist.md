@@ -1,6 +1,6 @@
 # LoanDesk Project Checklist
 
-**Status date:** 25 September 2026
+**Status date:** 27 September 2026
 
 This is the end-to-end checklist for the project. Check items only when they
 are implemented and verified. Keep decisions and evidence truthful.
@@ -77,6 +77,7 @@ implementation order and exit criteria.
 - [ ] Availability search by name, category, and dates.
 - [x] Submit one-item request with purpose and date validation.
 - [x] View own requests and request details.
+- [x] Edit purpose and dates on eligible pending requests.
 - [ ] Read rejection reasons and create a new request after rejection.
 - [x] Cancel only where policy permits.
 - [x] View active loans, due dates, overdue indicators, and history.
@@ -109,7 +110,9 @@ implementation order and exit criteria.
 
 ## 7. Agentic SE implementation and evidence
 
-- [x] Create four borrower review `SKILL.md` files under `.agents/skills/`.
+- [x] Create five borrower review `SKILL.md` files under `.agents/skills/`.
+- [x] Add a skill-evaluation manifest, controlled case for each skill and
+      deterministic repository-side contract tests (27 September 2026).
 - [ ] Evaluate the UI acceptance reviewer with a controlled fixture.
 - [x] Evaluate borrower ownership review on one controlled defective/correct pair
       with direct foreign-owner calls (21 September 2026).
@@ -117,7 +120,9 @@ implementation order and exit criteria.
 - [ ] Evaluate the persistence-failure tester with injected save failure.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
-- [ ] Create `docs/Reflections.md` with at least three detailed skill reflections.
+- [ ] Run fresh reviewer evaluations for the remaining controlled cases and
+      separately verify automatic skill selection.
+- [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
 ## 8. Hooks, quality, and delivery automation
@@ -143,7 +148,7 @@ implementation order and exit criteria.
 - [ ] Verify demonstration data remains coherent after role switching.
 - [ ] Test clean installation and packaging on relevant operating systems.
 - [ ] Record what cross-platform checks were actually performed.
-- [ ] Keep `docs/UserGuide.md` aligned with released behaviour.
+- [x] Keep `docs/UserGuide.md` aligned with released behaviour.
 - [ ] Complete `docs/DeveloperGuide.md` and architecture diagrams if needed.
 - [ ] Publish the product website on GitHub Pages.
 - [ ] Review acknowledgements for reused code, ideas, and documentation.
@@ -162,21 +167,21 @@ implementation order and exit criteria.
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
 - `docs/ProjectContext.md`: durable context snapshot
 - `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
-- `.agents/skills/`: four borrower review skills, eligible for automatic selection
+- `.agents/skills/`: five borrower review skills, eligible for automatic selection
 - `tools/borrower/`: personal hooks and disposable-repository test harness
 - `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
 - `docs/DeveloperGuide.md`: architecture and contribution guidance
-- `docs/UserGuide.md`: current user setup placeholder
+- `docs/UserGuide.md`: current borrower user setup and workflow guide
 - `logs/Yikbing-logs/`: personal dated AI-session summaries
 
 ## Verified current progress
 
-- Working branch `yikbing` is based on merged `origin/main` at `a18f29f` and
-  contains the committed shared request-foundation changes through `155dadf`.
-  They are committed locally and remain unpushed.
-- The H2 migration, catalogue and catalogue session-boundary work are merged
-  into `main`; request submission and role-specific workflow features remain
-  unfinished.
+- Working branch `yikbing` is based on the merged `origin/main` and contains
+  the borrower request-editing, responsive-UI and reflection changes.
+- The H2 migration, catalogue, request submission, request cancellation,
+  request editing and borrower loan-history work are implemented for the
+  borrower scope; supervisor approval and custodian checkout/return features
+  remain dependent on their role owners.
 - Java 25.0.4.1 is installed.
 - `gradlew.bat clean test --no-daemon` passes after the shared request-foundation
   changes.
@@ -185,9 +190,12 @@ implementation order and exit criteria.
 - H2 persistence currently stores users, password credentials and equipment in
   one role-aware local database, now extended with request/loan tables and
   equipment condition. Existing JSON files are not imported.
-- Role-specific catalogue, approval, checkout, return, and maintenance features
-  do not exist yet.
-- Four borrower skills and two hook scripts now exist. Hook fixture tests pass.
-- First ownership skill fixture evaluation completed; other skills, repeat runs,
-  automatic-selection checks and integration/system evaluations remain unfinished.
-- `Reflections.md` and release packaging remain unfinished.
+- Role-specific approval, checkout, return, and maintenance features do not
+  exist yet; the catalogue and borrower request/loan views are implemented.
+- Five borrower skills and two hook scripts now exist. Hook fixture tests pass.
+- Repository-side contract tests now cover all five skills and their controlled
+  evaluation cases. The first ownership skill fixture evaluation is complete;
+  fresh reviewer runs for the other cases, automatic-selection checks and
+  integration/system evaluations remain unfinished.
+- Release packaging remains unfinished; `Reflections.md` is complete and
+  committed.
