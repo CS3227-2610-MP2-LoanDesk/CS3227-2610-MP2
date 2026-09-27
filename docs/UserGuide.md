@@ -58,11 +58,13 @@ shorter borrowing periods are allowed. Past start dates and due dates before
 the start date are rejected.
 
 After submission, select `My Requests` from the dashboard to view your own
-requests. Active requests appear before terminal history. Borrowers may cancel
+requests. Active requests appear before terminal history. Borrowers may edit
+the purpose and dates of an eligible `PENDING` request before its start date;
+the equipment and request ID remain unchanged. Borrowers may also cancel
 eligible future `PENDING` or `APPROVED` requests by selecting a cancellation
 reason and confirming the action. Rejected requests are read-only and must be
-replaced by a new request. Clarification and revision are not part of the
-current borrower workflow.
+replaced by a new request. Clarification and revision/resubmission are not part
+of the current borrower workflow.
 
 Borrowing is blocked when the service detects an unresolved overdue or lost
 loan, or when the borrower has reached the agreed active-loan/reservation

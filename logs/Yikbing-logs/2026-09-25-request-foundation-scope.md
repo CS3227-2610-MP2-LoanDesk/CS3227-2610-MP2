@@ -569,3 +569,99 @@ Manual GUI verification — 26 September 2026: the borrower confirmed that the
 role-selection centring, dashboard layout and My Loans spacing now look good.
 The UI refinement slice is therefore ready for a focused commit; no automated
 JavaFX interaction test was claimed.
+
+Pending-request editing slice — 27 September 2026: borrower editing was added
+without changing the shared request schema or cross-role contracts. The
+service allows only the active borrower to edit an existing `PENDING` request
+before its start date. It updates purpose and dates while preserving the
+request ID, equipment ID and status. The UI reuses the request form, keeps the
+equipment display locked, provides an `Edit request` action only when eligible,
+and shows confirmation before returning to My Requests. The stale MVP/read-only
+wording was removed, and the User Guide, checklist and milestone plan were
+updated. Changing the start date preserves the current borrowing duration when
+it remains within the fourteen-day limit. Clarification and
+revision/resubmission remain deferred.
+
+Verification:
+
+- Added focused tests for successful edit/reload, foreign and unknown IDs,
+  terminal and started requests, invalid dates and failed-save preservation.
+- `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Manual JavaFX verification is still required for the edit action, prefilled
+  form, locked equipment, validation feedback, confirmation and navigation.
+
+Window-resize hardening — 27 September 2026: all screens now use one consistent
+680x640 content size and minimum window size. Page navigation preserves the
+user's current window dimensions and restores maximized or fullscreen state
+instead of allowing a new scene's preferred size to resize the application.
+The request form is wrapped in a scroll pane so its controls remain reachable
+when content exceeds the available height.
+
+Verification:
+
+- `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- Manual GUI verification remains required for resizing, fullscreen navigation,
+  request-form scrolling and visibility of the final action buttons.
+
+Independent UI review — 27 September 2026: a fresh read-only reviewer confirmed
+that the dashboard action cards are left-aligned inside the wide content area
+even though the heading is centred. The reviewer also identified two related
+responsive-layout risks by inspection: My Requests has no outer scroll pane and
+may overflow when request actions expand, and the bounded My Loans content has
+no explicit centred alignment when the window is maximized. The reviewer found
+no defect in common sizing, fullscreen/maximized state preservation,
+request-form scrolling, locked equipment during editing or stylesheet loading.
+The dashboard alignment and the two responsive risks remain pending fixes;
+JavaFX interaction was not executed by the reviewer.
+
+Responsive-layout fix and follow-up review — 27 September 2026: the dashboard
+action stack was explicitly centred, My Requests was wrapped in an outer scroll
+pane, and the My Loans stack was centred inside its scroll viewport. The clean
+test suite passed after these fixes. A replacement independent reviewer then
+performed a fresh source inspection and found no additional obvious borrower UI
+defect. The review was inconclusive for runtime behaviour because it did not run
+JavaFX interaction; manual confirmation of maximized/fullscreen navigation,
+dashboard centring, My Requests scrolling and My Loans centring remains
+required.
+
+Final manual UI confirmation — 27 September 2026: the borrower confirmed that
+the dashboard cards, My Requests scrolling, My Loans alignment and
+fullscreen/maximized navigation now look correct. The UI change remains
+subject to the final clean test and pre-commit review evidence.
+
+The same manual session also verified the pending-request edit flow: the form
+was pre-filled, equipment remained locked, invalid input produced feedback,
+successful changes showed a confirmation dialog, and pressing `OK` returned to
+My Requests with the updated details visible.
+
+Completeness review follow-up — 27 September 2026: the fresh ownership and
+edge-case/completeness reviewers identified missing direct edit session-boundary
+tests, incomplete non-`PENDING` state coverage and stale Developer Guide,
+checklist-date and current GUI-evidence wording. These were added or updated
+before final verification. The reviewers found no production authorization or
+mutation defect.
+
+Responsive-layout follow-up — 27 September 2026: the three findings were
+addressed without changing borrower services, persistence or shared contracts.
+Dashboard cards now sit in an explicit full-width centred wrapper. My Requests
+uses an outer scroll pane with vertical scrolling enabled for expanded request
+details and actions. My Loans uses the same centred-wrapper pattern with a
+bounded content width so its active and history sections remain centred in a
+maximized window.
+
+Verification:
+
+- `./gradlew.bat clean test --no-daemon`: `BUILD SUCCESSFUL`.
+- `git diff --check`: passed.
+- Fresh source review covered dashboard alignment, common window sizing,
+  fullscreen/maximized navigation, request overflow, My Loans alignment,
+  editing controls, catalogue/request/loan screens, validation feedback and
+  spacing; no additional code defect was found.
+- Actual JavaFX interaction was not executed by the review pass. The borrower’s
+  prior manual GUI evidence remains necessary for final visual confirmation.
+- `.gradle-ui-home/` is generated build-cache output and is now ignored.
+
+Scroll affordance refinement — 27 September 2026: borrower dashboard, request
+form, My Requests and My Loans scroll bars now use a higher-contrast track and
+thumb, with a darker hover state. This makes available scrolling more obvious
+without changing navigation or business behaviour.

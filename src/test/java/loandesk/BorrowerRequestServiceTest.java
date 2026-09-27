@@ -111,6 +111,8 @@ class BorrowerRequestServiceTest {
         Session loggedOut = new Session();
         Session supervisor = new Session();
         supervisor.start(new User("supervisor", Role.SUPERVISOR));
+        Session custodian = new Session();
+        custodian.start(new User("custodian", Role.CUSTODIAN));
 
         assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
                 store, loggedOut, CLOCK).submitRequest("camera1", "Academic project", TODAY, TODAY));
@@ -120,6 +122,15 @@ class BorrowerRequestServiceTest {
                 store, loggedOut, CLOCK).cancelRequest("missing", "Plans changed"));
         assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
                 store, supervisor, CLOCK).cancelRequest("missing", "Plans changed"));
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, loggedOut, CLOCK).editRequest(
+                        "missing", "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, supervisor, CLOCK).editRequest(
+                        "missing", "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
+        assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                store, custodian, CLOCK).editRequest(
+                        "missing", "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
     }
 
     @Test
@@ -279,6 +290,144 @@ class BorrowerRequestServiceTest {
     }
 
     @Test
+    void editsOwnedPendingRequestAndReloadsUpdatedFields() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest submitted = service(store).submitRequest(
+                "camera1", "Academic project", TODAY.plusDays(1), TODAY.plusDays(14));
+
+        LoanRequest edited = service(store).editRequest(
+                submitted.requestId(), "Research or lab work",
+                TODAY.plusDays(2), TODAY.plusDays(5));
+
+        assertEquals(submitted.requestId(), edited.requestId());
+        assertEquals(submitted.equipmentId(), edited.equipmentId());
+        assertEquals(RequestStatus.PENDING, edited.status());
+        assertEquals("Research or lab work", edited.purpose());
+        assertEquals(TODAY.plusDays(2), edited.startDate());
+        assertEquals(TODAY.plusDays(5), edited.dueDate());
+        assertEquals(List.of(edited), store.loadOrSeed().requests());
+
+        DatabaseDataStore restartedStore = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        assertEquals(List.of(edited), new BorrowerRequestService(
+                restartedStore, borrowerSession(), CLOCK).listOwnRequests());
+    }
+
+    @Test
+    void rejectsEditsForForeignUnknownTerminalAndStartedRequests() throws Exception {
+        DatabaseDataStore store = storeWith(List.of(new Equipment("camera1", "Camera 1")));
+        LoanRequest pending = service(store).submitRequest(
+                "camera1", "Academic project", TODAY.plusDays(1), TODAY.plusDays(2));
+
+        Session otherBorrower = new Session();
+        otherBorrower.start(new User("other", Role.BORROWER));
+        assertThrows(IllegalArgumentException.class, () -> new BorrowerRequestService(
+                store, otherBorrower, CLOCK).editRequest(
+                        pending.requestId(), "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
+        assertThrows(IllegalArgumentException.class, () -> service(store).editRequest(
+                "missing", "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
+        assertThrows(IllegalArgumentException.class, () -> service(store).editRequest(
+                pending.requestId(), "Changed", TODAY.minusDays(1), TODAY));
+        assertThrows(IllegalArgumentException.class, () -> service(store).editRequest(
+                pending.requestId(), "Changed", TODAY.plusDays(1), TODAY.plusDays(16)));
+
+        LoanRequest started = new LoanRequest(
+                "started",
+                "borrower",
+                "camera1",
+                "Academic project",
+                TODAY,
+                TODAY.plusDays(1),
+                RequestStatus.PENDING,
+                null,
+                NOW.minusSeconds(2),
+                NOW.minusSeconds(1),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(started),
+                List.of()));
+        assertThrows(IllegalStateException.class, () -> service(store).editRequest(
+                "started", "Changed", TODAY, TODAY.plusDays(1)));
+
+        LoanRequest rejected = request(
+                "rejected", "borrower", RequestStatus.REJECTED,
+                NOW, "supervisor", "Not available");
+        store.save(new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(rejected),
+                List.of()));
+        assertThrows(IllegalStateException.class, () -> service(store).editRequest(
+                "rejected", "Changed", TODAY.plusDays(1), TODAY.plusDays(2)));
+    }
+
+    @Test
+    void rejectsEveryNonPendingEditState() throws Exception {
+        for (RequestStatus status : List.of(
+                RequestStatus.APPROVED,
+                RequestStatus.REJECTED,
+                RequestStatus.CANCELLED,
+                RequestStatus.EXPIRED,
+                RequestStatus.COLLECTED)) {
+            LoanRequest request = requestForEditState(status);
+            LoanDeskData original = new LoanDeskData(
+                    List.of(new User("borrower", Role.BORROWER)),
+                    List.of(),
+                    List.of(new Equipment("camera1", "Camera 1")),
+                    List.of(request),
+                    List.of());
+            FailingDataStore store = new FailingDataStore(original);
+
+            assertThrows(IllegalStateException.class, () -> new BorrowerRequestService(
+                    store, borrowerSession(), CLOCK).editRequest(
+                            request.requestId(), "Changed", TODAY.plusDays(1), TODAY.plusDays(2)),
+                    "Expected edit rejection for " + status);
+            assertEquals(original, store.loadOrSeed());
+        }
+    }
+
+    @Test
+    void failedEditSavePreservesPreviousRequestState() throws Exception {
+        LoanRequest pending = new LoanRequest(
+                "pending",
+                "borrower",
+                "camera1",
+                "Academic project",
+                TODAY.plusDays(1),
+                TODAY.plusDays(2),
+                RequestStatus.PENDING,
+                null,
+                NOW.minusSeconds(1),
+                NOW,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+        LoanDeskData original = new LoanDeskData(
+                List.of(new User("borrower", Role.BORROWER)),
+                List.of(),
+                List.of(new Equipment("camera1", "Camera 1")),
+                List.of(pending),
+                List.of());
+        FailingDataStore store = new FailingDataStore(original);
+
+        assertThrows(IOException.class, () -> new BorrowerRequestService(
+                store, borrowerSession(), CLOCK).editRequest(
+                        "pending", "Changed", TODAY.plusDays(2), TODAY.plusDays(3)));
+        assertEquals(original, store.loadOrSeed());
+    }
+
+    @Test
     void failedCancellationSavePreservesPreviousRequestState() throws Exception {
         LoanRequest pending = new LoanRequest(
                 "pending",
@@ -336,6 +485,33 @@ class BorrowerRequestServiceTest {
                 null,
                 null,
                 null);
+    }
+
+    private LoanRequest requestForEditState(RequestStatus status) {
+        Instant updatedAt = NOW.minusSeconds(1);
+        return switch (status) {
+            case APPROVED -> new LoanRequest(
+                    "approved", "borrower", "camera1", "Academic project",
+                    TODAY.plusDays(1), TODAY.plusDays(2), status, null,
+                    NOW.minusSeconds(2), updatedAt, "supervisor", updatedAt,
+                    "Approved", null, null, null);
+            case REJECTED -> request(
+                    "rejected", "borrower", status, updatedAt,
+                    "supervisor", "Not available");
+            case CANCELLED -> new LoanRequest(
+                    "cancelled", "borrower", "camera1", "Academic project",
+                    TODAY.plusDays(1), TODAY.plusDays(2), status, null,
+                    NOW.minusSeconds(2), updatedAt, null, null, null,
+                    "borrower", updatedAt, "Plans changed");
+            case EXPIRED -> request(
+                    "expired", "borrower", status, updatedAt, null, null);
+            case COLLECTED -> new LoanRequest(
+                    "collected", "borrower", "camera1", "Academic project",
+                    TODAY.plusDays(1), TODAY.plusDays(2), status, "loan-1",
+                    NOW.minusSeconds(2), updatedAt, "supervisor", updatedAt,
+                    "Approved", null, null, null);
+            case PENDING -> throw new IllegalArgumentException("Pending is an editable state.");
+        };
     }
 
     private DatabaseDataStore storeWith(List<Equipment> equipment) throws Exception {

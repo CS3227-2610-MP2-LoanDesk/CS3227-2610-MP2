@@ -70,9 +70,11 @@ state; borrower-visible availability is derived from that shared state rather
 than duplicated in the catalogue UI.
 
 `BorrowerRequestService` enforces session ownership, request validation,
-eligibility, availability, cancellation state/date rules and persistence. The
-borrower request screen displays persisted requests and invokes only permitted
-borrower actions. `BorrowerLoanService` reads loans for the active borrower,
+eligibility, availability, pending-request editing, cancellation state/date
+rules and persistence. Its edit operation updates only the purpose and dates
+of an eligible pending request while preserving the request and equipment IDs.
+The borrower request screen displays persisted requests and invokes only
+permitted borrower actions. `BorrowerLoanService` reads loans for the active borrower,
 filters by session-derived username, and orders active/lost loans before
 returned history. Loan overdue status is derived from the due date; checkout,
 return and physical-condition mutations remain custodian responsibilities.

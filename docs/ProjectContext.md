@@ -161,7 +161,8 @@ The following borrower-facing design decisions were agreed on 24 September
 - `My Requests` keeps active requests above terminal history. It shows
   equipment, purpose, dates, status and permitted actions. Borrowers may edit
   only purpose and dates on an eligible pending request; equipment cannot be
-  changed. Rejected requests remain read-only history and require a new
+  changed. Editing rechecks the borrower's current eligibility before saving.
+  Rejected requests remain read-only history and require a new
   request. Cancellation uses confirmation, a required reason dropdown
   (`No longer needed`, `Plans changed`, `Requested dates changed`, `Unable to
   collect the equipment`, `Submitted the request by mistake`, and `Other`),
