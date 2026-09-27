@@ -1,6 +1,6 @@
 # LoanDesk Project Checklist
 
-**Status date:** 27 September 2026
+**Status date:** 28 September 2026
 
 This is the end-to-end checklist for the project. Check items only when they
 are implemented and verified. Keep decisions and evidence truthful.
@@ -52,15 +52,16 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Implement shared role selection, borrower login/sign-up, session identity,
       logout, and placeholder dashboards.
 - [x] Add borrower password sign-up/login with salted persisted hashes.
-- [ ] Add supervisor and custodian password login through their role owners.
+- [x] Add supervisor password login; custodian password login remains with
+      its owner.
 - [ ] Enforce an active-session gate before protected dashboards and role
       operations, including direct service calls and logout re-entry.
 - [x] Implement first-launch H2 schema creation and seeding for the agreed initial records.
 - [x] Implement username validation and duplicate prevention.
 - [x] Add tests for authentication, persistence, and username rules.
 - [x] Implement the first shared request/loan domain models and basic validation.
-- [ ] Implement permission checks in services, not only in the UI.
-- [ ] Implement request lifecycle rules in one shared place.
+- [x] Implement permission checks in services, not only in the UI.
+- [x] Implement request lifecycle rules in one shared place.
 - [x] Implement the first shared availability precedence calculation.
 - [ ] Implement repository interfaces and consistent error handling.
 - [x] Add the coordinated shared request/loan domain and additive H2 tables.
@@ -86,14 +87,19 @@ implementation order and exit criteria.
 
 ## 5. Supervisor workflow
 
-- [ ] Review queue with status/date/borrower filters.
-- [ ] Inspect request, purpose, item, dates, and relevant loans.
-- [ ] Ask for clarification.
-- [ ] Approve only after availability and eligibility recheck.
-- [ ] Reject with a required reason.
-- [ ] Preserve decision history, actor, time, and reason.
-- [ ] Cancel an approved uncollected booking with a reason.
-- [ ] Test conflicts, unavailable items, wrong-role calls, and invalid transitions.
+- [x] Review queue with status/date/borrower filters.
+- [x] Inspect request, purpose, item, dates, and relevant loans.
+- [x] Descope clarification and resubmission for the initial workflow, per the
+      agreed request policy.
+- [x] Approve only after availability and eligibility recheck.
+- [x] Reject with a required reason.
+- [x] Preserve decision history, actor, time, and reason.
+- [x] Cancel an approved uncollected booking with a reason.
+- [x] Expire an approved request that was not collected by the end of its
+      start date, releasing the reservation.
+- [x] Test conflicts, unavailable items, wrong-role calls, and invalid transitions.
+- [ ] Manually verify the supervisor screens; the project has no JavaFX
+      interaction harness.
 
 ## 6. Custodian workflow
 
@@ -142,8 +148,9 @@ implementation order and exit criteria.
 
 - [ ] Run borrower submit -> supervisor approve -> custodian checkout -> return.
 - [ ] Restart and verify borrower history and shared state persist.
-- [ ] Verify wrong-role operations are denied.
-- [ ] Verify overlapping approvals cannot both succeed.
+- [x] Verify wrong-role operations are denied for supervisor operations;
+      custodian operations do not exist yet.
+- [x] Verify overlapping approvals cannot both succeed.
 - [ ] Verify damaged returns block lending until maintenance resolves them.
 - [ ] Verify demonstration data remains coherent after role switching.
 - [ ] Test clean installation and packaging on relevant operating systems.
@@ -171,8 +178,9 @@ implementation order and exit criteria.
 - `tools/borrower/`: personal hooks and disposable-repository test harness
 - `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
 - `docs/DeveloperGuide.md`: architecture and contribution guidance
-- `docs/UserGuide.md`: current borrower user setup and workflow guide
+- `docs/UserGuide.md`: current borrower and supervisor setup and workflow guide
 - `logs/Yikbing-logs/`: personal dated AI-session summaries
+- `logs/Supervisor-logs/`: dated supervisor-lane AI-session summaries
 
 ## Verified current progress
 
@@ -190,8 +198,15 @@ implementation order and exit criteria.
 - H2 persistence currently stores users, password credentials and equipment in
   one role-aware local database, now extended with request/loan tables and
   equipment condition. Existing JSON files are not imported.
-- Role-specific approval, checkout, return, and maintenance features do not
-  exist yet; the catalogue and borrower request/loan views are implemented.
+- Supervisor approval, rejection, booking cancellation, decision history and
+  request expiry are implemented and tested; the catalogue and borrower
+  request/loan views are implemented. Custodian checkout, return, inventory and
+  maintenance features do not exist yet.
+- The shared permission matrix and shared request lifecycle now exist and are
+  used by both the borrower and supervisor services. The custodian owner is
+  expected to adopt the same mechanism.
+- The supervisor screens have not been exercised manually; they are covered
+  only by compilation and by the service tests behind them.
 - Five borrower skills and two hook scripts now exist. Hook fixture tests pass.
 - Repository-side contract tests now cover all five skills and their controlled
   evaluation cases. The first ownership skill fixture evaluation is complete;
