@@ -30,6 +30,11 @@ import loandesk.domain.User;
 import loandesk.security.PasswordHasher;
 
 public final class DatabaseDataStore implements DataStore {
+    /** The fixed singleton supervisor account used by supervisor login. */
+    public static final String SUPERVISOR_USERNAME = "supervisor";
+    /** Demonstration password for the seeded supervisor account. */
+    public static final String SUPERVISOR_DEMONSTRATION_PASSWORD = "supervisor1";
+
     private static final String CREATE_USERS = """
             CREATE TABLE IF NOT EXISTS users (
                 username VARCHAR(30) PRIMARY KEY,
@@ -493,10 +498,11 @@ public final class DatabaseDataStore implements DataStore {
         User firstBorrower = new User("testBorrower1", Role.BORROWER);
         User secondBorrower = new User("testBorrower2", Role.BORROWER);
         return new LoanDeskData(
-                List.of(firstBorrower, secondBorrower),
+                List.of(firstBorrower, secondBorrower, new User(SUPERVISOR_USERNAME, Role.SUPERVISOR)),
                 List.of(
                         PasswordHasher.hash(firstBorrower.username(), "password1"),
-                        PasswordHasher.hash(secondBorrower.username(), "password2")),
+                        PasswordHasher.hash(secondBorrower.username(), "password2"),
+                        PasswordHasher.hash(SUPERVISOR_USERNAME, SUPERVISOR_DEMONSTRATION_PASSWORD)),
                 List.of(
                         new Equipment("camera1", "Camera 1"),
                         new Equipment("camera2", "Camera 2")));

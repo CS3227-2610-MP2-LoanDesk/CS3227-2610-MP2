@@ -77,7 +77,7 @@ public final class LoanDeskApp extends Application {
         Button supervisor = new Button("Supervisor");
         Button custodian = new Button("Custodian");
         borrower.setOnAction(event -> showBorrowerOptions());
-        supervisor.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.SUPERVISOR)));
+        supervisor.setOnAction(event -> showSupervisorLogin());
         custodian.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.CUSTODIAN)));
         borrower.getStyleClass().add("primary-button");
         supervisor.getStyleClass().add("secondary-button");
@@ -125,6 +125,33 @@ public final class LoanDeskApp extends Application {
         });
         back.setOnAction(event -> showBorrowerOptions());
         content.getChildren().addAll(username, password, submit, feedback, back);
+        showScene(content);
+    }
+
+    private void showSupervisorLogin() {
+        VBox content = layout("Supervisor", "Enter the supervisor password to continue.");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Password");
+        password.setMaxWidth(320);
+        Button submit = new Button("Log in");
+        submit.getStyleClass().add("primary-button");
+        Button back = new Button("Back");
+        back.getStyleClass().add("secondary-button");
+        Label feedback = new Label();
+        Runnable login = () -> {
+            try {
+                openDashboard(authenticationService.loginSupervisor(password.getText()));
+            } catch (IllegalArgumentException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            } finally {
+                password.clear();
+            }
+        };
+        submit.setOnAction(event -> login.run());
+        password.setOnAction(event -> login.run());
+        back.setOnAction(event -> showRoleSelection());
+        content.getChildren().addAll(password, submit, feedback, back);
         showScene(content);
     }
 

@@ -66,9 +66,41 @@ public final class AuthenticationService {
         }
     }
 
+    /**
+     * Authenticates the single supervisor account against its stored credential.
+     *
+     * @throws IllegalArgumentException when the account or password is wrong
+     */
+    public User loginSupervisor(String password) {
+        User supervisor = data.users().stream()
+                .filter(user -> user.role() == Role.SUPERVISOR)
+                .findFirst()
+                .orElse(null);
+        if (supervisor == null) {
+            throw new IllegalArgumentException(
+                    "This database has no supervisor account. Remove the local data/loandesk "
+                            + "files to reseed the demonstration accounts.");
+        }
+        PasswordCredential credential = data.credentials().stream()
+                .filter(candidate -> candidate.username().equals(supervisor.username()))
+                .findFirst()
+                .orElse(null);
+        if (credential == null || !PasswordHasher.matches(password, credential)) {
+            throw new IllegalArgumentException("Invalid supervisor password.");
+        }
+        return supervisor;
+    }
+
+    /**
+     * Passwordless entry retained only for the custodian role, whose owner will
+     * replace it with a real credential check in the custodian workflow.
+     */
     public User loginStaff(Role role) {
         if (role == Role.BORROWER) {
             throw new IllegalArgumentException("Borrowers must use borrower login.");
+        }
+        if (role == Role.SUPERVISOR) {
+            throw new IllegalArgumentException("Supervisors must sign in with a password.");
         }
         return new User(role.name().toLowerCase(), role);
     }
