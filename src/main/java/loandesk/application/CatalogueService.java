@@ -6,20 +6,19 @@ import java.util.Locale;
 import java.util.Objects;
 
 import loandesk.domain.Equipment;
-import loandesk.domain.Role;
 import loandesk.persistence.DataStore;
 
 public final class CatalogueService {
     private final DataStore dataStore;
-    private final Session session;
+    private final PermissionService permissions;
 
     public CatalogueService(DataStore dataStore, Session session) {
         this.dataStore = Objects.requireNonNull(dataStore);
-        this.session = Objects.requireNonNull(session);
+        this.permissions = new PermissionService(session);
     }
 
     public List<Equipment> loadCatalogue() throws IOException {
-        session.requireRole(Role.BORROWER);
+        permissions.require(Permission.BROWSE_CATALOGUE);
         return dataStore.loadOrSeed().equipment();
     }
 

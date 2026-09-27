@@ -10,7 +10,6 @@ import java.util.Objects;
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
 import loandesk.domain.RequestStatus;
-import loandesk.domain.Role;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.LoanDeskData;
 
@@ -18,7 +17,7 @@ public final class BorrowerEligibilityService {
     private static final int MAX_ACTIVE_LOANS_OR_RESERVATIONS = 3;
 
     private final DataStore dataStore;
-    private final Session session;
+    private final PermissionService permissions;
     private final Clock clock;
 
     public BorrowerEligibilityService(DataStore dataStore, Session session) {
@@ -27,12 +26,12 @@ public final class BorrowerEligibilityService {
 
     public BorrowerEligibilityService(DataStore dataStore, Session session, Clock clock) {
         this.dataStore = Objects.requireNonNull(dataStore);
-        this.session = Objects.requireNonNull(session);
+        this.permissions = new PermissionService(session);
         this.clock = Objects.requireNonNull(clock);
     }
 
     public BorrowerEligibility currentEligibility() throws IOException {
-        String borrowerUsername = session.requireRole(Role.BORROWER).username();
+        String borrowerUsername = permissions.require(Permission.SUBMIT_REQUEST).username();
         LoanDeskData data = dataStore.loadOrSeed();
         LocalDate today = LocalDate.now(clock);
         List<EligibilityBlocker> blockers = new ArrayList<>();
