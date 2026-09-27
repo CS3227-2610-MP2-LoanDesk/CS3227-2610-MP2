@@ -125,14 +125,17 @@ implementation order and exit criteria.
 - [x] Create the supervisor permission/workflow `SKILL.md`, its controlled
       defective/correct case pair and repository-side contract tests
       (28 September 2026).
-- [ ] Run a fresh reviewer against the supervisor permission/workflow case and
-      record the prompt, response and assessment.
+- [x] Run a fresh reviewer against the supervisor permission/workflow case and
+      record the prompt, response and assessment (28 September 2026): one
+      defect planted, one detected, no misses, no unsupported findings.
 - [ ] Broaden permission/workflow evaluation to integration and real lifecycle rules.
 - [ ] Evaluate the persistence-failure tester with injected save failure.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
 - [ ] Run fresh reviewer evaluations for the remaining controlled cases and
-      separately verify automatic skill selection.
+      separately verify automatic skill selection. A reviewer reported that
+      `.agents/skills/` was not loaded as a registered skill directory in its
+      runtime, so automatic selection must not be assumed for any skill there.
 - [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
@@ -222,7 +225,8 @@ implementation order and exit criteria.
 - Five borrower skills and two hook scripts now exist. Hook fixture tests pass.
 - Repository-side contract tests now cover all five skills and their controlled
   evaluation cases. The first ownership skill fixture evaluation is complete;
-  fresh reviewer runs for the other cases, automatic-selection checks and
-  integration/system evaluations remain unfinished.
+  fresh reviewer runs for the other borrower cases, automatic-selection checks
+  and integration/system evaluations remain unfinished. The supervisor
+  permission/workflow skill has one completed fresh-reviewer evaluation.
 - Release packaging remains unfinished; `Reflections.md` is complete and
   committed.
