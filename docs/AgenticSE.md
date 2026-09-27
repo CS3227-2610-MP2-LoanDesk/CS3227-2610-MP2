@@ -118,16 +118,18 @@ disclosure, conflict markers, whitespace, scope warnings, partial staging and
 pre-push argument/exit-status propagation. The pre-push test uses a stub wrapper;
 real Gradle verification is recorded separately in the session log.
 
-Skill format validation does not prove review quality. The first controlled
-ownership evaluation now has two isolated cases, shared executable contract
-tests and one fresh reviewer run. The reviewer identified the seeded defect
-and reported no unsupported defect in the correct case. See the
+Skill format validation does not prove review quality. Repository-side skill
+contract tests now cover all five skills and their controlled evaluation cases.
+The first controlled ownership evaluation has two isolated cases, shared
+executable contract tests and one fresh reviewer run. The reviewer identified
+the seeded defect and reported no unsupported defect in the correct case. See the
 [walkthrough](../tools/borrower/skill-evaluations/ownership/README.md) and
 [evaluation record](../logs/Yikbing-logs/2026-09-21-ownership-skill-evaluation.md).
-This is one unit-level evaluation with explicit skill invocation; automatic
-selection, integration/system evaluation, other skills and detailed human
-reflections remain unfinished. The skills do not authorize unrelated edits
-or claim exhaustive coverage.
+This is still one completed unit-level agent evaluation with explicit skill
+invocation. The other controlled cases are ready for separate reviewer runs;
+repository tests cannot prove external automatic selection. Integration/system
+evaluation remains unfinished. The skills do not authorize unrelated edits or
+claim exhaustive coverage.
 
 JUnit does not launch an agent or invoke these skills. It tests the synthetic
 Java services. The fresh agent review is a separate, explicitly invoked step,

@@ -1,4 +1,4 @@
-# First ownership skill evaluation
+# First `loandesk-borrower-ownership-review` skill evaluation
 
 This is a small, controlled evaluation of the ownership review skill. It is
 not an implementation of LoanDesk request cancellation. All identities and

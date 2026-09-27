@@ -111,6 +111,8 @@ implementation order and exit criteria.
 ## 7. Agentic SE implementation and evidence
 
 - [x] Create five borrower review `SKILL.md` files under `.agents/skills/`.
+- [x] Add a skill-evaluation manifest, controlled case for each skill and
+      deterministic repository-side contract tests (27 September 2026).
 - [ ] Evaluate the UI acceptance reviewer with a controlled fixture.
 - [x] Evaluate borrower ownership review on one controlled defective/correct pair
       with direct foreign-owner calls (21 September 2026).
@@ -118,6 +120,8 @@ implementation order and exit criteria.
 - [ ] Evaluate the persistence-failure tester with injected save failure.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
+- [ ] Run fresh reviewer evaluations for the remaining controlled cases and
+      separately verify automatic skill selection.
 - [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
@@ -172,9 +176,8 @@ implementation order and exit criteria.
 
 ## Verified current progress
 
-- Working branch `yikbing` is based on the merged `origin/main` and currently
-  contains the borrower request-editing and responsive-UI changes awaiting a
-  focused commit.
+- Working branch `yikbing` is based on the merged `origin/main` and contains
+  the borrower request-editing, responsive-UI and reflection changes.
 - The H2 migration, catalogue, request submission, request cancellation,
   request editing and borrower loan-history work are implemented for the
   borrower scope; supervisor approval and custodian checkout/return features
@@ -190,7 +193,9 @@ implementation order and exit criteria.
 - Role-specific approval, checkout, return, and maintenance features do not
   exist yet; the catalogue and borrower request/loan views are implemented.
 - Five borrower skills and two hook scripts now exist. Hook fixture tests pass.
-- First ownership skill fixture evaluation completed; other skills, repeat runs,
-  automatic-selection checks and integration/system evaluations remain unfinished.
+- Repository-side contract tests now cover all five skills and their controlled
+  evaluation cases. The first ownership skill fixture evaluation is complete;
+  fresh reviewer runs for the other cases, automatic-selection checks and
+  integration/system evaluations remain unfinished.
 - Release packaging remains unfinished; `Reflections.md` is complete and
   committed.
