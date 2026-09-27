@@ -10,14 +10,20 @@
 - `docs/AgenticSE.md`: borrower skills/hooks and future team proposals
 - `logs/Yikbing-logs`: Yikbing's dated, verified AI-session summaries
 
-The shared Java package layout is:
+The current shared Java package layout is:
 
 - `domain`: models, roles, and statuses independent of JavaFX and persistence
 - `application`: use cases, permissions, and workflow rules
 - `persistence`: shared H2 database store, repositories and first-launch initialization
 - `ui/common`: role selection, login, sign-up, session, and logout
 - `features/borrower`, `features/supervisor`, `features/custodian`: role-owned
-  `ui/` and `application/` packages
+  `ui/` and `application/` packages as those role slices are added
+
+Borrower-owned services currently include `AuthenticationService`,
+`CatalogueService`, `BorrowerEligibilityService`, `BorrowerRequestService` and
+`BorrowerLoanService`. The JavaFX composition currently remains in
+`loandesk.LoanDeskApp` while role owners continue migrating toward the feature
+package layout.
 
 The intended application direction is:
 
@@ -45,20 +51,42 @@ The application uses the embedded H2 dependency declared in `build.gradle`.
 Normal users do not install or run a separate database server; the Gradle
 application distribution supplies the H2 JAR and the application creates its
 ignored local database files under `data/loandesk`. The current schema stores
-users, credentials, equipment and a database revision row. A store must load
-the database before saving; snapshot writes then use an atomic revision update
-inside the transaction, rejecting stale or concurrent writers instead of
-silently replacing another instance's newer shared update.
-Request, loan, history and maintenance tables will be added through the same
-shared persistence boundary as those features are implemented.
+users, credentials, equipment, equipment condition, requests, loans and a
+database revision row. A store must load the database before saving; snapshot
+writes then use an atomic revision update inside the transaction, rejecting
+stale or concurrent writers instead of silently replacing another instance's
+newer shared update. Request and loan records are separate: a request is
+created by a borrower, while a loan is created by the future custodian
+checkout workflow. Borrower screens read these shared records but do not
+duplicate them or mutate custodian state.
 
 The initial borrower catalogue is implemented by `CatalogueService`. It loads
 equipment through `DataStore` only for an active borrower session and owns
 case-insensitive name filtering, while the JavaFX screen is responsible only
 for collecting the filter and displaying the results. The filtering helper is
 pure; the persistence boundary is protected by the role check. Category,
-condition and availability remain deferred until the request/loan records
-needed to calculate them are implemented.
+condition and availability are represented by shared equipment and request/loan
+state; borrower-visible availability is derived from that shared state rather
+than duplicated in the catalogue UI.
+
+`BorrowerRequestService` enforces session ownership, request validation,
+eligibility, availability, cancellation state/date rules and persistence. The
+borrower request screen displays persisted requests and invokes only permitted
+borrower actions. `BorrowerLoanService` reads loans for the active borrower,
+filters by session-derived username, and orders active/lost loans before
+returned history. Loan overdue status is derived from the due date; checkout,
+return and physical-condition mutations remain custodian responsibilities.
+
+Run the complete verification suite on Windows with:
+
+```text
+.\\gradlew.bat clean test --no-daemon
+```
+
+JavaFX interaction is currently verified manually because the project does not
+have an automated JavaFX interaction harness. The borrower review skills and
+the independent review panel are run at meaningful feature or milestone
+readiness points; their evidence is recorded in `logs/Yikbing-logs/`.
 
 ## AI-assisted development records
 

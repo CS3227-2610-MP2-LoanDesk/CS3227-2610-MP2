@@ -10,6 +10,8 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -73,12 +75,17 @@ public final class LoanDeskApp extends Application {
         borrower.setOnAction(event -> showBorrowerOptions());
         supervisor.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.SUPERVISOR)));
         custodian.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.CUSTODIAN)));
-        content.getChildren().addAll(borrower, supervisor, custodian);
+        borrower.getStyleClass().add("primary-button");
+        supervisor.getStyleClass().add("secondary-button");
+        custodian.getStyleClass().add("secondary-button");
+        VBox roleChoices = new VBox(12, borrower, supervisor, custodian);
+        roleChoices.getStyleClass().add("role-choice");
+        content.getChildren().add(roleChoices);
         showScene(content);
     }
 
     private void showBorrowerOptions() {
-        VBox content = layout("Borrower", "Log in to an existing account or sign up.");
+        VBox content = borrowerLayout("Borrower", "Log in to an existing account or sign up.");
         Button login = new Button("Log in");
         Button signUp = new Button("Sign up");
         Button back = new Button("Back");
@@ -91,7 +98,7 @@ public final class LoanDeskApp extends Application {
 
     private void showBorrowerForm(boolean signUp) {
         String action = signUp ? "Sign up" : "Log in";
-        VBox content = layout("Borrower " + action, "Enter a username to continue.");
+        VBox content = borrowerLayout("Borrower " + action, "Enter a username to continue.");
         TextField username = new TextField();
         username.setPromptText("Username");
         PasswordField password = new PasswordField();
@@ -107,6 +114,7 @@ public final class LoanDeskApp extends Application {
                 openDashboard(borrower);
             } catch (IllegalArgumentException | IOException exception) {
                 feedback.setText(exception.getMessage());
+                feedback.getStyleClass().add("error-label");
             } finally {
                 password.clear();
             }
@@ -123,12 +131,21 @@ public final class LoanDeskApp extends Application {
             case SUPERVISOR -> "Supervisor Dashboard";
             case CUSTODIAN -> "Custodian Dashboard";
         };
-        VBox content = layout(title, "The shared foundation is ready for role features.");
+        VBox content = layout(title, "Manage your LoanDesk activity in one place.");
+        Label welcome = new Label("Signed in as " + user.username());
+        welcome.getStyleClass().add("welcome-label");
         if (user.role() == Role.BORROWER) {
-            content.getChildren().addAll(
-                    catalogueButton(),
-                    requestsButton(),
-                    loansButton());
+            content.getStyleClass().add("borrower-page");
+            Label section = new Label("Borrowing workspace");
+            section.getStyleClass().add("section-heading");
+            VBox actions = new VBox(12,
+                    dashboardCard("Catalogue", "Browse equipment and start a request.",
+                            catalogueButton()),
+                    dashboardCard("My Requests", "Review request status and eligible actions.",
+                            requestsButton()),
+                    dashboardCard("My Loans", "See active loans and returned history.",
+                            loansButton()));
+            content.getChildren().addAll(welcome, section, actions);
         } else if (user.role() == Role.SUPERVISOR) {
             content.getChildren().addAll(
                     new Button("Review Queue"),
@@ -141,12 +158,32 @@ public final class LoanDeskApp extends Application {
                     new Button("Maintenance"));
         }
         Button logout = new Button("Log out");
+        logout.getStyleClass().add("secondary-button");
         logout.setOnAction(event -> {
             session.clear();
             showRoleSelection();
         });
         content.getChildren().add(logout);
-        showScene(content);
+        if (user.role() == Role.BORROWER) {
+            ScrollPane dashboard = new ScrollPane(content);
+            dashboard.setFitToWidth(true);
+            dashboard.setFitToHeight(true);
+            dashboard.getStyleClass().add("dashboard-scroll");
+            showScene(dashboard, 560, 620);
+        } else {
+            showScene(content);
+        }
+    }
+
+    private VBox dashboardCard(String title, String description, Button action) {
+        action.getStyleClass().add("primary-button");
+        Label cardTitle = new Label(title);
+        cardTitle.getStyleClass().add("card-title");
+        Label cardDescription = new Label(description);
+        cardDescription.getStyleClass().add("card-description");
+        VBox card = new VBox(7, cardTitle, cardDescription, action);
+        card.getStyleClass().add("dashboard-card");
+        return card;
     }
 
     private Button catalogueButton() {
@@ -168,12 +205,12 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showMyLoans() {
-        VBox content = layout("My Loans", "Your current loans and borrowing history.");
+        VBox content = borrowerLayout("My Loans", "Your current loans and borrowing history.");
         Label feedback = new Label();
         Label activeHeading = new Label("Active loans");
-        activeHeading.setStyle("-fx-font-weight: bold;");
+        activeHeading.getStyleClass().add("loan-section-heading");
         Label historyHeading = new Label("History");
-        historyHeading.setStyle("-fx-font-weight: bold;");
+        historyHeading.getStyleClass().add("loan-section-heading");
         ListView<Loan> activeLoans = loanListView();
         ListView<Loan> history = loanListView();
         Map<String, String> equipmentNames;
@@ -195,6 +232,7 @@ public final class LoanDeskApp extends Application {
             equipmentNames = Map.of();
             loadFailed = true;
             feedback.setText("Unable to load your loans: " + exception.getMessage());
+            feedback.getStyleClass().add("error-label");
         }
 
         Map<String, String> names = equipmentNames;
@@ -210,16 +248,19 @@ public final class LoanDeskApp extends Application {
         history.setPlaceholder(historyEmpty);
         Button back = new Button("Back to dashboard");
         back.setOnAction(event -> openDashboard(session.requireUser()));
-        VBox lists = new VBox(8, activeHeading, activeLoans, historyHeading, history, back);
+        VBox lists = new VBox(18, activeHeading, activeLoans, historyHeading, history, back);
+        lists.setMaxWidth(620);
         ScrollPane scroll = new ScrollPane(lists);
         scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("loan-scroll");
         content.getChildren().addAll(feedback, scroll);
-        showScene(content, 600, 560);
+        showScene(content, 680, 640);
     }
 
     private ListView<Loan> loanListView() {
         ListView<Loan> loans = new ListView<>();
-        loans.setPrefHeight(150);
+        loans.setPrefHeight(130);
+        loans.setMaxWidth(620);
         return loans;
     }
 
@@ -256,7 +297,7 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showMyRequests() {
-        VBox content = layout("My Requests", "Your active requests and request history.");
+        VBox content = borrowerLayout("My Requests", "Your active requests and request history.");
         Label feedback = new Label();
         ListView<LoanRequest> requests = new ListView<>();
         requests.setPrefHeight(220);
@@ -311,6 +352,7 @@ public final class LoanDeskApp extends Application {
         } catch (IOException | IllegalStateException exception) {
             feedback.setText("Unable to load your requests: " + exception.getMessage());
             equipmentNames = Map.of();
+            feedback.getStyleClass().add("error-label");
         }
 
         Map<String, String> names = equipmentNames;
@@ -359,7 +401,7 @@ public final class LoanDeskApp extends Application {
                 showMyRequests();
             } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
                 feedback.setText(exception.getMessage());
-                feedback.setStyle("-fx-text-fill: #b00020;");
+                feedback.getStyleClass().add("error-label");
             }
         });
         Button back = new Button("Back to dashboard");
@@ -433,7 +475,7 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showCatalogue() {
-        VBox content = layout("Catalogue", "Search equipment by name.");
+        VBox content = borrowerLayout("Catalogue", "Search equipment by name.");
         TextField filter = new TextField();
         filter.setPromptText("Name filter");
         Button apply = new Button("Filter");
@@ -459,6 +501,7 @@ public final class LoanDeskApp extends Application {
             equipment = catalogueService.loadCatalogue();
         } catch (IOException exception) {
             feedback.setText("Unable to load the catalogue: " + exception.getMessage());
+            feedback.getStyleClass().add("error-label");
             back.setOnAction(event -> openDashboard(session.requireUser()));
             content.getChildren().addAll(feedback, back);
             showScene(content);
@@ -489,7 +532,7 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showRequestForm(Equipment equipment) {
-        VBox content = layout("Request equipment", "Submit one borrowing request.");
+        VBox content = borrowerLayout("Request equipment", "Submit one borrowing request.");
         Label selected = new Label(equipment.id() + " — " + equipment.name());
         ComboBox<String> purpose = new ComboBox<>();
         purpose.getItems().addAll(
@@ -504,10 +547,14 @@ public final class LoanDeskApp extends Application {
         otherPurpose.setPromptText("Explain the purpose");
         otherPurpose.setVisible(false);
         otherPurpose.setManaged(false);
+        VBox purposeGroup = formGroup("Purpose", purpose);
+        VBox otherPurposeGroup = formGroup("Other purpose", otherPurpose);
+        otherPurposeGroup.setVisible(false);
+        otherPurposeGroup.setManaged(false);
         purpose.valueProperty().addListener((observable, oldValue, newValue) -> {
             boolean isOther = "Other".equals(newValue);
-            otherPurpose.setVisible(isOther);
-            otherPurpose.setManaged(isOther);
+            otherPurposeGroup.setVisible(isOther);
+            otherPurposeGroup.setManaged(isOther);
         });
 
         DatePicker startDate = new DatePicker(LocalDate.now());
@@ -519,6 +566,10 @@ public final class LoanDeskApp extends Application {
                 dueDate.setValue(newValue.plusDays(14));
             }
         });
+        HBox dateFields = new HBox(
+                formGroup("Start date", startDate),
+                formGroup("Due date", dueDate));
+        dateFields.getStyleClass().add("date-fields");
 
         Label feedback = new Label();
         feedback.setWrapText(true);
@@ -543,43 +594,57 @@ public final class LoanDeskApp extends Application {
                 openDashboard(session.requireUser());
             } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
                 feedback.setText(exception.getMessage());
-                feedback.setStyle("-fx-text-fill: #b00020;");
+                feedback.getStyleClass().add("error-label");
             }
         });
         back.setOnAction(event -> showCatalogue());
 
         content.getChildren().addAll(
                 selected,
-                new Label("Purpose"),
-                purpose,
-                otherPurpose,
-                new Label("Start date"),
-                startDate,
-                new Label("Due date"),
-                dueDate,
+                purposeGroup,
+                otherPurposeGroup,
+                dateFields,
                 feedback,
                 submit,
                 back);
         showScene(content, 520, 600);
     }
 
+    private VBox formGroup(String labelText, Node input) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("form-label");
+        VBox group = new VBox(6, label, input);
+        group.getStyleClass().add("form-group");
+        return group;
+    }
+
     private VBox layout(String title, String subtitle) {
         Label heading = new Label(title);
-        heading.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+        heading.getStyleClass().add("page-heading");
         Label description = new Label(subtitle);
-        VBox content = new VBox(12, heading, description);
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(24));
+        description.getStyleClass().add("page-subtitle");
+        VBox content = new VBox(14, heading, description);
+        content.getStyleClass().add("page-root");
+        content.setAlignment(Pos.TOP_CENTER);
+        content.setPadding(new Insets(28, 34, 32, 34));
         return content;
     }
 
-    private void showScene(VBox content) {
+    private VBox borrowerLayout(String title, String subtitle) {
+        VBox content = layout(title, subtitle);
+        content.getStyleClass().add("borrower-page");
+        return content;
+    }
+
+    private void showScene(Parent content) {
         showScene(content, 480, 360);
     }
 
-    private void showScene(VBox content, double width, double height) {
+    private void showScene(Parent content, double width, double height) {
         stage.setTitle("LoanDesk");
-        stage.setScene(new Scene(content, width, height));
+        Scene scene = new Scene(content, width, height);
+        scene.getStylesheets().add(getClass().getResource("/loandesk.css").toExternalForm());
+        stage.setScene(scene);
         stage.show();
     }
 

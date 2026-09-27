@@ -1,6 +1,6 @@
 ---
 name: loandesk-borrower-change-completeness-review
-description: Review whether a LoanDesk borrower change has the necessary focused tests, documentation, session evidence, shared-contract coordination and independent PR review-panel evidence. Use after borrower feature, test, UI, service or persistence changes, or for a borrower milestone readiness check.
+description: Review whether a LoanDesk borrower change has the necessary focused tests, current User/Developer Guides, session evidence, shared-contract coordination and independent PR review-panel evidence. Use after borrower feature, test, UI, service or persistence changes, or for a borrower milestone or commit/PR readiness check.
 ---
 
 # Borrower change-completeness review
@@ -48,6 +48,30 @@ For each affected category, check:
 - Shared model, permission, availability or persistence changes are identified
   for coordination before implementation. Do not silently duplicate shared
   rules in borrower code or edit supervisor/custodian features.
+
+## Documentation currency gate for commits and PRs
+
+Whenever the user is preparing a meaningful borrower commit or PR, explicitly
+read `docs/UserGuide.md` and `docs/DeveloperGuide.md` and compare them with the
+changed behavior, current milestone and shared contracts. Check that:
+
+- the User Guide explains every newly available borrower action, screen,
+  validation rule and important empty/error state without promising deferred
+  supervisor or custodian behavior;
+- the Developer Guide describes the current architecture, persistence/schema
+  state, service responsibilities, testing commands and relevant design
+  boundaries;
+- stale statements such as “placeholder”, “will be added” or “not implemented”
+  are corrected when the corresponding feature is now present;
+- deferred or cross-role behavior is labelled as deferred rather than silently
+  omitted; and
+- the dated session log records the documentation review and any intentional
+  no-change decision.
+
+Do not declare a meaningful commit or PR documentation-complete based only on
+the milestone checklist. If the guides are stale, update them in the same
+focused change or report the exact documentation gap before readiness is
+declared.
 
 Run the relevant tests during an authorized implementation or milestone review.
 For code changes, follow the project command `.\gradlew.bat clean test

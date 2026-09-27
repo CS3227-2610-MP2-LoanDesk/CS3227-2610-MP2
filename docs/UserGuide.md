@@ -1,8 +1,9 @@
 # LoanDesk User Guide
 
-The current foundation provides local role selection, borrower password
-authentication, and placeholder dashboards. Role features will be documented
-here as they are implemented.
+The current borrower workflow provides local role selection, password
+authentication, catalogue browsing, request submission, request history,
+request cancellation and a read-only loans/history view. Supervisor and
+custodian workflow actions are still being implemented by their owners.
 
 ## Running locally
 
@@ -45,4 +46,37 @@ identifiers and names. Enter part of an equipment name and select `Filter` to
 perform a case-insensitive search. Select `Clear` to restore the full catalogue.
 If no item matches, the screen displays an empty-results message. The current
 catalogue slice is read-only; category, condition, availability and borrowing
-actions will be added with later workflow milestones.
+metadata will be added with later workflow milestones, while eligible borrowers
+can already start a request from the catalogue.
+
+## Borrower requests
+
+From the catalogue, select one available equipment item and choose `Request`.
+The request form requires a non-blank purpose and a requested start date. The
+start date defaults to today and the due date defaults to fourteen days later;
+shorter borrowing periods are allowed. Past start dates and due dates before
+the start date are rejected.
+
+After submission, select `My Requests` from the dashboard to view your own
+requests. Active requests appear before terminal history. Borrowers may cancel
+eligible future `PENDING` or `APPROVED` requests by selecting a cancellation
+reason and confirming the action. Rejected requests are read-only and must be
+replaced by a new request. Clarification and revision are not part of the
+current borrower workflow.
+
+Borrowing is blocked when the service detects an unresolved overdue or lost
+loan, or when the borrower has reached the agreed active-loan/reservation
+limit. The service rechecks ownership, current state, date rules and
+availability when a request is submitted.
+
+## My loans and history
+
+Select `My Loans` from the borrower dashboard to view persisted loans belonging
+to the logged-in borrower. Active and lost loans appear above returned history.
+Each entry shows the equipment, checkout date, due date, return date when
+available, and a displayed status such as `ACTIVE`, `OVERDUE`, `LOST` or
+`RETURNED`. Overdue is derived when an active loan is past its due date.
+
+This screen is read-only. It may be empty until a custodian checks out or
+returns equipment. Borrower checkout, return and physical-condition updates
+are not performed from this screen.
