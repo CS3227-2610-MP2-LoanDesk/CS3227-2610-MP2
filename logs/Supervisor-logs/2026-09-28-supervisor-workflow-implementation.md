@@ -171,3 +171,49 @@ fixture. CI expansion was excluded from this session's scope.
   verified, but the skill's actual review performance is not yet evidenced.
   Automatic skill selection is likewise untested.
 - The supervisor screens still have no manual verification.
+
+## CI expansion — 28 September 2026
+
+### Scope
+
+Expanded `.github/workflows/ci.yml` from a single `./gradlew test` step to a
+build job and a skills job.
+
+### Decisions
+
+- The build job runs `./gradlew build`, which compiles, tests and assembles the
+  distribution in one task, then uploads the packaged zip as a workflow
+  artifact with `if-no-files-found: error` so a silent packaging regression
+  fails the run.
+- The skills job runs the borrower and supervisor skill contract checks and the
+  controlled permission/workflow fixture pair on Python 3.12. It is a separate
+  job so an evaluation-protocol regression is distinguishable from an
+  application failure.
+- `tools/borrower/test_hooks.py` was deliberately left out of CI. It fails on
+  this machine's Python 3.9.6 and its cross-platform behaviour in a Linux
+  runner has not been checked; adding it unverified would make CI red for a
+  reason unrelated to the change under review.
+- No formatting check was added. `build.gradle` configures no formatter, so
+  choosing one is a team decision rather than a CI change.
+
+### Files changed
+
+- `.github/workflows/ci.yml`
+- `docs/ProjectChecklist.md`
+
+### Verification
+
+- `.\gradlew.bat build --no-daemon`: passed locally, producing
+  `build/distributions/loandesk-0.1.0.zip` and `.tar`.
+- The workflow file parses as valid YAML with the expected two jobs and their
+  steps.
+- The workflow itself has not been executed. It runs on push to `main` and on
+  pull requests targeting `main`, so it will first run when this branch's pull
+  request is opened.
+
+### Limitations
+
+- The packaged distribution bundles the JavaFX artifacts for the platform that
+  built it, so the Linux-built CI artifact is not a cross-platform release.
+  Release packaging and the GitHub release remain the custodian owner's
+  delivery responsibility.

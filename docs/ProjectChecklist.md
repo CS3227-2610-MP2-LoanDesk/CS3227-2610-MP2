@@ -144,7 +144,10 @@ implementation order and exit criteria.
 - [ ] Add commit-message convention if agreed.
 - [x] Add pre-push full clean-test check and verify success/failure propagation.
 - [x] Activate personal hooks in Yikbing's checkout and run the real pre-push check.
-- [ ] Expand pull-request CI to build, test, format, and package.
+- [x] Expand pull-request CI to build, test and package, and to run the skill
+      contract checks and the controlled fixture pair.
+- [ ] Add a formatting check to CI; no formatter is configured in `build.gradle`
+      yet, so the team must agree on one first.
 - [ ] Add dependency/security scanning where supported.
 - [ ] Add documentation-path/completeness checks.
 - [ ] Add release workflow for the Gradle-generated distributable artifact.
@@ -173,7 +176,8 @@ implementation order and exit criteria.
 - `README.md`: project overview and local commands
 - `build.gradle`, `settings.gradle`: Gradle project configuration
 - `gradlew`, `gradlew.bat`, `gradle/wrapper/`: reproducible Gradle wrapper
-- `.github/workflows/ci.yml`: initial pull-request/push test workflow
+- `.github/workflows/ci.yml`: pull-request/push workflow building, testing and
+  packaging the application, and checking the skill evaluation contracts
 - `src/main/java/...`: JavaFX launcher, shared domain, application, and H2
   persistence foundation
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
