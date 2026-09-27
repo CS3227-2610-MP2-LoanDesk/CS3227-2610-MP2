@@ -169,10 +169,15 @@ public final class BorrowerRequestService {
         return edited;
     }
 
-    /** Returns only the current borrower's requests, with active requests first. */
+    /**
+     * Returns only the current borrower's requests, with active requests first.
+     * Lapsed approvals are expired through the shared lifecycle service first,
+     * so a reservation that was never collected is not shown as APPROVED.
+     */
     public List<LoanRequest> listOwnRequests() throws IOException {
         String borrowerUsername = permissions.require(Permission.VIEW_OWN_REQUESTS).username();
-        return dataStore.loadOrSeed().requests().stream()
+        return new RequestLifecycleService(dataStore, clock)
+                .loadWithExpiredApprovals().requests().stream()
                 .filter(request -> request.borrowerUsername().equals(borrowerUsername))
                 .sorted(Comparator
                         .comparingInt((LoanRequest request) -> isActive(request.status()) ? 0 : 1)
