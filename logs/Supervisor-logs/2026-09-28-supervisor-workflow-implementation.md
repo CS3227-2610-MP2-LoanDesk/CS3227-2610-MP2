@@ -106,3 +106,68 @@ remain with their owner and were not implemented or simulated.
 - Supervisor documentation, the permission-and-workflow agent skill and its
   evaluation, the checklist update, and the CI expansion to build and package
   were excluded from this session's scope and remain outstanding.
+
+## Supervisor documentation and review skill — 28 September 2026
+
+### Scope
+
+Added the supervisor sections of the user and developer guides, the permission
+matrix and request-lifecycle documentation, the checklist update, and the
+supervisor permission/workflow review skill with its controlled evaluation
+fixture. CI expansion was excluded from this session's scope.
+
+### Decisions
+
+- The permission matrix is documented as a table in `DeveloperGuide.md` rather
+  than only in code, including the custodian permissions that are declared
+  ahead of the custodian implementation.
+- The known limitation that an approved reservation blocks its item outright
+  rather than for a date range is recorded in the developer guide as a shared
+  contract gap, not presented as a supervisor rule.
+- The evaluation fixture plants the seeded defect in `approve` only, leaving
+  `reject` correct, so a reviewer that condemns the whole service can be scored
+  as having overstated the finding.
+- The supervisor fixture mirrors the borrower ownership fixture: a standalone
+  Gradle build, neutral case names, a withheld answer sheet and a
+  `verifyFixtures` task that asserts the exact expected outcomes.
+
+### Files changed
+
+- `docs/UserGuide.md`, `docs/DeveloperGuide.md`, `docs/ProjectChecklist.md`,
+  `docs/AgenticSE.md`
+- `.agents/skills/loandesk-supervisor-permission-workflow-review/SKILL.md` (new)
+- `tools/supervisor/test_skill_contracts.py` (new)
+- `tools/supervisor/skill-evaluations/README.md`,
+  `skill-evaluation-manifest.json` (new)
+- `tools/supervisor/skill-evaluations/permission-workflow/` (new): `README.md`,
+  `requirements.md`, `review-prompt.txt`, `expected-results.md`,
+  `build.gradle`, `settings.gradle`, `case-a`, `case-b`, `tests`
+
+### Verification
+
+- `.\gradlew.bat -p tools/supervisor/skill-evaluations/permission-workflow verifyFixtures --no-daemon`:
+  passed. Case A ran 8 tests with exactly one failure,
+  `alreadyDecidedRequestIsNotApprovedAgainWithoutMutation`; case B ran 8 tests
+  with none.
+- `python tools/supervisor/test_skill_contracts.py`: 6 tests, passed. One
+  assertion in that file was wrong on first run, claiming case B should contain
+  a single source-status check when the correct implementation contains two;
+  the assertion was corrected rather than the fixture.
+- `python tools/borrower/test_skill_contracts.py`: 4 tests, still passing. The
+  borrower harness globs `loandesk-borrower-*`, so the new skill does not
+  affect it.
+- `.\gradlew.bat clean test --no-daemon`: passed, 130 tests. The standalone
+  fixture build is not part of the application build.
+- `python tools/borrower/test_hooks.py` reports 10 errors on this machine:
+  `write_text() got an unexpected keyword argument 'newline'`. The local
+  interpreter is Python 3.9.6 and that argument requires Python 3.10 or later.
+  This is a pre-existing environment mismatch in a borrower-owned harness,
+  unchanged by this work, and was not modified here.
+
+### Limitations
+
+- No fresh reviewer has been run against the controlled case. The fixture, the
+  blinded prompt and the answer sheet exist and the executable ground truth is
+  verified, but the skill's actual review performance is not yet evidenced.
+  Automatic skill selection is likewise untested.
+- The supervisor screens still have no manual verification.

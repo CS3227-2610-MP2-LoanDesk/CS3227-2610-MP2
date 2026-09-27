@@ -122,6 +122,11 @@ implementation order and exit criteria.
 - [ ] Evaluate the UI acceptance reviewer with a controlled fixture.
 - [x] Evaluate borrower ownership review on one controlled defective/correct pair
       with direct foreign-owner calls (21 September 2026).
+- [x] Create the supervisor permission/workflow `SKILL.md`, its controlled
+      defective/correct case pair and repository-side contract tests
+      (28 September 2026).
+- [ ] Run a fresh reviewer against the supervisor permission/workflow case and
+      record the prompt, response and assessment.
 - [ ] Broaden permission/workflow evaluation to integration and real lifecycle rules.
 - [ ] Evaluate the persistence-failure tester with injected save failure.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
@@ -174,8 +179,11 @@ implementation order and exit criteria.
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
 - `docs/ProjectContext.md`: durable context snapshot
 - `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
-- `.agents/skills/`: five borrower review skills, eligible for automatic selection
+- `.agents/skills/`: five borrower review skills and the supervisor
+  permission/workflow review skill, eligible for automatic selection
 - `tools/borrower/`: personal hooks and disposable-repository test harness
+- `tools/supervisor/`: supervisor skill contract tests and the controlled
+  permission/workflow evaluation fixture
 - `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
 - `docs/DeveloperGuide.md`: architecture and contribution guidance
 - `docs/UserGuide.md`: current borrower and supervisor setup and workflow guide
