@@ -13,7 +13,6 @@ import loandesk.domain.AvailabilityStatus;
 import loandesk.domain.Equipment;
 import loandesk.domain.LoanRequest;
 import loandesk.domain.RequestStatus;
-import loandesk.domain.Role;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.LoanDeskData;
 
@@ -23,6 +22,7 @@ public final class BorrowerRequestService {
 
     private final DataStore dataStore;
     private final Session session;
+    private final PermissionService permissions;
     private final Clock clock;
     private final AvailabilityService availabilityService;
 
@@ -33,6 +33,7 @@ public final class BorrowerRequestService {
     public BorrowerRequestService(DataStore dataStore, Session session, Clock clock) {
         this.dataStore = Objects.requireNonNull(dataStore);
         this.session = Objects.requireNonNull(session);
+        this.permissions = new PermissionService(session);
         this.clock = Objects.requireNonNull(clock);
         this.availabilityService = new AvailabilityService();
     }
@@ -42,7 +43,7 @@ public final class BorrowerRequestService {
             String purpose,
             LocalDate startDate,
             LocalDate dueDate) throws IOException {
-        var borrower = session.requireRole(Role.BORROWER);
+        var borrower = permissions.require(Permission.SUBMIT_REQUEST);
         String normalizedEquipmentId = requireText(equipmentId, "Equipment ID");
         String normalizedPurpose = requireText(purpose, "Purpose");
         if (startDate == null || dueDate == null) {
@@ -108,7 +109,7 @@ public final class BorrowerRequestService {
             String purpose,
             LocalDate startDate,
             LocalDate dueDate) throws IOException {
-        var borrower = session.requireRole(Role.BORROWER);
+        var borrower = permissions.require(Permission.EDIT_OWN_REQUEST);
         String normalizedRequestId = requireText(requestId, "Request ID");
         String normalizedPurpose = requireText(purpose, "Purpose");
         LocalDate today = validateDates(startDate, dueDate);
@@ -168,10 +169,15 @@ public final class BorrowerRequestService {
         return edited;
     }
 
-    /** Returns only the current borrower's requests, with active requests first. */
+    /**
+     * Returns only the current borrower's requests, with active requests first.
+     * Lapsed approvals are expired through the shared lifecycle service first,
+     * so a reservation that was never collected is not shown as APPROVED.
+     */
     public List<LoanRequest> listOwnRequests() throws IOException {
-        String borrowerUsername = session.requireRole(Role.BORROWER).username();
-        return dataStore.loadOrSeed().requests().stream()
+        String borrowerUsername = permissions.require(Permission.VIEW_OWN_REQUESTS).username();
+        return new RequestLifecycleService(dataStore, clock)
+                .loadWithExpiredApprovals().requests().stream()
                 .filter(request -> request.borrowerUsername().equals(borrowerUsername))
                 .sorted(Comparator
                         .comparingInt((LoanRequest request) -> isActive(request.status()) ? 0 : 1)
@@ -193,7 +199,7 @@ public final class BorrowerRequestService {
 
     /** Cancels one eligible future request owned by the current borrower. */
     public LoanRequest cancelRequest(String requestId, String cancellationReason) throws IOException {
-        var borrower = session.requireRole(Role.BORROWER);
+        var borrower = permissions.require(Permission.CANCEL_OWN_REQUEST);
         String normalizedReason = requireText(cancellationReason, "Cancellation reason");
         LocalDate today = LocalDate.now(clock);
         LoanDeskData data = dataStore.loadOrSeed();

@@ -161,6 +161,36 @@ References checked during planning:
 - [Git hook behaviour](https://git-scm.com/docs/githooks)
 - [OpenAI curated skill catalogue](https://github.com/openai/skills/tree/main/skills/.curated)
 
+## Supervisor setup (implemented 28 September 2026)
+
+`loandesk-supervisor-permission-workflow-review` is the supervisor lane's
+review skill. It triggers on supervisor review, approval, rejection, booking
+cancellation, request lifecycle, expiry and role-permission work, and checks
+authorization and legal status transitions in services rather than in screens.
+
+Its controlled evaluation lives under
+`tools/supervisor/skill-evaluations/permission-workflow/`. Two cases expose the
+same synthetic decision API; case A omits the source-status check in `approve`
+only, so a terminal request can be decided again. Eight shared JUnit tests run
+against both cases:
+
+```text
+.\gradlew.bat -p tools/supervisor/skill-evaluations/permission-workflow verifyFixtures --no-daemon
+```
+
+`verifyFixtures` passes only when case A fails exactly the re-approval test and
+case B passes all eight. Repository-side contract checks for the skill file,
+its manifest entry, the controlled case and the reviewer blinding run with:
+
+```text
+python tools/supervisor/test_skill_contracts.py
+```
+
+As with the borrower skills, these checks validate the evaluation protocol.
+They do not exercise an agent, and they do not test automatic skill selection.
+A fresh-reviewer evaluation against `review-prompt.txt` and its recorded
+response remain outstanding.
+
 ## Skill format
 
 Every skill should specify its trigger, required inputs, checks, output, and

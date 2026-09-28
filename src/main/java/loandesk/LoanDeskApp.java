@@ -32,7 +32,9 @@ import loandesk.application.AuthenticationService;
 import loandesk.application.BorrowerLoanService;
 import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
+import loandesk.application.ReviewFilter;
 import loandesk.application.Session;
+import loandesk.application.SupervisorRequestService;
 import loandesk.domain.Equipment;
 import loandesk.domain.LoanRequest;
 import loandesk.domain.Loan;
@@ -44,6 +46,7 @@ import loandesk.persistence.DataStore;
 import loandesk.persistence.DatabaseDataStore;
 
 public final class LoanDeskApp extends Application {
+    private static final String ANY_STATUS = "Any status";
     private static final double WINDOW_WIDTH = 680;
     private static final double WINDOW_HEIGHT = 640;
 
@@ -52,6 +55,7 @@ public final class LoanDeskApp extends Application {
     private CatalogueService catalogueService;
     private BorrowerRequestService borrowerRequestService;
     private BorrowerLoanService borrowerLoanService;
+    private SupervisorRequestService supervisorRequestService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -64,6 +68,7 @@ public final class LoanDeskApp extends Application {
             catalogueService = new CatalogueService(dataStore, session);
             borrowerRequestService = new BorrowerRequestService(dataStore, session);
             borrowerLoanService = new BorrowerLoanService(dataStore, session);
+            supervisorRequestService = new SupervisorRequestService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -77,7 +82,7 @@ public final class LoanDeskApp extends Application {
         Button supervisor = new Button("Supervisor");
         Button custodian = new Button("Custodian");
         borrower.setOnAction(event -> showBorrowerOptions());
-        supervisor.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.SUPERVISOR)));
+        supervisor.setOnAction(event -> showSupervisorLogin());
         custodian.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.CUSTODIAN)));
         borrower.getStyleClass().add("primary-button");
         supervisor.getStyleClass().add("secondary-button");
@@ -128,6 +133,33 @@ public final class LoanDeskApp extends Application {
         showScene(content);
     }
 
+    private void showSupervisorLogin() {
+        VBox content = layout("Supervisor", "Enter the supervisor password to continue.");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Password");
+        password.setMaxWidth(320);
+        Button submit = new Button("Log in");
+        submit.getStyleClass().add("primary-button");
+        Button back = new Button("Back");
+        back.getStyleClass().add("secondary-button");
+        Label feedback = new Label();
+        Runnable login = () -> {
+            try {
+                openDashboard(authenticationService.loginSupervisor(password.getText()));
+            } catch (IllegalArgumentException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            } finally {
+                password.clear();
+            }
+        };
+        submit.setOnAction(event -> login.run());
+        password.setOnAction(event -> login.run());
+        back.setOnAction(event -> showRoleSelection());
+        content.getChildren().addAll(password, submit, feedback, back);
+        showScene(content);
+    }
+
     private void openDashboard(User user) {
         session.start(user);
         String title = switch (user.role()) {
@@ -155,10 +187,22 @@ public final class LoanDeskApp extends Application {
             actionContainer.getStyleClass().add("dashboard-actions");
             content.getChildren().addAll(welcome, section, actionContainer);
         } else if (user.role() == Role.SUPERVISOR) {
-            content.getChildren().addAll(
-                    new Button("Review Queue"),
-                    new Button("Decision History"),
-                    new Button("Account"));
+            Label section = new Label("Review workspace");
+            section.getStyleClass().add("section-heading");
+            Button queue = new Button("Review Queue");
+            queue.setOnAction(event -> showReviewQueue());
+            Button history = new Button("Decision History");
+            history.setOnAction(event -> showDecisionHistory());
+            VBox actions = new VBox(12,
+                    dashboardCard("Review Queue",
+                            "Filter requests and decide on them.", queue),
+                    dashboardCard("Decision History",
+                            "See who decided what, when and why.", history));
+            actions.setMaxWidth(520);
+            actions.setAlignment(Pos.CENTER);
+            HBox actionContainer = centeredContainer(actions);
+            actionContainer.getStyleClass().add("dashboard-actions");
+            content.getChildren().addAll(welcome, section, actionContainer);
         } else {
             content.getChildren().addAll(
                     new Button("Inventory"),
@@ -722,6 +766,283 @@ public final class LoanDeskApp extends Application {
         VBox group = new VBox(6, label, input);
         group.getStyleClass().add("form-group");
         return group;
+    }
+
+    private void showReviewQueue() {
+        VBox content = layout("Review Queue", "Filter borrower requests and open one to decide.");
+        Label feedback = new Label();
+
+        ComboBox<String> statusFilter = new ComboBox<>();
+        statusFilter.getItems().add(ANY_STATUS);
+        for (RequestStatus status : RequestStatus.values()) {
+            statusFilter.getItems().add(status.name());
+        }
+        statusFilter.setValue(RequestStatus.PENDING.name());
+        TextField borrowerFilter = new TextField();
+        borrowerFilter.setPromptText("Borrower username");
+        DatePicker from = new DatePicker();
+        from.setPromptText("Starting on or after");
+        DatePicker to = new DatePicker();
+        to.setPromptText("Starting on or before");
+        Button apply = new Button("Apply filters");
+        apply.getStyleClass().add("primary-button");
+        Button clear = new Button("Clear");
+        clear.getStyleClass().add("secondary-button");
+        HBox filterActions = new HBox(12, apply, clear);
+        filterActions.setAlignment(Pos.CENTER);
+
+        ListView<LoanRequest> requests = new ListView<>();
+        requests.setPrefHeight(200);
+        requests.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(LoanRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null
+                        ? null
+                        : item.status() + " — " + item.borrowerUsername()
+                                + " — " + item.equipmentId()
+                                + " (" + item.startDate() + " to " + item.dueDate() + ")");
+            }
+        });
+
+        Button review = new Button("Review selected request");
+        review.getStyleClass().add("primary-button");
+        review.disableProperty().bind(requests.getSelectionModel().selectedItemProperty().isNull());
+        review.setOnAction(event ->
+                showReviewDetails(requests.getSelectionModel().getSelectedItem().requestId()));
+
+        Runnable reload = () -> {
+            try {
+                String status = statusFilter.getValue();
+                ReviewFilter filter = new ReviewFilter(
+                        ANY_STATUS.equals(status) || status == null
+                                ? null
+                                : RequestStatus.valueOf(status),
+                        borrowerFilter.getText(),
+                        from.getValue(),
+                        to.getValue());
+                requests.getItems().setAll(supervisorRequestService.reviewQueue(filter));
+                feedback.getStyleClass().remove("error-label");
+                feedback.setText(requests.getItems().isEmpty()
+                        ? "No request matches these filters."
+                        : requests.getItems().size() + " request(s) found.");
+            } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                requests.getItems().clear();
+                feedback.setText("Unable to load the review queue: " + exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            }
+        };
+        apply.setOnAction(event -> reload.run());
+        clear.setOnAction(event -> {
+            statusFilter.setValue(ANY_STATUS);
+            borrowerFilter.clear();
+            from.setValue(null);
+            to.setValue(null);
+            reload.run();
+        });
+        reload.run();
+
+        Button back = new Button("Back to dashboard");
+        back.getStyleClass().add("secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        VBox filters = new VBox(10, statusFilter, borrowerFilter, from, to, filterActions);
+        filters.setMaxWidth(320);
+        filters.setAlignment(Pos.CENTER);
+        content.getChildren().addAll(
+                centeredContainer(filters), feedback, requests, review, back);
+        showScrollableScene(content);
+    }
+
+    private void showReviewDetails(String requestId) {
+        VBox content = layout("Review Details", "Check the request before deciding.");
+        Label feedback = new Label();
+        Label details = new Label();
+        details.setWrapText(true);
+
+        LoanRequest request;
+        try {
+            request = supervisorRequestService.findRequest(requestId);
+            details.setText(reviewSummary(request));
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            feedback.setText("Unable to load the request: " + exception.getMessage());
+            feedback.getStyleClass().add("error-label");
+            Button failedBack = new Button("Back to the review queue");
+            failedBack.setOnAction(event -> showReviewQueue());
+            content.getChildren().addAll(feedback, failedBack);
+            showScene(content);
+            return;
+        }
+
+        TextField reason = new TextField();
+        reason.setPromptText(request.status() == RequestStatus.PENDING
+                ? "Reason (required to reject, optional to approve)"
+                : "Cancellation reason");
+        reason.setMaxWidth(360);
+
+        Button approve = new Button("Approve");
+        approve.getStyleClass().add("primary-button");
+        Button reject = new Button("Reject");
+        Button cancelApproved = new Button("Cancel booking");
+        boolean pending = request.status() == RequestStatus.PENDING;
+        boolean approved = request.status() == RequestStatus.APPROVED;
+        setShown(approve, pending);
+        setShown(reject, pending);
+        setShown(cancelApproved, approved);
+
+        approve.setOnAction(event ->
+                decide(requestId, reason, feedback, "Approve this request?",
+                        () -> supervisorRequestService.approve(requestId, reason.getText())));
+        reject.setOnAction(event ->
+                decide(requestId, reason, feedback, "Reject this request?",
+                        () -> supervisorRequestService.reject(requestId, reason.getText())));
+        cancelApproved.setOnAction(event ->
+                decide(requestId, reason, feedback, "Cancel this approved booking?",
+                        () -> supervisorRequestService.cancelApproved(
+                                requestId, reason.getText())));
+
+        if (!pending && !approved) {
+            feedback.setText("This request is " + request.status()
+                    + " and can no longer be decided.");
+        }
+
+        HBox decisions = new HBox(12, approve, reject, cancelApproved);
+        decisions.setAlignment(Pos.CENTER);
+        Button back = new Button("Back to the review queue");
+        back.getStyleClass().add("secondary-button");
+        back.setOnAction(event -> showReviewQueue());
+        ScrollPane detailsPane = new ScrollPane(details);
+        detailsPane.setFitToWidth(true);
+        detailsPane.setPrefViewportHeight(240);
+        content.getChildren().addAll(detailsPane, reason, decisions, feedback, back);
+        showScrollableScene(content);
+    }
+
+    private void showDecisionHistory() {
+        VBox content = layout("Decision History", "Every recorded decision, most recent first.");
+        Label feedback = new Label();
+        ListView<LoanRequest> history = new ListView<>();
+        history.setPrefHeight(320);
+        history.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(LoanRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : historyLine(item));
+            }
+        });
+        try {
+            history.getItems().setAll(supervisorRequestService.decisionHistory());
+            feedback.setText(history.getItems().isEmpty()
+                    ? "No decision has been recorded yet."
+                    : history.getItems().size() + " decision(s) recorded.");
+        } catch (IllegalStateException | IOException exception) {
+            feedback.setText("Unable to load the decision history: " + exception.getMessage());
+            feedback.getStyleClass().add("error-label");
+        }
+        Button back = new Button("Back to dashboard");
+        back.getStyleClass().add("secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        content.getChildren().addAll(feedback, history, back);
+        showScrollableScene(content);
+    }
+
+    private void decide(
+            String requestId, TextField reason, Label feedback, String question,
+            DecisionAction action) {
+        Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION, question);
+        confirmation.setTitle("Confirm decision");
+        confirmation.setHeaderText(question);
+        if (confirmation.showAndWait().filter(ButtonType.OK::equals).isEmpty()) {
+            return;
+        }
+        try {
+            LoanRequest decided = action.run();
+            new Alert(Alert.AlertType.INFORMATION,
+                    "The request is now " + decided.status() + ".").showAndWait();
+            showReviewDetails(requestId);
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            feedback.setText(exception.getMessage());
+            feedback.getStyleClass().add("error-label");
+        }
+    }
+
+    private String reviewSummary(LoanRequest request) {
+        StringBuilder summary = new StringBuilder()
+                .append("Status: ").append(request.status()).append('\n')
+                .append("Borrower: ").append(request.borrowerUsername()).append('\n')
+                .append("Equipment: ").append(request.equipmentId()).append('\n')
+                .append("Purpose: ").append(request.purpose()).append('\n')
+                .append("Requested: ").append(request.startDate())
+                .append(" to ").append(request.dueDate()).append('\n');
+        try {
+            summary.append("Availability now: ")
+                    .append(supervisorRequestService.availabilityOf(request.equipmentId()))
+                    .append('\n');
+            var eligibility = supervisorRequestService.eligibilityOf(request.borrowerUsername());
+            summary.append("Borrower eligibility: ")
+                    .append(eligibility.canSubmitRequest()
+                            ? "no blockers"
+                            : eligibility.blockers().toString())
+                    .append('\n');
+            var outstanding = supervisorRequestService.outstandingLoans(
+                    request.borrowerUsername());
+            if (outstanding.isEmpty()) {
+                summary.append("Outstanding loans: none\n");
+            } else {
+                summary.append("Outstanding loans:\n");
+                for (Loan loan : outstanding) {
+                    summary.append("  ").append(loan.equipmentId())
+                            .append(" due ").append(loan.dueDate())
+                            .append(loan.isOverdue(LocalDate.now()) ? " (OVERDUE)" : "")
+                            .append('\n');
+                }
+            }
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            summary.append("Unable to load decision context: ")
+                    .append(exception.getMessage()).append('\n');
+        }
+        if (request.decisionBy() != null) {
+            summary.append("Decided by ").append(request.decisionBy())
+                    .append(" at ").append(request.decisionAt());
+            if (request.decisionReason() != null) {
+                summary.append(" because: ").append(request.decisionReason());
+            }
+            summary.append('\n');
+        }
+        if (request.cancelledBy() != null) {
+            summary.append("Cancelled by ").append(request.cancelledBy())
+                    .append(" at ").append(request.cancelledAt())
+                    .append(" because: ").append(request.cancellationReason()).append('\n');
+        }
+        return summary.toString();
+    }
+
+    private static String historyLine(LoanRequest request) {
+        String line = request.status() + " — " + request.borrowerUsername()
+                + " — " + request.equipmentId();
+        if (request.cancelledBy() != null) {
+            return line + " — cancelled by " + request.cancelledBy()
+                    + " at " + request.cancelledAt() + " — " + request.cancellationReason();
+        }
+        return line + " — decided by " + request.decisionBy() + " at " + request.decisionAt()
+                + (request.decisionReason() == null ? "" : " — " + request.decisionReason());
+    }
+
+    private static void setShown(Node node, boolean shown) {
+        node.setVisible(shown);
+        node.setManaged(shown);
+    }
+
+    private void showScrollableScene(VBox content) {
+        ScrollPane pane = new ScrollPane(content);
+        pane.setFitToWidth(true);
+        pane.setFitToHeight(true);
+        pane.getStyleClass().add("dashboard-scroll");
+        showScene(pane);
+    }
+
+    @FunctionalInterface
+    private interface DecisionAction {
+        LoanRequest run() throws IOException;
     }
 
     private VBox layout(String title, String subtitle) {

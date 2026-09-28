@@ -1,0 +1,2 @@
+rootProject.name = 'supervisor-permission-workflow-evaluation'
+include 'case-a', 'case-b'

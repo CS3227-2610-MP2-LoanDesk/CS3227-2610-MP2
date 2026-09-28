@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,5 +22,38 @@ jobs:
           java-version: '25'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Run tests
-        run: ./gradlew test
+      - name: Build, test and package
+        run: ./gradlew build
+      - name: Upload the packaged distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: loandesk-distribution
+          path: build/distributions/*.zip
+          if-no-files-found: error
+
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # These validate the skill evaluation protocol. They do not invoke an
+      # agent and do not test automatic skill selection.
+      - name: Check borrower skill contracts
+        run: python tools/borrower/test_skill_contracts.py
+      - name: Check supervisor skill contracts
+        run: python tools/supervisor/test_skill_contracts.py
+      - name: Verify the controlled permission/workflow fixture pair
+        run: >-
+          ./gradlew -p tools/supervisor/skill-evaluations/permission-workflow
+          verifyFixtures

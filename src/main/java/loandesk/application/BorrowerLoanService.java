@@ -7,22 +7,21 @@ import java.util.Objects;
 
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
-import loandesk.domain.Role;
 import loandesk.persistence.DataStore;
 
 /** Provides read-only loan history for the logged-in borrower. */
 public final class BorrowerLoanService {
     private final DataStore dataStore;
-    private final Session session;
+    private final PermissionService permissions;
 
     public BorrowerLoanService(DataStore dataStore, Session session) {
         this.dataStore = Objects.requireNonNull(dataStore);
-        this.session = Objects.requireNonNull(session);
+        this.permissions = new PermissionService(session);
     }
 
     /** Returns only the current borrower's loans, with active loans first. */
     public List<Loan> listOwnLoans() throws IOException {
-        String borrowerUsername = session.requireRole(Role.BORROWER).username();
+        String borrowerUsername = permissions.require(Permission.VIEW_OWN_LOANS).username();
         return dataStore.loadOrSeed().loans().stream()
                 .filter(loan -> loan.borrowerUsername().equals(borrowerUsername))
                 .sorted(Comparator

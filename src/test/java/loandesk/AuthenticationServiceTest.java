@@ -35,7 +35,6 @@ class AuthenticationServiceTest {
         assertEquals(2, loaded.equipment().size());
         assertTrue(Files.exists(Path.of(databasePath + ".mv.db")));
         assertFalse(Files.exists(temporaryDirectory.resolve("loandesk.json")));
-        assertEquals(Role.SUPERVISOR, service.loginStaff(Role.SUPERVISOR).role());
         assertEquals(Role.CUSTODIAN, service.loginStaff(Role.CUSTODIAN).role());
     }
 

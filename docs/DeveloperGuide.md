@@ -41,22 +41,150 @@ Shared domain records and workflow rules
 DataStore interface -> DatabaseDataStore -> embedded H2 database
 ```
 
-The layers have deliberately different responsibilities:
+Views should collect input and display results. Services should enforce role,
+ownership, and workflow rules. Persistence should remain behind repository
+interfaces rather than being implemented directly in controllers.
 
-| Layer | Responsibility | Examples |
-| --- | --- | --- |
-| UI | Collect input, display results, show permitted actions and feedback | `LoanDeskApp`, JavaFX controls, CSS |
-| Application | Enforce role, ownership, eligibility, dates, state transitions and persistence calls | `BorrowerRequestService`, `BorrowerLoanService`, `AvailabilityService` |
-| Domain | Immutable records and enums that express valid data | `Equipment`, `LoanRequest`, `Loan`, status enums |
-| Persistence | Schema creation, seed initialization, loading, validation, atomic saves and revision checks | `DataStore`, `DatabaseDataStore` |
-| Security | Password hashing and verification | `PasswordHasher` |
+## Permission matrix
 
-The current JavaFX composition remains in `loandesk.LoanDeskApp`. Borrower
-feature-area README guidance is present for future migration into
-`features/borrower/ui` and `features/borrower/application`; do not duplicate
-shared services merely to achieve that folder structure.
+`PermissionService` is the single place that decides which role may perform
+which operation. Services name a `Permission` rather than checking a `Role`
+inline:
 
-## Source layout
+```java
+permissions.require(Permission.APPROVE_REQUEST);
+```
+
+`require` throws `IllegalStateException` when no user is signed in or when the
+signed-in role does not hold the permission. `isGranted` answers the same
+question without throwing, for enabling or hiding a control. Every permission
+is held by exactly one role, which is asserted by a test.
+
+| Permission | Borrower | Supervisor | Custodian |
+| --- | --- | --- | --- |
+| `BROWSE_CATALOGUE` | yes | | |
+| `SUBMIT_REQUEST` | yes | | |
+| `EDIT_OWN_REQUEST` | yes | | |
+| `CANCEL_OWN_REQUEST` | yes | | |
+| `VIEW_OWN_REQUESTS` | yes | | |
+| `VIEW_OWN_LOANS` | yes | | |
+| `REVIEW_REQUESTS` | | yes | |
+| `APPROVE_REQUEST` | | yes | |
+| `REJECT_REQUEST` | | yes | |
+| `CANCEL_APPROVED_REQUEST` | | yes | |
+| `VIEW_DECISION_HISTORY` | | yes | |
+| `MANAGE_EQUIPMENT` | | | yes |
+| `CHECK_OUT_LOAN` | | | yes |
+| `RECORD_RETURN` | | | yes |
+| `RECORD_MAINTENANCE` | | | yes |
+
+The matrix decides role capability only. Record ownership, such as a borrower
+reading only their own requests, stays in the owning service, which filters by
+the session-derived username after the permission check passes. Custodian
+permissions are declared ahead of the custodian implementation so that owner
+adopts the same mechanism rather than adding role checks inline.
+
+## Request lifecycle
+
+`RequestLifecycleService` owns the legal transitions and the expiry rule. Role
+services decide whether an actor may attempt a transition; the lifecycle
+service decides whether the transition itself is allowed, through
+`requireLegalTransition`.
+
+```text
+PENDING ---> APPROVED ---> COLLECTED
+   |             |
+   |             +--------> CANCELLED
+   |             |
+   |             +--------> EXPIRED
+   +--------> REJECTED
+   +--------> CANCELLED
+```
+
+`COLLECTED`, `REJECTED`, `CANCELLED` and `EXPIRED` are terminal. A rejected
+request is replaced by a new request rather than reopened.
+
+Decision metadata is stored on the request rather than in a separate history
+table. `decisionBy`, `decisionAt` and `decisionReason` are set by approval and
+rejection; `cancelledBy`, `cancelledAt` and `cancellationReason` are set by
+either a borrower or a supervisor cancellation. A reason is required to reject
+and to cancel, and optional to approve.
+
+`EXPIRED` means an approved request was not collected by the end of its
+requested start date. Expiry is applied lazily: `loadWithExpiredApprovals`
+sweeps lapsed approvals whenever shared request data is read by the supervisor
+queue or the borrower request list, and persists only when a status actually
+changed. There is no background task and no startup-only sweep, so a shared
+desktop left open across a date boundary still reports the correct status.
+
+Availability precedence is unchanged and remains in `AvailabilityService`:
+`UNAVAILABLE` for damaged, under-maintenance or lost equipment, then `ON_LOAN`,
+then `RESERVED` for an approved uncollected request, then `AVAILABLE`. A
+pending request reserves nothing. Note that an approved reservation currently
+blocks its item outright rather than for a date range, so two non-overlapping
+future bookings for the same item cannot both be approved; this is a known
+limitation of the shared contract rather than a supervisor-specific rule.
+
+`SupervisorRequestService.approve` rechecks both availability and borrower
+eligibility at decision time through the same shared calculations the borrower
+services use, so a request that was submittable earlier is refused once the
+item was taken or the borrower fell behind.
+
+## Supervisor authentication
+
+The supervisor is a fixed singleton account seeded on first launch and verified
+by `AuthenticationService.loginSupervisor` against the shared credentials table
+using the same PBKDF2 hasher as borrower login. Passwordless `loginStaff`
+remains only for the custodian role and rejects the supervisor role. Because
+the account is seeded rather than created on read, a database created before
+supervisor login existed has no supervisor account and reports that the ignored
+local data must be removed so the demonstration accounts are seeded again.
+
+## Branching workflow
+
+- `main` is the shared integration branch.
+- Create focused branches such as `feature/borrower-workflow`.
+- Run `./gradlew test` before opening a pull request.
+- Pull requests require review from at least one teammate.
+- Use the repository PR template to record test results, relevant borrower
+  skill reviews, independent-review evidence, data safety and shared-contract
+  coordination.
+- Do not merge changes that break the build or change a shared contract without
+  discussing it with affected owners.
+
+The application uses the embedded H2 dependency declared in `build.gradle`.
+Normal users do not install or run a separate database server; the Gradle
+application distribution supplies the H2 JAR and the application creates its
+ignored local database files under `data/loandesk`. The current schema stores
+users, credentials, equipment, equipment condition, requests, loans and a
+database revision row. A store must load the database before saving; snapshot
+writes then use an atomic revision update inside the transaction, rejecting
+stale or concurrent writers instead of silently replacing another instance's
+newer shared update. Request and loan records are separate: a request is
+created by a borrower, while a loan is created by the future custodian
+checkout workflow. Borrower screens read these shared records but do not
+duplicate them or mutate custodian state.
+
+The initial borrower catalogue is implemented by `CatalogueService`. It loads
+equipment through `DataStore` only for an active borrower session and owns
+case-insensitive name filtering, while the JavaFX screen is responsible only
+for collecting the filter and displaying the results. The filtering helper is
+pure; the persistence boundary is protected by the role check. Category,
+condition and availability are represented by shared equipment and request/loan
+state; borrower-visible availability is derived from that shared state rather
+than duplicated in the catalogue UI.
+
+`BorrowerRequestService` enforces session ownership, request validation,
+eligibility, availability, pending-request editing, cancellation state/date
+rules and persistence. Its edit operation updates only the purpose and dates
+of an eligible pending request while preserving the request and equipment IDs.
+The borrower request screen displays persisted requests and invokes only
+permitted borrower actions. `BorrowerLoanService` reads loans for the active borrower,
+filters by session-derived username, and orders active/lost loans before
+returned history. Loan overdue status is derived from the due date; checkout,
+return and physical-condition mutations remain custodian responsibilities.
+
+Run the complete verification suite on Windows with:
 
 ```text
 src/main/java/loandesk/

@@ -1,0 +1,10 @@
+{
+  "skills": [
+    {
+      "name": "loandesk-supervisor-permission-workflow-review",
+      "trigger": "supervisor review, approval, rejection, booking cancellation, request lifecycle, expiry or role-permission",
+      "case": "permission-workflow/README.md",
+      "expected": "Identify a terminal request being decided again while accepting the correct implementation."
+    }
+  ]
+}

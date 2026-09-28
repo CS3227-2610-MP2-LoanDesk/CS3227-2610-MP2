@@ -10,7 +10,6 @@ import java.util.Objects;
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
 import loandesk.domain.RequestStatus;
-import loandesk.domain.Role;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.LoanDeskData;
 
@@ -18,7 +17,7 @@ public final class BorrowerEligibilityService {
     private static final int MAX_ACTIVE_LOANS_OR_RESERVATIONS = 3;
 
     private final DataStore dataStore;
-    private final Session session;
+    private final PermissionService permissions;
     private final Clock clock;
 
     public BorrowerEligibilityService(DataStore dataStore, Session session) {
@@ -27,14 +26,24 @@ public final class BorrowerEligibilityService {
 
     public BorrowerEligibilityService(DataStore dataStore, Session session, Clock clock) {
         this.dataStore = Objects.requireNonNull(dataStore);
-        this.session = Objects.requireNonNull(session);
+        this.permissions = new PermissionService(session);
         this.clock = Objects.requireNonNull(clock);
     }
 
     public BorrowerEligibility currentEligibility() throws IOException {
-        String borrowerUsername = session.requireRole(Role.BORROWER).username();
-        LoanDeskData data = dataStore.loadOrSeed();
-        LocalDate today = LocalDate.now(clock);
+        String borrowerUsername = permissions.require(Permission.SUBMIT_REQUEST).username();
+        return evaluate(dataStore.loadOrSeed(), borrowerUsername, LocalDate.now(clock));
+    }
+
+    /**
+     * Applies the borrowing rules to one borrower without needing their session,
+     * so the supervisor can recheck the same rules at approval time.
+     */
+    public static BorrowerEligibility evaluate(
+            LoanDeskData data, String borrowerUsername, LocalDate today) {
+        Objects.requireNonNull(data);
+        Objects.requireNonNull(borrowerUsername);
+        Objects.requireNonNull(today);
         List<EligibilityBlocker> blockers = new ArrayList<>();
 
         List<Loan> borrowerLoans = data.loans().stream()
