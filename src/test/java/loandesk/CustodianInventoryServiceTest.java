@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,8 @@ import loandesk.application.Session;
 import loandesk.domain.AvailabilityStatus;
 import loandesk.domain.Equipment;
 import loandesk.domain.EquipmentCondition;
+import loandesk.domain.LoanRequest;
+import loandesk.domain.RequestStatus;
 import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
@@ -116,6 +119,43 @@ class CustodianInventoryServiceTest {
         assertEquals(AvailabilityStatus.UNAVAILABLE, availabilityOf(service, "camera1"));
         service.updateEquipment("camera1", "Camera 1", EquipmentCondition.GOOD);
         assertEquals(AvailabilityStatus.AVAILABLE, availabilityOf(service, "camera1"));
+    }
+
+    @Test
+    void addsEquipmentWithTheSelectedInitialCondition() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        store.loadOrSeed();
+        CustodianInventoryService service = service(store, Role.CUSTODIAN);
+
+        Equipment added = service.addEquipment("Tripod", EquipmentCondition.UNDER_MAINTENANCE);
+
+        assertEquals(EquipmentCondition.UNDER_MAINTENANCE, added.condition());
+        assertEquals(AvailabilityStatus.UNAVAILABLE, availabilityOf(service, added.id()));
+        assertEquals(added, new DatabaseDataStore(temporaryDirectory.resolve("loandesk"))
+                .loadOrSeed().equipment().stream().filter(item -> item.id().equals(added.id()))
+                .findFirst().orElseThrow());
+    }
+
+    @Test
+    void rejectsConditionChangesForAnActivelyReservedItemWithoutSaving() throws Exception {
+        DatabaseDataStore store = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"));
+        LoanDeskData initial = store.loadOrSeed();
+        List<User> users = new ArrayList<>(initial.users());
+        users.add(new User("borrower", Role.BORROWER));
+        LocalDate startDate = LocalDate.of(2026, 10, 10);
+        LoanRequest reservation = new LoanRequest("request-reserved", "borrower", "camera1", "Coursework",
+                startDate, startDate.plusDays(7), RequestStatus.APPROVED, null, CLOCK.instant(), CLOCK.instant(),
+                "supervisor", CLOCK.instant(), "Approved", null, null, null);
+        store.save(new LoanDeskData(users, initial.credentials(), initial.equipment(), List.of(reservation), List.of()));
+        CustodianInventoryService service = service(store, Role.CUSTODIAN);
+
+        assertEquals(AvailabilityStatus.RESERVED, availabilityOf(service, "camera1"));
+        assertThrows(IllegalStateException.class, () -> service.updateEquipment(
+                "camera1", "Camera 1", EquipmentCondition.DAMAGED));
+
+        assertEquals(EquipmentCondition.GOOD, store.loadOrSeed().equipment().stream()
+                .filter(equipment -> equipment.id().equals("camera1"))
+                .findFirst().orElseThrow().condition());
     }
 
     @Test

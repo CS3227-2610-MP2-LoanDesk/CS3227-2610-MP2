@@ -48,9 +48,17 @@ public final class CustodianInventoryService {
 
     /** Adds one equipment item with a generated immutable ID in GOOD condition. */
     public Equipment addEquipment(String name) throws IOException {
+        return addEquipment(name, EquipmentCondition.GOOD);
+    }
+
+    /** Adds one equipment item with a generated immutable ID and observed initial condition. */
+    public Equipment addEquipment(String name, EquipmentCondition condition) throws IOException {
         permissions.require(Permission.MANAGE_EQUIPMENT);
+        if (condition == null) {
+            throw new IllegalArgumentException("Equipment condition is required.");
+        }
         LoanDeskData data = dataStore.loadOrSeed();
-        Equipment added = new Equipment(nextEquipmentId(data), requireText(name, "Equipment name"));
+        Equipment added = new Equipment(nextEquipmentId(data), requireText(name, "Equipment name"), condition);
         List<Equipment> equipment = new ArrayList<>(data.equipment());
         equipment.add(added);
         save(new LoanDeskData(data.users(), data.credentials(), equipment, data.requests(), data.loans()));
@@ -69,6 +77,12 @@ public final class CustodianInventoryService {
         int index = equipmentIndex(data.equipment(), normalizedId);
         if (index < 0) {
             throw new IllegalArgumentException("Equipment was not found.");
+        }
+        Equipment existing = data.equipment().get(index);
+        if (existing.condition() != condition && availabilityService.calculate(
+                existing, data.requests(), data.loans(), LocalDate.now(clock)) == AvailabilityStatus.RESERVED) {
+            throw new IllegalStateException(
+                    "Condition cannot be changed while this item has an active reservation.");
         }
         List<Equipment> equipment = new ArrayList<>(data.equipment());
         equipment.set(index, updated);

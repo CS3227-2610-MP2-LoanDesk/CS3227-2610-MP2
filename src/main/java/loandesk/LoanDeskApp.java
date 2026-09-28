@@ -5,10 +5,17 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -30,6 +37,10 @@ import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -76,6 +87,8 @@ public final class LoanDeskApp extends Application {
     private CustodianInventoryService custodianInventoryService;
     private DataStore dataStore;
     private Stage stage;
+    private String custodianDashboardMessage;
+    private boolean custodianDashboardMessageIsError;
 
     @Override
     public void start(Stage primaryStage) {
@@ -348,6 +361,10 @@ public final class LoanDeskApp extends Application {
 
     private void openDashboard(User user) {
         session.start(user);
+        if (user.role() == Role.CUSTODIAN) {
+            showCustodianDashboard(user);
+            return;
+        }
         String title = switch (user.role()) {
             case BORROWER -> "Borrower Dashboard";
             case SUPERVISOR -> "Supervisor Dashboard";
@@ -389,25 +406,6 @@ public final class LoanDeskApp extends Application {
             HBox actionContainer = centeredContainer(actions);
             actionContainer.getStyleClass().add("dashboard-actions");
             content.getChildren().addAll(welcome, section, actionContainer);
-        } else {
-            Label section = new Label("Custodian workspace");
-            section.getStyleClass().add("section-heading");
-            Button collections = new Button("Collections Queue");
-            collections.setOnAction(event -> showCollectionsQueue());
-            Button fulfilment = new Button("Active Loans");
-            fulfilment.setOnAction(event -> showCustodianActiveLoans());
-            Button inventory = new Button("Inventory");
-            inventory.setOnAction(event -> showCustodianInventory());
-            VBox actions = new VBox(12,
-                    dashboardCard("Collections Queue",
-                            "Issue approved equipment within its collection window.", collections),
-                    dashboardCard("Active Loans",
-                            "Record returns, loss, recovery, and equipment condition.", fulfilment),
-                    dashboardCard("Inventory",
-                            "Add equipment or update its name and physical condition.", inventory));
-            actions.setMaxWidth(520);
-            actions.setAlignment(Pos.CENTER);
-            content.getChildren().addAll(section, centeredContainer(actions));
         }
         Button logout = new Button("Log out");
         logout.getStyleClass().add("secondary-button");
@@ -454,6 +452,327 @@ public final class LoanDeskApp extends Application {
         Button loans = new Button("My Loans");
         loans.setOnAction(event -> showMyLoans());
         return loans;
+    }
+
+    private void showCustodianDashboard(User user) {
+        VBox page = new VBox(24);
+        page.getStyleClass().add("custodian-dashboard");
+
+        Label title = new Label("Custodian Dashboard");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Manage collections, active loans, and inventory condition.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        VBox heading = new VBox(4, title, subtitle);
+
+        Button inventory = new Button("Manage inventory");
+        inventory.getStyleClass().add("custodian-secondary-button");
+        inventory.setOnAction(event -> showCustodianInventory());
+        Button logout = new Button("Log out");
+        logout.getStyleClass().add("custodian-logout-button");
+        logout.setOnAction(event -> {
+            session.clear();
+            showRoleSelection();
+        });
+        HBox header = new HBox(12, heading, spacer(), inventory, logout);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label feedback = new Label();
+        feedback.getStyleClass().add("custodian-feedback");
+        feedback.setManaged(false);
+        feedback.setVisible(false);
+        if (custodianDashboardMessage != null) {
+            showCustodianFeedback(feedback, custodianDashboardMessage, custodianDashboardMessageIsError);
+            custodianDashboardMessage = null;
+        }
+
+        ObservableList<LoanRequest> requestItems = FXCollections.observableArrayList();
+        FilteredList<LoanRequest> filteredRequests = new FilteredList<>(requestItems, item -> true);
+        TableView<LoanRequest> requests = new TableView<>(filteredRequests);
+        requests.getStyleClass().add("custodian-table");
+        configureCompactTable(requests);
+
+        ObservableList<Loan> loanItems = FXCollections.observableArrayList();
+        FilteredList<Loan> filteredLoans = new FilteredList<>(loanItems, item -> true);
+        TableView<Loan> loans = new TableView<>(filteredLoans);
+        loans.getStyleClass().add("custodian-table");
+        configureCompactTable(loans);
+
+        TextField requestSearch = new TextField();
+        requestSearch.setPromptText("Filter by item, borrower, or request ID");
+        requestSearch.getStyleClass().add("custodian-filter-field");
+        ComboBox<String> requestStatus = new ComboBox<>();
+        requestStatus.getItems().addAll("All statuses", "APPROVED");
+        requestStatus.setValue("All statuses");
+        requestStatus.getStyleClass().add("custodian-filter-select");
+
+        TextField loanSearch = new TextField();
+        loanSearch.setPromptText("Filter by item, borrower, or loan ID");
+        loanSearch.getStyleClass().add("custodian-filter-field");
+        ComboBox<String> loanStatus = new ComboBox<>();
+        loanStatus.getItems().addAll("All statuses", "ACTIVE", "OVERDUE", "LOST");
+        loanStatus.setValue("All statuses");
+        loanStatus.getStyleClass().add("custodian-filter-select");
+
+        Map<String, String> equipmentNames;
+        try {
+            equipmentNames = equipmentNames();
+        } catch (IOException | IllegalStateException exception) {
+            equipmentNames = new HashMap<>();
+            showCustodianFeedback(feedback, "Unable to load equipment names: " + exception.getMessage(), true);
+        }
+        Map<String, String> names = equipmentNames;
+        requests.getColumns().addAll(
+                equipmentColumn("Item", LoanRequest::equipmentId, names),
+                textColumn("Borrower", LoanRequest::borrowerUsername),
+                textColumn("Collection window", request -> request.startDate() + " – "
+                        + request.startDate().plusDays(3)),
+                textColumn("Due date", request -> request.dueDate().toString()),
+                textColumn("Status", request -> request.status().name()),
+                requestActionColumn(feedback));
+        loans.getColumns().addAll(
+                equipmentColumn("Item", Loan::equipmentId, names),
+                textColumn("Borrower", Loan::borrowerUsername),
+                textColumn("Checked out", loan -> loan.checkoutDate().toString()),
+                textColumn("Due date", loan -> loan.dueDate().toString()),
+                textColumn("Status", this::loanDisplayStatus),
+                loanActionColumn(feedback));
+
+        requestSearch.textProperty().addListener((observable, oldValue, value) ->
+                applyRequestFilter(filteredRequests, value, requestStatus.getValue(), names));
+        requestStatus.valueProperty().addListener((observable, oldValue, value) ->
+                applyRequestFilter(filteredRequests, requestSearch.getText(), value, names));
+        loanSearch.textProperty().addListener((observable, oldValue, value) ->
+                applyLoanFilter(filteredLoans, value, loanStatus.getValue(), names));
+        loanStatus.valueProperty().addListener((observable, oldValue, value) ->
+                applyLoanFilter(filteredLoans, loanSearch.getText(), value, names));
+
+        Label requestTitle = new Label("Loan Requests");
+        requestTitle.getStyleClass().add("custodian-section-heading");
+        Label requestDescription = new Label("Approved requests that are ready for collection.");
+        requestDescription.getStyleClass().add("custodian-section-description");
+        VBox requestHeading = new VBox(2, requestTitle, requestDescription);
+        HBox requestFilters = new HBox(10, requestSearch, requestStatus);
+        requestFilters.setAlignment(Pos.CENTER_RIGHT);
+        HBox requestHeader = new HBox(16, requestHeading, spacer(), requestFilters);
+        requestHeader.setAlignment(Pos.CENTER_LEFT);
+        VBox requestPanel = new VBox(16, requestHeader, requests);
+        requestPanel.getStyleClass().add("custodian-panel");
+
+        Label loanTitle = new Label("Active Loans");
+        loanTitle.getStyleClass().add("custodian-section-heading");
+        Label loanDescription = new Label("Items currently on loan or reported lost.");
+        loanDescription.getStyleClass().add("custodian-section-description");
+        VBox loanHeading = new VBox(2, loanTitle, loanDescription);
+        HBox loanFilters = new HBox(10, loanSearch, loanStatus);
+        loanFilters.setAlignment(Pos.CENTER_RIGHT);
+        HBox loanHeader = new HBox(16, loanHeading, spacer(), loanFilters);
+        loanHeader.setAlignment(Pos.CENTER_LEFT);
+        VBox loanPanel = new VBox(16, loanHeader, loans);
+        loanPanel.getStyleClass().add("custodian-panel");
+
+        HBox stats = new HBox(16);
+        stats.getStyleClass().add("custodian-stat-row");
+
+        Runnable reload = () -> {
+            try {
+                Map<String, String> refreshedNames = equipmentNames();
+                names.clear();
+                names.putAll(refreshedNames);
+                requestItems.setAll(custodianCollectionService.collectionsQueue());
+                loanItems.setAll(custodianFulfilmentService.activeLoans());
+                int attention = (int) custodianInventoryService.inventory().stream()
+                        .filter(item -> item.equipment().condition() != EquipmentCondition.GOOD).count();
+                stats.getChildren().setAll(
+                        statCard("Pending collections", requestItems.size(), "Ready for checkout"),
+                        statCard("Active loans", loanItems.stream()
+                                .filter(loan -> loan.status() == LoanStatus.ACTIVE).count(), "Currently on loan"),
+                        statCard("Total inventory", refreshedNames.size(), "Equipment in catalogue"),
+                        statCard("Condition alerts", attention, "Damaged, lost, or under maintenance"));
+                applyRequestFilter(filteredRequests, requestSearch.getText(), requestStatus.getValue(), names);
+                applyLoanFilter(filteredLoans, loanSearch.getText(), loanStatus.getValue(), names);
+                if (!feedback.getText().startsWith("Checked out")
+                        && !feedback.getText().startsWith("Return")
+                        && !feedback.getText().startsWith("Item marked")
+                        && !feedback.getText().startsWith("Lost item")) {
+                    feedback.setVisible(false);
+                    feedback.setManaged(false);
+                }
+            } catch (IOException | IllegalStateException exception) {
+                requestItems.clear();
+                loanItems.clear();
+                stats.getChildren().setAll(statCard("Dashboard unavailable", "—", "Refresh after resolving the data issue"));
+                showCustodianFeedback(feedback, "Unable to load dashboard data: " + exception.getMessage(), true);
+            }
+        };
+        reload.run();
+
+        page.getChildren().addAll(header, feedback, stats, requestPanel, loanPanel);
+        ScrollPane scroll = new ScrollPane(page);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("custodian-dashboard-scroll");
+        showScene(scroll);
+    }
+
+    private Node spacer() {
+        StackPane spacer = new StackPane();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        return spacer;
+    }
+
+    private Map<String, String> equipmentNames() throws IOException {
+        return custodianInventoryService.inventory().stream().collect(Collectors.toMap(
+                item -> item.equipment().id(), item -> item.equipment().name()));
+    }
+
+    private void configureCompactTable(TableView<?> table) {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setFixedCellSize(46);
+        table.setPrefHeight(276);
+        table.setMaxHeight(276);
+        table.setPlaceholder(new Label("Nothing to show right now."));
+    }
+
+    private <T> TableColumn<T, String> textColumn(String title, Function<T, String> value) {
+        TableColumn<T, String> column = new TableColumn<>(title);
+        column.setCellValueFactory(cell -> new ReadOnlyStringWrapper(value.apply(cell.getValue())));
+        return column;
+    }
+
+    private <T> TableColumn<T, T> equipmentColumn(
+            String title, Function<T, String> equipmentId, Map<String, String> names) {
+        TableColumn<T, T> column = new TableColumn<>(title);
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(T item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                String id = equipmentId.apply(item);
+                Label name = new Label(names.getOrDefault(id, id));
+                name.getStyleClass().add("custodian-item-name");
+                Label identifier = new Label(id);
+                identifier.getStyleClass().add("custodian-item-id");
+                setGraphic(new VBox(1, name, identifier));
+            }
+        });
+        return column;
+    }
+
+    private TableColumn<LoanRequest, LoanRequest> requestActionColumn(Label feedback) {
+        TableColumn<LoanRequest, LoanRequest> column = new TableColumn<>("Action");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(LoanRequest request, boolean empty) {
+                super.updateItem(request, empty);
+                if (empty || request == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Button checkout = new Button("Check out");
+                checkout.getStyleClass().add("custodian-primary-button");
+                checkout.setOnAction(event -> {
+                    try {
+                        Loan loan = custodianCollectionService.checkout(request.requestId());
+                        rememberCustodianDashboardMessage("Checked out " + loan.equipmentId() + " to "
+                                + loan.borrowerUsername() + ".", false);
+                        showCustodianDashboard(session.requireUser());
+                    } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                        showCustodianFeedback(feedback, exception.getMessage(), true);
+                    }
+                });
+                setGraphic(checkout);
+            }
+        });
+        return column;
+    }
+
+    private TableColumn<Loan, Loan> loanActionColumn(Label feedback) {
+        TableColumn<Loan, Loan> column = new TableColumn<>("Action");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(Loan loan, boolean empty) {
+                super.updateItem(loan, empty);
+                if (empty || loan == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Button manage = new Button("Return / update");
+                manage.getStyleClass().add("custodian-secondary-button");
+                manage.setOnAction(event -> showCustodianActiveLoans());
+                Button action = new Button(loan.status() == LoanStatus.LOST ? "Recover" : "Mark lost");
+                action.getStyleClass().add(loan.status() == LoanStatus.LOST
+                        ? "custodian-secondary-button" : "custodian-danger-button");
+                action.setOnAction(event -> {
+                    try {
+                        if (loan.status() == LoanStatus.LOST) {
+                            custodianFulfilmentService.recoverLost(loan.loanId());
+                            rememberCustodianDashboardMessage(
+                                    "Lost item recovered. Use the Active Loans page to record its return.", false);
+                        } else {
+                            custodianFulfilmentService.markLost(loan.loanId());
+                            rememberCustodianDashboardMessage("Item marked lost.", false);
+                        }
+                        showCustodianDashboard(session.requireUser());
+                    } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                        showCustodianFeedback(feedback, exception.getMessage(), true);
+                    }
+                });
+                HBox actions = new HBox(6, manage, action);
+                actions.setAlignment(Pos.CENTER_LEFT);
+                setGraphic(actions);
+            }
+        });
+        return column;
+    }
+
+    private void applyRequestFilter(
+            FilteredList<LoanRequest> items, String search, String status, Map<String, String> names) {
+        String query = search == null ? "" : search.trim().toLowerCase();
+        items.setPredicate(request -> ("All statuses".equals(status) || request.status().name().equals(status))
+                && (query.isBlank() || request.borrowerUsername().toLowerCase().contains(query)
+                || request.requestId().toLowerCase().contains(query)
+                || request.equipmentId().toLowerCase().contains(query)
+                || names.getOrDefault(request.equipmentId(), "").toLowerCase().contains(query)));
+    }
+
+    private void applyLoanFilter(FilteredList<Loan> items, String search, String status, Map<String, String> names) {
+        String query = search == null ? "" : search.trim().toLowerCase();
+        items.setPredicate(loan -> ("All statuses".equals(status) || loanDisplayStatus(loan).equals(status))
+                && (query.isBlank() || loan.borrowerUsername().toLowerCase().contains(query)
+                || loan.loanId().toLowerCase().contains(query)
+                || loan.equipmentId().toLowerCase().contains(query)
+                || names.getOrDefault(loan.equipmentId(), "").toLowerCase().contains(query)));
+    }
+
+    private Node statCard(String title, Object value, String description) {
+        Label statTitle = new Label(title);
+        statTitle.getStyleClass().add("custodian-stat-title");
+        Label statValue = new Label(String.valueOf(value));
+        statValue.getStyleClass().add("custodian-stat-value");
+        Label statDescription = new Label(description);
+        statDescription.getStyleClass().add("custodian-stat-description");
+        VBox card = new VBox(5, statTitle, statValue, statDescription);
+        card.getStyleClass().add("custodian-stat-card");
+        HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+        return card;
+    }
+
+    private void showCustodianFeedback(Label feedback, String message, boolean error) {
+        feedback.setText(message);
+        feedback.getStyleClass().removeAll("custodian-feedback-error", "custodian-feedback-success");
+        feedback.getStyleClass().add(error ? "custodian-feedback-error" : "custodian-feedback-success");
+        feedback.setManaged(true);
+        feedback.setVisible(true);
+    }
+
+    private void rememberCustodianDashboardMessage(String message, boolean error) {
+        custodianDashboardMessage = message;
+        custodianDashboardMessageIsError = error;
     }
 
     private void showCollectionsQueue() {
@@ -520,78 +839,250 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showCustodianInventory() {
-        VBox content = layout("Inventory", "Add equipment by name or update its physical condition. "
-                + "Availability is calculated from the shared request and loan state.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("custodian-inventory-page");
+        Label title = new Label("Manage Inventory");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Review equipment status and update its physical condition.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button addEquipment = new Button("Add equipment");
+        addEquipment.setGraphic(plusIcon());
+        addEquipment.getStyleClass().add("custodian-primary-button");
+        addEquipment.getStyleClass().add("custodian-create-button");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), addEquipment, back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
-        ListView<CustodianInventoryService.InventoryItem> items = new ListView<>();
-        items.setPrefHeight(260);
-        items.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(CustodianInventoryService.InventoryItem item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    return;
-                }
-                Equipment equipment = item.equipment();
-                setText(equipment.id() + " — " + equipment.name() + "\nCondition: "
-                        + equipment.condition() + ", availability: " + item.availability());
-            }
-        });
+        feedback.getStyleClass().add("custodian-feedback");
+        TableView<CustodianInventoryService.InventoryItem> items = new TableView<>();
+        items.getStyleClass().add("custodian-table");
+        items.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        items.setPrefHeight(330);
+        Map<String, String> names = new HashMap<>();
+        VBox details = new VBox(12);
+        details.getStyleClass().add("custodian-detail-panel");
+        details.setVisible(false);
+        details.setManaged(false);
+        VBox addPanel = new VBox(16);
+        addPanel.getStyleClass().add("custodian-add-panel");
+        addPanel.setVisible(false);
+        addPanel.setManaged(false);
+        Label addTitle = new Label("Add equipment");
+        addTitle.getStyleClass().add("custodian-section-heading");
         TextField name = new TextField();
-        name.setPromptText("Equipment name");
-        ComboBox<EquipmentCondition> condition = new ComboBox<>();
-        condition.getItems().setAll(EquipmentCondition.values());
-        condition.setPromptText("Condition");
-        Button add = new Button("Add equipment");
-        Button update = new Button("Save selected changes");
-        Button refresh = new Button("Refresh inventory");
-        Button back = new Button("Back to dashboard");
-        add.getStyleClass().add("primary-button");
-        update.getStyleClass().add("primary-button");
-        refresh.getStyleClass().add("secondary-button");
-        back.getStyleClass().add("secondary-button");
-        update.disableProperty().bind(Bindings.createBooleanBinding(
-                () -> items.getSelectionModel().getSelectedItem() == null,
-                items.getSelectionModel().selectedItemProperty()));
+        name.setPromptText("e.g. Canon EOS R6 Camera");
+        name.getStyleClass().add("custodian-filter-field");
+        Label nameLabel = new Label("Name *");
+        nameLabel.getStyleClass().add("custodian-form-label");
+        ComboBox<EquipmentCondition> initialCondition = new ComboBox<>();
+        initialCondition.getItems().setAll(EquipmentCondition.values());
+        initialCondition.setValue(EquipmentCondition.GOOD);
+        initialCondition.getStyleClass().add("custodian-filter-select");
+        Label conditionLabel = new Label("Condition *");
+        conditionLabel.getStyleClass().add("custodian-form-label");
+        VBox nameField = new VBox(6, nameLabel, name);
+        VBox conditionField = new VBox(6, conditionLabel, initialCondition);
+        Button create = new Button("Create equipment");
+        create.getStyleClass().add("custodian-primary-button");
+        create.getStyleClass().add("custodian-create-button");
+        Button cancel = new Button("Cancel");
+        cancel.getStyleClass().add("custodian-secondary-button");
+        HBox formActions = new HBox(10, cancel, create);
+        formActions.setAlignment(Pos.CENTER_RIGHT);
+        addPanel.getChildren().addAll(addTitle, nameField, conditionField, formActions);
 
         Runnable reload = () -> {
             try {
                 items.getItems().setAll(custodianInventoryService.inventory());
-                feedback.getStyleClass().remove("error-label");
-                feedback.setText(items.getItems().isEmpty() ? "No equipment has been added."
-                        : items.getItems().size() + " equipment item(s) loaded.");
+                names.clear();
+                items.getItems().forEach(item -> names.put(item.equipment().id(), item.equipment().name()));
+                if (items.getItems().isEmpty()) {
+                    showCustodianFeedback(feedback, "No equipment has been added. Add an item to begin.", false);
+                } else if (feedback.getText().isBlank()) {
+                    feedback.setVisible(false);
+                    feedback.setManaged(false);
+                }
             } catch (IllegalStateException | IOException exception) {
                 items.getItems().clear();
-                feedback.setText("Unable to load inventory: " + exception.getMessage());
-                feedback.getStyleClass().add("error-label");
+                showCustodianFeedback(feedback, "Unable to load inventory: " + exception.getMessage(), true);
             }
         };
-        items.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
-            if (selected != null) {
-                Equipment equipment = selected.equipment();
-                name.setText(equipment.name());
-                condition.setValue(equipment.condition());
-            }
+        items.getColumns().addAll(
+                equipmentColumn("Item", item -> item.equipment().id(), names),
+                inventoryConditionColumn(feedback, reload),
+                textColumn("Availability", item -> item.availability().name()),
+                inventoryDetailsColumn(details, feedback));
+        addEquipment.setOnAction(event -> {
+            details.setVisible(false);
+            details.setManaged(false);
+            addPanel.setVisible(true);
+            addPanel.setManaged(true);
+            name.requestFocus();
         });
-        add.setOnAction(event -> runInventoryAction(feedback, reload, () -> {
-            Equipment added = custodianInventoryService.addEquipment(name.getText());
-            name.setText(added.name());
-            condition.setValue(added.condition());
+        cancel.setOnAction(event -> {
+            addPanel.setVisible(false);
+            addPanel.setManaged(false);
+        });
+        create.setOnAction(event -> runInventoryAction(feedback, reload, () -> {
+            Equipment added = custodianInventoryService.addEquipment(name.getText(), initialCondition.getValue());
+            name.clear();
+            initialCondition.setValue(EquipmentCondition.GOOD);
+            addPanel.setVisible(false);
+            addPanel.setManaged(false);
         }, "Equipment added."));
-        update.setOnAction(event -> {
-            CustodianInventoryService.InventoryItem selected = items.getSelectionModel().getSelectedItem();
-            if (selected == null) {
-                return;
-            }
-            runInventoryAction(feedback, reload, () -> custodianInventoryService.updateEquipment(
-                    selected.equipment().id(), name.getText(), condition.getValue()), "Equipment updated.");
-        });
-        refresh.setOnAction(event -> reload.run());
-        back.setOnAction(event -> openDashboard(session.requireUser()));
         reload.run();
-        content.getChildren().addAll(feedback, items, name, condition, add, update, refresh, back);
-        showScrollableScene(content);
+        content.getChildren().addAll(header, feedback, addPanel, items, details);
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("custodian-dashboard-scroll");
+        showScene(scroll);
+    }
+
+    private Node plusIcon() {
+        Line horizontal = new Line(3, 8, 13, 8);
+        Line vertical = new Line(8, 3, 8, 13);
+        horizontal.setStroke(Color.WHITE);
+        vertical.setStroke(Color.WHITE);
+        horizontal.setStrokeWidth(1.8);
+        vertical.setStrokeWidth(1.8);
+        return new Group(horizontal, vertical);
+    }
+
+    private TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem>
+            inventoryConditionColumn(Label feedback, Runnable reload) {
+        TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem> column
+                = new TableColumn<>("Condition");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(CustodianInventoryService.InventoryItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                ComboBox<EquipmentCondition> condition = new ComboBox<>();
+                condition.getItems().setAll(EquipmentCondition.values());
+                condition.setValue(item.equipment().condition());
+                condition.getStyleClass().add("custodian-table-select");
+                boolean reserved = item.availability() == loandesk.domain.AvailabilityStatus.RESERVED;
+                condition.setDisable(reserved);
+                condition.setTooltip(new Tooltip(reserved
+                        ? "Condition cannot be changed while this item is reserved."
+                        : "Changes are saved immediately."));
+                condition.setOnAction(event -> {
+                    EquipmentCondition selected = condition.getValue();
+                    if (selected == item.equipment().condition()) {
+                        return;
+                    }
+                    condition.setDisable(true);
+                    runInventoryAction(feedback, reload, () -> custodianInventoryService.updateEquipment(
+                            item.equipment().id(), item.equipment().name(), selected),
+                            "Condition updated for " + item.equipment().name() + ".");
+                    condition.setDisable(false);
+                });
+                setGraphic(condition);
+            }
+        });
+        return column;
+    }
+
+    private TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem>
+            inventoryDetailsColumn(VBox details, Label feedback) {
+        TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem> column
+                = new TableColumn<>("");
+        column.setPrefWidth(54);
+        column.setMaxWidth(54);
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(CustodianInventoryService.InventoryItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Button view = new Button();
+                view.setGraphic(eyeIcon());
+                view.setAccessibleText("View details for " + item.equipment().name());
+                view.setTooltip(new Tooltip("View item details"));
+                view.getStyleClass().add("custodian-eye-button");
+                view.setOnAction(event -> showInventoryDetails(details, item, feedback));
+                setGraphic(view);
+            }
+        });
+        return column;
+    }
+
+    private Node eyeIcon() {
+        SVGPath icon = new SVGPath();
+        icon.setContent("M2,10 C4.4,5.8 7.1,4 10,4 C12.9,4 15.6,5.8 18,10 C15.6,14.2 12.9,16 10,16 C7.1,16 4.4,14.2 2,10 Z M10,7 C8.35,7 7,8.35 7,10 C7,11.65 8.35,13 10,13 C11.65,13 13,11.65 13,10 C13,8.35 11.65,7 10,7 Z");
+        icon.setFill(Color.web("#5b6370"));
+        return icon;
+    }
+
+    private void showInventoryDetails(
+            VBox details, CustodianInventoryService.InventoryItem item, Label feedback) {
+        Equipment equipment = item.equipment();
+        Loan currentLoan = null;
+        LoanRequest reservation = null;
+        try {
+            var data = dataStore.loadOrSeed();
+            currentLoan = data.loans().stream()
+                    .filter(loan -> loan.equipmentId().equals(equipment.id()))
+                    .filter(loan -> loan.status() == LoanStatus.ACTIVE || loan.status() == LoanStatus.LOST)
+                    .findFirst().orElse(null);
+            if (currentLoan == null && item.availability()
+                    == loandesk.domain.AvailabilityStatus.RESERVED) {
+                reservation = data.requests().stream()
+                        .filter(request -> request.equipmentId().equals(equipment.id()))
+                        .filter(request -> request.status() == RequestStatus.APPROVED)
+                        .findFirst().orElse(null);
+            }
+        } catch (IOException exception) {
+            showCustodianFeedback(feedback, "Unable to load borrowing details: " + exception.getMessage(), true);
+            return;
+        }
+        Label heading = new Label(equipment.name());
+        heading.getStyleClass().add("custodian-section-heading");
+        Label itemId = new Label(equipment.id());
+        itemId.getStyleClass().add("custodian-item-id");
+        String borrower = currentLoan != null ? currentLoan.borrowerUsername()
+                : reservation != null ? reservation.borrowerUsername() : "—";
+        String collectionDate = currentLoan != null ? currentLoan.checkoutDate().toString()
+                : reservation != null ? reservation.startDate().toString() : "—";
+        String dueDate = currentLoan != null ? currentLoan.dueDate().toString()
+                : reservation != null ? reservation.dueDate().toString() : "—";
+        String borrowStatus = currentLoan != null ? currentLoan.status().name()
+                : reservation != null ? "RESERVED" : "Not currently borrowed";
+        VBox fields = new VBox(8,
+                detailRow("Condition", equipment.condition().name()),
+                detailRow("Availability", item.availability().name()),
+                detailRow("Borrow status", borrowStatus),
+                detailRow("Borrower", borrower),
+                detailRow("Collection date", collectionDate),
+                detailRow("Due date", dueDate));
+        Button close = new Button("Close details");
+        close.getStyleClass().add("custodian-secondary-button");
+        close.setOnAction(event -> {
+            details.setVisible(false);
+            details.setManaged(false);
+        });
+        details.getChildren().setAll(new VBox(2, heading, itemId), fields, close);
+        details.setVisible(true);
+        details.setManaged(true);
+    }
+
+    private HBox detailRow(String label, String value) {
+        Label detailLabel = new Label(label);
+        detailLabel.getStyleClass().add("custodian-detail-label");
+        Label detailValue = new Label(value);
+        detailValue.getStyleClass().add("custodian-detail-value");
+        HBox row = new HBox(16, detailLabel, spacer(), detailValue);
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
     }
 
     private void runInventoryAction(Label feedback, Runnable reload, InventoryAction action, String success) {

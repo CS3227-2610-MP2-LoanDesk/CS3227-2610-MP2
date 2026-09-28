@@ -127,13 +127,18 @@ first, showing who decided, when and why.
 ## Custodian workflow
 
 Select `Custodian` from role selection and enter the custodian password. The
-dashboard provides `Collections`, `Active Loans`, and `Inventory`.
+dashboard shows non-clickable collection, loan, inventory and condition-alert
+statistics, followed by filterable `Loan Requests` and `Active Loans` tables.
+Each table keeps up to five rows visible at once and can scroll for more.
+Equipment names always show their item ID underneath in muted text. Use
+`Manage inventory` in the top-right corner to open the separate inventory
+table; inventory is not duplicated on the dashboard.
 
-`Collections` lists approved requests that are within the inclusive collection
-window: the requested start date through three additional calendar days. Select
-a request and choose `Check out selected request` to create its one linked
-active loan. Checkout is refused if the request is no longer approved or
-collectable, or if the equipment is unavailable or not in `GOOD` condition.
+`Loan Requests` lists approved requests that are within the inclusive
+collection window: the requested start date through three additional calendar
+days. Choose `Check out` to create its one linked active loan. Checkout is
+refused if the request is no longer approved or collectable, or if the
+equipment is unavailable or not in `GOOD` condition.
 
 `Active Loans` lists active and lost loans, with overdue active loans first.
 For an active loan, select a return condition (`GOOD`, `DAMAGED`, or
@@ -144,10 +149,14 @@ custodian selects and records the observed return condition. This two-step flow
 ensures the condition is chosen at physical return rather than assumed during
 recovery.
 
-`Inventory` lets custodians add equipment and edit its name or physical
-condition. Its availability is read-only and derived from the shared requests,
-loans and condition. Categories, notes, deletion, retirement, bulk import and
-maintenance records are outside this MVP.
+`Manage Inventory` opens a table of all equipment, its physical condition and
+read-only availability derived from shared requests, loans and condition. From
+there, custodians can add equipment, or change an item's condition directly in
+its table row. The `Add equipment` button opens a panel for the required name
+and initial condition. Condition changes are disabled while an item is reserved. The eye action opens item details, including condition,
+availability and any current borrower's collection and due dates. Categories,
+notes, deletion, retirement, bulk import and maintenance records are outside
+this MVP.
 
 ## My loans and history
 
