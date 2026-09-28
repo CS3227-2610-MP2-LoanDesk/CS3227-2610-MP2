@@ -14,6 +14,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.Parent;
 import javafx.scene.Node;
+import javafx.scene.Group;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -27,7 +28,14 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.Polygon;
+import javafx.scene.shape.SVGPath;
+import javafx.scene.shape.Shape;
 import javafx.stage.Stage;
 
 import loandesk.application.AuthenticationService;
@@ -54,8 +62,8 @@ import loandesk.persistence.StaleDataException;
 
 public final class LoanDeskApp extends Application {
     private static final String ANY_STATUS = "Any status";
-    private static final double WINDOW_WIDTH = 680;
-    private static final double WINDOW_HEIGHT = 640;
+    private static final double WINDOW_WIDTH = 1160;
+    private static final double WINDOW_HEIGHT = 720;
 
     private final Session session = new Session();
     private AuthenticationService authenticationService;
@@ -90,44 +98,149 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showRoleSelection() {
-        VBox content = layout("LoanDesk", "Choose a role to continue.");
-        Button borrower = new Button("Borrower");
-        Button supervisor = new Button("Supervisor");
-        Button custodian = new Button("Custodian");
+        Label loan = new Label("Loan");
+        loan.getStyleClass().add("brand-loan");
+        Label desk = new Label("Desk");
+        desk.getStyleClass().add("brand-desk");
+        HBox brand = new HBox(0, loan, desk);
+        brand.getStyleClass().add("landing-brand");
+        brand.setAlignment(Pos.CENTER);
+
+        Label subtitle = new Label("Equipment inventory and lending management.");
+        subtitle.getStyleClass().add("landing-subtitle");
+        Label journey = new Label("FIND   /   LOAN   /   MANAGE");
+        journey.getStyleClass().add("landing-journey");
+
+        Button borrower = new Button("Sign in as Borrower  →");
+        Button supervisor = new Button("Sign in as Supervisor  →");
+        Button custodian = new Button("Sign in as Custodian  →");
         borrower.setOnAction(event -> showBorrowerOptions());
         supervisor.setOnAction(event -> showSupervisorLogin());
         custodian.setOnAction(event -> showCustodianLogin());
-        borrower.getStyleClass().add("primary-button");
-        supervisor.getStyleClass().add("secondary-button");
-        custodian.getStyleClass().add("secondary-button");
-        VBox roleChoices = new VBox(12, borrower, supervisor, custodian);
-        roleChoices.getStyleClass().add("role-choice");
-        content.getChildren().add(roleChoices);
-        showScene(content);
+        HBox cards = new HBox(24,
+                roleCard("borrower", "Borrower", "Request and borrow equipment\nfor your work or projects.", borrower),
+                roleCard("supervisor", "Supervisor", "Approve requests and oversee\nequipment usage.", supervisor),
+                roleCard("custodian", "Custodian", "Manage inventory and handle\nequipment check-in/out.", custodian));
+        cards.getStyleClass().add("role-cards");
+        cards.setAlignment(Pos.CENTER);
+
+        VBox content = new VBox(12, brand, subtitle, journey, cards);
+        content.getStyleClass().add("landing-content");
+        content.setAlignment(Pos.TOP_CENTER);
+        StackPane landing = new StackPane(content);
+        landing.getStyleClass().add("landing-page");
+        showScene(landing);
+    }
+
+    private VBox roleCard(String iconType, String title, String description, Button action) {
+        StackPane iconHolder = new StackPane(roleIcon(iconType));
+        iconHolder.getStyleClass().add("role-icon-holder");
+        Label cardTitle = new Label(title);
+        cardTitle.getStyleClass().add("role-card-title");
+        Label cardDescription = new Label(description);
+        cardDescription.getStyleClass().add("role-card-description");
+        cardDescription.setWrapText(true);
+        action.getStyleClass().add("role-sign-in-button");
+        action.setMaxWidth(Double.MAX_VALUE);
+        VBox card = new VBox(16, iconHolder, cardTitle, cardDescription, action);
+        card.getStyleClass().add("role-card");
+        card.setAlignment(Pos.CENTER);
+        return card;
+    }
+
+    private Group roleIcon(String iconType) {
+        return switch (iconType) {
+            case "borrower" -> borrowerIcon();
+            case "supervisor" -> supervisorIcon();
+            case "custodian" -> custodianIcon();
+            default -> throw new IllegalArgumentException("Unknown role icon: " + iconType);
+        };
+    }
+
+    private Group borrowerIcon() {
+        Circle head = outlinedCircle(0, -17, 11, Color.web("#151a22"));
+        SVGPath shoulders = outlinedPath("M -25 27 V 17 C -25 7 -17 0 -7 0 H 7 C 17 0 25 7 25 17 V 27 Z");
+        Circle badge = new Circle(22, 19, 12, Color.web("#d9202b"));
+        Label plus = new Label("+");
+        plus.getStyleClass().add("role-icon-badge-text");
+        plus.setTranslateX(17.5);
+        plus.setTranslateY(8);
+        return new Group(head, shoulders, badge, plus);
+    }
+
+    private Group supervisorIcon() {
+        Color ink = Color.web("#151a22");
+        Circle leftHead = outlinedCircle(-27, -6, 7, ink);
+        Circle rightHead = outlinedCircle(27, -6, 7, ink);
+        Circle centreHead = outlinedCircle(0, -16, 11, Color.web("#d9202b"));
+        SVGPath leftBody = outlinedPath("M -39 23 V 16 C -39 9 -34 5 -27 5 C -20 5 -15 9 -15 16 V 23 Z");
+        SVGPath rightBody = outlinedPath("M 15 23 V 16 C 15 9 20 5 27 5 C 34 5 39 9 39 16 V 23 Z");
+        SVGPath centreBody = outlinedPath("M -22 28 V 16 C -22 7 -14 1 -5 1 H 5 C 14 1 22 7 22 16 V 28 Z");
+        return new Group(leftHead, rightHead, centreHead, leftBody, rightBody, centreBody);
+    }
+
+    private Group custodianIcon() {
+        Color ink = Color.web("#151a22");
+        Polygon top = new Polygon(0, -27, 29, -12, 0, 3, -29, -12);
+        top.setFill(Color.web("#d9202b"));
+        top.setStroke(ink);
+        top.setStrokeWidth(4);
+        Polygon left = new Polygon(-29, -12, 0, 3, 0, 34, -29, 18);
+        Polygon right = new Polygon(0, 3, 29, -12, 29, 18, 0, 34);
+        styleCubeFace(left, ink);
+        styleCubeFace(right, ink);
+        Line centre = new Line(0, 3, 0, 34);
+        centre.setStroke(ink);
+        centre.setStrokeWidth(4);
+        return new Group(top, left, right, centre);
+    }
+
+    private static Circle outlinedCircle(double x, double y, double radius, Color stroke) {
+        Circle circle = new Circle(x, y, radius, Color.TRANSPARENT);
+        circle.setStroke(stroke);
+        circle.setStrokeWidth(4);
+        return circle;
+    }
+
+    private static SVGPath outlinedPath(String content) {
+        SVGPath path = new SVGPath();
+        path.setContent(content);
+        path.setFill(Color.TRANSPARENT);
+        path.setStroke(Color.web("#151a22"));
+        path.setStrokeWidth(4);
+        path.setStrokeLineCap(javafx.scene.shape.StrokeLineCap.ROUND);
+        path.setStrokeLineJoin(javafx.scene.shape.StrokeLineJoin.ROUND);
+        return path;
+    }
+
+    private static void styleCubeFace(Shape face, Color stroke) {
+        face.setFill(Color.WHITE);
+        face.setStroke(stroke);
+        face.setStrokeWidth(4);
     }
 
     private void showBorrowerOptions() {
-        VBox content = borrowerLayout("Borrower", "Log in to an existing account or sign up.");
-        Button login = new Button("Log in");
-        Button signUp = new Button("Sign up");
-        Button back = new Button("Back");
-        login.setOnAction(event -> showBorrowerForm(false));
-        signUp.setOnAction(event -> showBorrowerForm(true));
-        back.setOnAction(event -> showRoleSelection());
-        content.getChildren().addAll(login, signUp, back);
-        showScene(content);
+        showBorrowerForm(false);
     }
 
     private void showBorrowerForm(boolean signUp) {
-        String action = signUp ? "Sign up" : "Log in";
-        VBox content = borrowerLayout("Borrower " + action, "Enter a username to continue.");
+        String action = signUp ? "Create account" : "Log in";
+        VBox content = authenticationLayout("Borrower", signUp ? "Create your account" : "Welcome back",
+                signUp ? "Set up your borrower account to request equipment."
+                        : "Sign in to request and manage your equipment loans.");
         TextField username = new TextField();
         username.setPromptText("Username");
         PasswordField password = new PasswordField();
         password.setPromptText("Password");
         Button submit = new Button(action);
-        Button back = new Button("Back");
+        submit.getStyleClass().add("auth-submit-button");
+        submit.setMaxWidth(Double.MAX_VALUE);
+        Button switchAction = new Button(signUp ? "Log in instead" : "Sign up instead");
+        switchAction.getStyleClass().add("auth-link-button");
+        Button back = roleSelectionBackButton();
         Label feedback = new Label();
+        feedback.setWrapText(true);
+        feedback.getStyleClass().add("auth-feedback");
         submit.setOnAction(event -> {
             try {
                 User borrower = signUp
@@ -141,21 +254,25 @@ public final class LoanDeskApp extends Application {
                 password.clear();
             }
         });
-        back.setOnAction(event -> showBorrowerOptions());
-        content.getChildren().addAll(username, password, submit, feedback, back);
+        password.setOnAction(event -> submit.fire());
+        switchAction.setOnAction(event -> showBorrowerForm(!signUp));
+        VBox form = authenticationForm(username, password, submit, switchAction, feedback, back);
+        content.getChildren().add(form);
         showScene(content);
     }
 
     private void showSupervisorLogin() {
-        VBox content = layout("Supervisor", "Enter the supervisor password to continue.");
+        VBox content = authenticationLayout("Supervisor", "Welcome back",
+                "Enter your password to access the approval workspace.");
         PasswordField password = new PasswordField();
         password.setPromptText("Password");
-        password.setMaxWidth(320);
         Button submit = new Button("Log in");
-        submit.getStyleClass().add("primary-button");
-        Button back = new Button("Back");
-        back.getStyleClass().add("secondary-button");
+        submit.getStyleClass().add("auth-submit-button");
+        submit.setMaxWidth(Double.MAX_VALUE);
+        Button back = roleSelectionBackButton();
         Label feedback = new Label();
+        feedback.setWrapText(true);
+        feedback.getStyleClass().add("auth-feedback");
         Runnable login = () -> {
             try {
                 openDashboard(authenticationService.loginSupervisor(password.getText()));
@@ -168,20 +285,19 @@ public final class LoanDeskApp extends Application {
         };
         submit.setOnAction(event -> login.run());
         password.setOnAction(event -> login.run());
-        back.setOnAction(event -> showRoleSelection());
-        content.getChildren().addAll(password, submit, feedback, back);
+        content.getChildren().add(authenticationForm(password, submit, feedback, back));
         showScene(content);
     }
 
     private void showCustodianLogin() {
-        VBox content = layout("Custodian", "Enter the custodian password to continue.");
+        VBox content = authenticationLayout("Custodian", "Welcome back",
+                "Enter your password to access the inventory workspace.");
         PasswordField password = new PasswordField();
         password.setPromptText("Password");
-        password.setMaxWidth(320);
         Button submit = new Button("Log in");
-        submit.getStyleClass().add("primary-button");
-        Button back = new Button("Back");
-        back.getStyleClass().add("secondary-button");
+        submit.getStyleClass().add("auth-submit-button");
+        submit.setMaxWidth(Double.MAX_VALUE);
+        Button back = roleSelectionBackButton();
         TextArea feedback = new TextArea();
         feedback.setEditable(false);
         feedback.setWrapText(true);
@@ -203,9 +319,31 @@ public final class LoanDeskApp extends Application {
         };
         submit.setOnAction(event -> login.run());
         password.setOnAction(event -> login.run());
-        back.setOnAction(event -> showRoleSelection());
-        content.getChildren().addAll(password, submit, feedback, back);
+        content.getChildren().add(authenticationForm(password, submit, feedback, back));
         showScene(content);
+    }
+
+    private VBox authenticationLayout(String role, String heading, String subtitle) {
+        VBox content = layout(heading, subtitle);
+        content.getStyleClass().add("authentication-page");
+        Label selectedRole = new Label("Selected role: " + role);
+        selectedRole.getStyleClass().add("selected-role-label");
+        content.getChildren().add(selectedRole);
+        return content;
+    }
+
+    private VBox authenticationForm(Node... children) {
+        VBox form = new VBox(12, children);
+        form.getStyleClass().add("authentication-form");
+        form.setAlignment(Pos.CENTER);
+        return form;
+    }
+
+    private Button roleSelectionBackButton() {
+        Button back = new Button("← Return to role selection");
+        back.getStyleClass().add("auth-back-button");
+        back.setOnAction(event -> showRoleSelection());
+        return back;
     }
 
     private void openDashboard(User user) {

@@ -222,3 +222,218 @@
 .role-choice .button {
     -fx-max-width: 260px;
 }
+
+/* Opening role selection */
+.landing-page {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-background-color: linear-gradient(to bottom right, #ffffff 0%, #f7f8fa 48%, #ffffff 100%);
+    -fx-padding: 48px 56px 54px 56px;
+}
+
+.landing-content {
+    -fx-max-width: 1060px;
+    -fx-alignment: top-center;
+}
+
+.landing-brand {
+    -fx-padding: 10px 0 0 0;
+}
+
+.brand-loan,
+.brand-desk {
+    -fx-font-size: 70px;
+    -fx-font-weight: 800;
+    -fx-letter-spacing: -3px;
+}
+
+.brand-loan {
+    -fx-text-fill: #17191e;
+}
+
+.brand-desk {
+    -fx-text-fill: #d9202b;
+}
+
+.landing-subtitle {
+    -fx-text-fill: #555c68;
+    -fx-font-size: 22px;
+    -fx-font-weight: 500;
+}
+
+.landing-journey {
+    -fx-text-fill: #525967;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 4px;
+    -fx-padding: 19px 0 35px 4px;
+}
+
+.role-cards {
+    -fx-alignment: center;
+}
+
+.role-card {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-background-radius: 18px;
+    -fx-border-color: #e3e5e9;
+    -fx-border-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(31, 38, 50, 0.10), 22, 0.18, 0, 8);
+    -fx-padding: 38px 32px 34px 32px;
+    -fx-min-width: 292px;
+    -fx-pref-width: 306px;
+    -fx-max-width: 320px;
+    -fx-min-height: 370px;
+}
+
+.role-card:hover {
+    -fx-border-color: #d9202b;
+    -fx-effect: dropshadow(gaussian, rgba(217, 32, 43, 0.16), 26, 0.2, 0, 9);
+}
+
+.role-icon-holder {
+    -fx-background-color: linear-gradient(to bottom right, #f7f8fa, #eceef2);
+    -fx-background-radius: 58px;
+    -fx-min-width: 116px;
+    -fx-min-height: 116px;
+    -fx-max-width: 116px;
+    -fx-max-height: 116px;
+    -fx-alignment: center;
+}
+
+.role-icon-badge-text {
+    -fx-text-fill: white;
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+}
+
+.role-card-title {
+    -fx-text-fill: #11151d;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-padding: 4px 0 0 0;
+}
+
+.role-card-description {
+    -fx-text-fill: #5b6370;
+    -fx-font-size: 16px;
+    -fx-line-spacing: 2px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-min-height: 48px;
+}
+
+.role-sign-in-button {
+    -fx-background-color: linear-gradient(to right, #d71e2a, #e22832);
+    -fx-background-radius: 10px;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 15px 14px;
+    -fx-effect: dropshadow(gaussian, rgba(189, 22, 34, 0.20), 10, 0.15, 0, 4);
+}
+
+.role-sign-in-button:hover {
+    -fx-background-color: linear-gradient(to right, #bb1520, #d71e2a);
+}
+
+.role-sign-in-button:pressed {
+    -fx-translate-y: 1px;
+}
+
+/* Authentication entry screens */
+.authentication-page {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-background-color: linear-gradient(to bottom right, #ffffff, #f6f7f9);
+    -fx-alignment: top-center;
+}
+
+.authentication-page .page-heading {
+    -fx-text-fill: #17191e;
+    -fx-font-size: 31px;
+    -fx-font-weight: bold;
+}
+
+.authentication-page .page-subtitle {
+    -fx-text-fill: #5b6370;
+    -fx-font-size: 15px;
+}
+
+.selected-role-label {
+    -fx-background-color: #fcebed;
+    -fx-background-radius: 16px;
+    -fx-text-fill: #bb1722;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 7px 13px;
+}
+
+.authentication-form {
+    -fx-background-color: white;
+    -fx-background-radius: 14px;
+    -fx-border-color: #e3e5e9;
+    -fx-border-radius: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(31, 38, 50, 0.10), 18, 0.16, 0, 6);
+    -fx-padding: 28px;
+    -fx-min-width: 360px;
+    -fx-max-width: 400px;
+}
+
+.authentication-form .text-field,
+.authentication-form .password-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd0d8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 11px 12px;
+    -fx-font-size: 14px;
+}
+
+.authentication-form .text-field:focused,
+.authentication-form .password-field:focused {
+    -fx-border-color: #d9202b;
+    -fx-effect: dropshadow(gaussian, rgba(217, 32, 43, 0.16), 6, 0.2, 0, 0);
+}
+
+.auth-submit-button {
+    -fx-background-color: linear-gradient(to right, #d71e2a, #e22832);
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 12px 16px;
+}
+
+.auth-submit-button:hover {
+    -fx-background-color: linear-gradient(to right, #bb1520, #d71e2a);
+}
+
+.auth-link-button,
+.auth-back-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #bf1a25;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 4px 8px;
+}
+
+.auth-link-button:hover,
+.auth-back-button:hover {
+    -fx-text-fill: #8f111a;
+    -fx-underline: true;
+}
+
+.auth-back-button {
+    -fx-text-fill: #5b6370;
+    -fx-font-weight: normal;
+}
+
+.auth-feedback {
+    -fx-text-fill: #b42318;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}

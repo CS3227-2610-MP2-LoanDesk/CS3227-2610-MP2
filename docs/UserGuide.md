@@ -13,10 +13,13 @@ Install JDK 25, then run `./gradlew run` from the repository root.
 
 ## Login foundation
 
-The first screen provides three role buttons: `Borrower`, `Supervisor`, and
-`Custodian`.
+The first screen provides three role cards: `Borrower`, `Supervisor`, and
+`Custodian`. Selecting a role opens its sign-in form directly. Each form shows
+the selected role and includes a `Return to role selection` action.
 
-- `Borrower` provides `Log in` and `Sign up` actions with a password field.
+- `Borrower` opens with username and password fields. Select `Sign up instead`
+  below the red `Log in` button to create an account, or `Log in instead` to
+  return to sign-in.
 - Borrower usernames are unique and may contain letters, numbers, underscores,
   and hyphens up to 30 characters.
 - Borrower passwords must be 8 to 128 characters. The application stores
