@@ -285,5 +285,5 @@ fast checks local and the complete checks in pull-request CI.
 
 For each evaluated skill, keep the original instruction, test prompt/fixture,
 actual output, human verification, corrections, and limitations. Summarize
-these in `docs/Reflections.md` later. Session-specific AI summaries belong under
+these in `docs/Reflections_Yikbing.md` later. Session-specific AI summaries belong under
 `logs/Yikbing-logs/`.
