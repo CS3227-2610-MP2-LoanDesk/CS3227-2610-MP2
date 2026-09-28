@@ -133,10 +133,8 @@ implementation order and exit criteria.
 - [ ] Evaluate the cross-role scenario tester on the acceptance journey.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
 - [ ] Run fresh reviewer evaluations for the remaining controlled cases and
-      separately verify automatic skill selection. A reviewer reported that
-      `.agents/skills/` was not loaded as a registered skill directory in its
-      runtime, so automatic selection must not be assumed for any skill there.
-- [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
+      separately verify automatic skill selection.
+- [x] Create `docs/Reflections_Yikbing.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
 ## 8. Hooks, quality, and delivery automation
