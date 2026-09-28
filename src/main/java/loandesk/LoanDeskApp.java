@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import javafx.application.Application;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -34,10 +35,12 @@ import loandesk.application.BorrowerLoanService;
 import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.CustodianCollectionService;
+import loandesk.application.CustodianFulfilmentService;
 import loandesk.application.ReviewFilter;
 import loandesk.application.Session;
 import loandesk.application.SupervisorRequestService;
 import loandesk.domain.Equipment;
+import loandesk.domain.EquipmentCondition;
 import loandesk.domain.LoanRequest;
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
@@ -60,6 +63,7 @@ public final class LoanDeskApp extends Application {
     private BorrowerLoanService borrowerLoanService;
     private SupervisorRequestService supervisorRequestService;
     private CustodianCollectionService custodianCollectionService;
+    private CustodianFulfilmentService custodianFulfilmentService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -74,6 +78,7 @@ public final class LoanDeskApp extends Application {
             borrowerLoanService = new BorrowerLoanService(dataStore, session);
             supervisorRequestService = new SupervisorRequestService(dataStore, session);
             custodianCollectionService = new CustodianCollectionService(dataStore, session);
+            custodianFulfilmentService = new CustodianFulfilmentService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -248,8 +253,13 @@ public final class LoanDeskApp extends Application {
             section.getStyleClass().add("section-heading");
             Button collections = new Button("Collections Queue");
             collections.setOnAction(event -> showCollectionsQueue());
-            VBox actions = new VBox(12, dashboardCard("Collections Queue",
-                    "Issue approved equipment within its collection window.", collections));
+            Button fulfilment = new Button("Active Loans");
+            fulfilment.setOnAction(event -> showCustodianActiveLoans());
+            VBox actions = new VBox(12,
+                    dashboardCard("Collections Queue",
+                            "Issue approved equipment within its collection window.", collections),
+                    dashboardCard("Active Loans",
+                            "Record returns, loss, recovery, and equipment condition.", fulfilment));
             actions.setMaxWidth(520);
             actions.setAlignment(Pos.CENTER);
             content.getChildren().addAll(section, centeredContainer(actions));
@@ -362,6 +372,104 @@ public final class LoanDeskApp extends Application {
         reload.run();
         content.getChildren().addAll(feedback, requests, checkout, refresh, back);
         showScrollableScene(content);
+    }
+
+    private void showCustodianActiveLoans() {
+        VBox content = layout("Active Loans",
+                "Record returns, loss, or recovery. Overdue loans are marked in the list.");
+        Label feedback = new Label();
+        ListView<Loan> loans = new ListView<>();
+        loans.setPrefHeight(260);
+        loans.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(Loan loan, boolean empty) {
+                super.updateItem(loan, empty);
+                if (empty || loan == null) {
+                    setText(null);
+                    return;
+                }
+                String status = loan.status() == LoanStatus.LOST ? "LOST"
+                        : loan.isOverdue(LocalDate.now()) ? "OVERDUE" : "ACTIVE";
+                setText(status + " — " + loan.equipmentId() + " for " + loan.borrowerUsername()
+                        + "\nChecked out: " + loan.checkoutDate() + ", due: " + loan.dueDate());
+            }
+        });
+        ComboBox<EquipmentCondition> condition = new ComboBox<>();
+        condition.getItems().addAll(EquipmentCondition.GOOD, EquipmentCondition.DAMAGED,
+                EquipmentCondition.UNDER_MAINTENANCE);
+        condition.setPromptText("Return condition");
+        Button returnLoan = new Button("Return selected loan");
+        Button markLost = new Button("Mark selected item lost");
+        Button recover = new Button("Recover selected LOST item");
+        Button refresh = new Button("Refresh loans");
+        Button back = new Button("Back to dashboard");
+        returnLoan.getStyleClass().add("primary-button");
+        markLost.getStyleClass().add("secondary-button");
+        recover.getStyleClass().add("secondary-button");
+        refresh.getStyleClass().add("secondary-button");
+        back.getStyleClass().add("secondary-button");
+        returnLoan.disableProperty().bind(Bindings.createBooleanBinding(() -> {
+            Loan selected = loans.getSelectionModel().getSelectedItem();
+            return selected == null || selected.status() != LoanStatus.ACTIVE || condition.getValue() == null;
+        }, loans.getSelectionModel().selectedItemProperty(), condition.valueProperty()));
+        markLost.disableProperty().bind(Bindings.createBooleanBinding(() -> {
+            Loan selected = loans.getSelectionModel().getSelectedItem();
+            return selected == null || selected.status() != LoanStatus.ACTIVE;
+        }, loans.getSelectionModel().selectedItemProperty()));
+        recover.disableProperty().bind(Bindings.createBooleanBinding(() -> {
+            Loan selected = loans.getSelectionModel().getSelectedItem();
+            return selected == null || selected.status() != LoanStatus.LOST;
+        }, loans.getSelectionModel().selectedItemProperty()));
+
+        Runnable reload = () -> {
+            try {
+                loans.getItems().setAll(custodianFulfilmentService.activeLoans());
+                feedback.getStyleClass().remove("error-label");
+                feedback.setText(loans.getItems().isEmpty()
+                        ? "No active or lost loans need action."
+                        : loans.getItems().size() + " loan(s) need action.");
+            } catch (IllegalStateException | IOException exception) {
+                loans.getItems().clear();
+                feedback.setText("Unable to load active loans: " + exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            }
+        };
+        returnLoan.setOnAction(event -> runFulfilmentAction(feedback, reload, () ->
+                custodianFulfilmentService.returnLoan(
+                        loans.getSelectionModel().getSelectedItem().loanId(), condition.getValue()),
+                "Return recorded."));
+        markLost.setOnAction(event -> runFulfilmentAction(feedback, reload, () ->
+                custodianFulfilmentService.markLost(
+                        loans.getSelectionModel().getSelectedItem().loanId()), "Item marked lost."));
+        recover.setOnAction(event -> runFulfilmentAction(feedback, reload, () ->
+                custodianFulfilmentService.recoverLost(
+                        loans.getSelectionModel().getSelectedItem().loanId()),
+                "Lost item recovered. Select a return condition to complete the return."));
+        refresh.setOnAction(event -> reload.run());
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        reload.run();
+        content.getChildren().addAll(feedback, loans, condition, returnLoan, markLost, recover, refresh, back);
+        showScrollableScene(content);
+    }
+
+    private void runFulfilmentAction(Label feedback, Runnable reload, LoanAction action, String success) {
+        try {
+            action.run();
+            feedback.getStyleClass().remove("error-label");
+            feedback.setText(success);
+            reload.run();
+        } catch (StaleDataException exception) {
+            feedback.setText("Loan data changed. Refresh the list and retry.");
+            feedback.getStyleClass().add("error-label");
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            feedback.setText(exception.getMessage());
+            feedback.getStyleClass().add("error-label");
+        }
+    }
+
+    @FunctionalInterface
+    private interface LoanAction {
+        void run() throws IOException;
     }
 
     private void showMyLoans() {
