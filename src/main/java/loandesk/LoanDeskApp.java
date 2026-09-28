@@ -36,6 +36,7 @@ import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
 import loandesk.application.CustodianCollectionService;
 import loandesk.application.CustodianFulfilmentService;
+import loandesk.application.CustodianInventoryService;
 import loandesk.application.ReviewFilter;
 import loandesk.application.Session;
 import loandesk.application.SupervisorRequestService;
@@ -64,6 +65,7 @@ public final class LoanDeskApp extends Application {
     private SupervisorRequestService supervisorRequestService;
     private CustodianCollectionService custodianCollectionService;
     private CustodianFulfilmentService custodianFulfilmentService;
+    private CustodianInventoryService custodianInventoryService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -79,6 +81,7 @@ public final class LoanDeskApp extends Application {
             supervisorRequestService = new SupervisorRequestService(dataStore, session);
             custodianCollectionService = new CustodianCollectionService(dataStore, session);
             custodianFulfilmentService = new CustodianFulfilmentService(dataStore, session);
+            custodianInventoryService = new CustodianInventoryService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -255,11 +258,15 @@ public final class LoanDeskApp extends Application {
             collections.setOnAction(event -> showCollectionsQueue());
             Button fulfilment = new Button("Active Loans");
             fulfilment.setOnAction(event -> showCustodianActiveLoans());
+            Button inventory = new Button("Inventory");
+            inventory.setOnAction(event -> showCustodianInventory());
             VBox actions = new VBox(12,
                     dashboardCard("Collections Queue",
                             "Issue approved equipment within its collection window.", collections),
                     dashboardCard("Active Loans",
-                            "Record returns, loss, recovery, and equipment condition.", fulfilment));
+                            "Record returns, loss, recovery, and equipment condition.", fulfilment),
+                    dashboardCard("Inventory",
+                            "Add equipment or update its name and physical condition.", inventory));
             actions.setMaxWidth(520);
             actions.setAlignment(Pos.CENTER);
             content.getChildren().addAll(section, centeredContainer(actions));
@@ -372,6 +379,101 @@ public final class LoanDeskApp extends Application {
         reload.run();
         content.getChildren().addAll(feedback, requests, checkout, refresh, back);
         showScrollableScene(content);
+    }
+
+    private void showCustodianInventory() {
+        VBox content = layout("Inventory", "Add equipment by name or update its physical condition. "
+                + "Availability is calculated from the shared request and loan state.");
+        Label feedback = new Label();
+        ListView<CustodianInventoryService.InventoryItem> items = new ListView<>();
+        items.setPrefHeight(260);
+        items.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(CustodianInventoryService.InventoryItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    return;
+                }
+                Equipment equipment = item.equipment();
+                setText(equipment.id() + " — " + equipment.name() + "\nCondition: "
+                        + equipment.condition() + ", availability: " + item.availability());
+            }
+        });
+        TextField name = new TextField();
+        name.setPromptText("Equipment name");
+        ComboBox<EquipmentCondition> condition = new ComboBox<>();
+        condition.getItems().setAll(EquipmentCondition.values());
+        condition.setPromptText("Condition");
+        Button add = new Button("Add equipment");
+        Button update = new Button("Save selected changes");
+        Button refresh = new Button("Refresh inventory");
+        Button back = new Button("Back to dashboard");
+        add.getStyleClass().add("primary-button");
+        update.getStyleClass().add("primary-button");
+        refresh.getStyleClass().add("secondary-button");
+        back.getStyleClass().add("secondary-button");
+        update.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> items.getSelectionModel().getSelectedItem() == null,
+                items.getSelectionModel().selectedItemProperty()));
+
+        Runnable reload = () -> {
+            try {
+                items.getItems().setAll(custodianInventoryService.inventory());
+                feedback.getStyleClass().remove("error-label");
+                feedback.setText(items.getItems().isEmpty() ? "No equipment has been added."
+                        : items.getItems().size() + " equipment item(s) loaded.");
+            } catch (IllegalStateException | IOException exception) {
+                items.getItems().clear();
+                feedback.setText("Unable to load inventory: " + exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            }
+        };
+        items.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
+            if (selected != null) {
+                Equipment equipment = selected.equipment();
+                name.setText(equipment.name());
+                condition.setValue(equipment.condition());
+            }
+        });
+        add.setOnAction(event -> runInventoryAction(feedback, reload, () -> {
+            Equipment added = custodianInventoryService.addEquipment(name.getText());
+            name.setText(added.name());
+            condition.setValue(added.condition());
+        }, "Equipment added."));
+        update.setOnAction(event -> {
+            CustodianInventoryService.InventoryItem selected = items.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                return;
+            }
+            runInventoryAction(feedback, reload, () -> custodianInventoryService.updateEquipment(
+                    selected.equipment().id(), name.getText(), condition.getValue()), "Equipment updated.");
+        });
+        refresh.setOnAction(event -> reload.run());
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        reload.run();
+        content.getChildren().addAll(feedback, items, name, condition, add, update, refresh, back);
+        showScrollableScene(content);
+    }
+
+    private void runInventoryAction(Label feedback, Runnable reload, InventoryAction action, String success) {
+        try {
+            action.run();
+            feedback.getStyleClass().remove("error-label");
+            feedback.setText(success);
+            reload.run();
+        } catch (StaleDataException exception) {
+            feedback.setText("Inventory data changed. Refresh the list and retry.");
+            feedback.getStyleClass().add("error-label");
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            feedback.setText(exception.getMessage());
+            feedback.getStyleClass().add("error-label");
+        }
+    }
+
+    @FunctionalInterface
+    private interface InventoryAction {
+        void run() throws IOException;
     }
 
     private void showCustodianActiveLoans() {
