@@ -7,6 +7,7 @@ import loandesk.domain.Role;
 import loandesk.domain.PasswordCredential;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
+import loandesk.persistence.DatabaseDataStore;
 import loandesk.persistence.LoanDeskData;
 import loandesk.security.PasswordHasher;
 
@@ -92,16 +93,28 @@ public final class AuthenticationService {
     }
 
     /**
-     * Passwordless entry retained only for the custodian role, whose owner will
-     * replace it with a real credential check in the custodian workflow.
+     * Authenticates the single custodian account against its stored credential.
+     *
+     * @throws IllegalArgumentException when the account or password is wrong
      */
-    public User loginStaff(Role role) {
-        if (role == Role.BORROWER) {
-            throw new IllegalArgumentException("Borrowers must use borrower login.");
+    public User loginCustodian(String password) {
+        User custodian = data.users().stream()
+                .filter(user -> user.role() == Role.CUSTODIAN)
+                .filter(user -> user.username().equals(DatabaseDataStore.CUSTODIAN_USERNAME))
+                .findFirst()
+                .orElse(null);
+        if (custodian == null) {
+            throw new IllegalArgumentException(
+                    "This database has no custodian account. Remove the local data/loandesk "
+                            + "files to reseed the demonstration accounts.");
         }
-        if (role == Role.SUPERVISOR) {
-            throw new IllegalArgumentException("Supervisors must sign in with a password.");
+        PasswordCredential credential = data.credentials().stream()
+                .filter(candidate -> candidate.username().equals(custodian.username()))
+                .findFirst()
+                .orElse(null);
+        if (credential == null || !PasswordHasher.matches(password, credential)) {
+            throw new IllegalArgumentException("Invalid custodian password.");
         }
-        return new User(role.name().toLowerCase(), role);
+        return custodian;
     }
 }

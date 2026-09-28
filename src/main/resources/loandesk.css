@@ -123,6 +123,15 @@
     -fx-font-weight: bold;
 }
 
+.copyable-error-message {
+    -fx-text-fill: #b42318;
+    -fx-font-weight: bold;
+    -fx-control-inner-background: #fff4f2;
+    -fx-border-color: #b42318;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
 .dashboard-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;

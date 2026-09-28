@@ -24,6 +24,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -83,7 +84,7 @@ public final class LoanDeskApp extends Application {
         Button custodian = new Button("Custodian");
         borrower.setOnAction(event -> showBorrowerOptions());
         supervisor.setOnAction(event -> showSupervisorLogin());
-        custodian.setOnAction(event -> openDashboard(authenticationService.loginStaff(Role.CUSTODIAN)));
+        custodian.setOnAction(event -> showCustodianLogin());
         borrower.getStyleClass().add("primary-button");
         supervisor.getStyleClass().add("secondary-button");
         custodian.getStyleClass().add("secondary-button");
@@ -160,6 +161,41 @@ public final class LoanDeskApp extends Application {
         showScene(content);
     }
 
+    private void showCustodianLogin() {
+        VBox content = layout("Custodian", "Enter the custodian password to continue.");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Password");
+        password.setMaxWidth(320);
+        Button submit = new Button("Log in");
+        submit.getStyleClass().add("primary-button");
+        Button back = new Button("Back");
+        back.getStyleClass().add("secondary-button");
+        TextArea feedback = new TextArea();
+        feedback.setEditable(false);
+        feedback.setWrapText(true);
+        feedback.setPrefRowCount(2);
+        feedback.setMaxWidth(440);
+        feedback.getStyleClass().add("copyable-error-message");
+        feedback.setVisible(false);
+        feedback.setManaged(false);
+        Runnable login = () -> {
+            try {
+                openDashboard(authenticationService.loginCustodian(password.getText()));
+            } catch (IllegalArgumentException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.setVisible(true);
+                feedback.setManaged(true);
+            } finally {
+                password.clear();
+            }
+        };
+        submit.setOnAction(event -> login.run());
+        password.setOnAction(event -> login.run());
+        back.setOnAction(event -> showRoleSelection());
+        content.getChildren().addAll(password, submit, feedback, back);
+        showScene(content);
+    }
+
     private void openDashboard(User user) {
         session.start(user);
         String title = switch (user.role()) {
@@ -204,10 +240,10 @@ public final class LoanDeskApp extends Application {
             actionContainer.getStyleClass().add("dashboard-actions");
             content.getChildren().addAll(welcome, section, actionContainer);
         } else {
-            content.getChildren().addAll(
-                    new Button("Inventory"),
-                    new Button("Collections"),
-                    new Button("Maintenance"));
+            Label section = new Label("Custodian workspace");
+            section.getStyleClass().add("section-heading");
+            content.getChildren().addAll(section,
+                    new Label("Custodian fulfilment functions will be available here."));
         }
         Button logout = new Button("Log out");
         logout.getStyleClass().add("secondary-button");

@@ -204,7 +204,9 @@ class DatabaseDataStoreTest {
 
         LoanDeskData loaded = new DatabaseDataStore(databasePath).loadOrSeed();
 
-        assertEquals(List.of(new User("legacy", Role.BORROWER)), loaded.users());
+        assertEquals(List.of(
+                new User(DatabaseDataStore.CUSTODIAN_USERNAME, Role.CUSTODIAN),
+                new User("legacy", Role.BORROWER)), loaded.users());
         assertEquals(List.of(new Equipment("legacy-camera", "Legacy Camera")), loaded.equipment());
         assertTrue(loaded.requests().isEmpty());
         assertTrue(loaded.loans().isEmpty());

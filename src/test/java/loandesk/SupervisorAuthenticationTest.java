@@ -43,15 +43,6 @@ class SupervisorAuthenticationTest {
     }
 
     @Test
-    void supervisorsCanNoLongerEnterWithoutAPassword() throws Exception {
-        AuthenticationService service = new AuthenticationService(store());
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.loginStaff(Role.SUPERVISOR));
-        assertEquals(Role.CUSTODIAN, service.loginStaff(Role.CUSTODIAN).role());
-    }
-
-    @Test
     void reportsAnActionableErrorWhenNoSupervisorAccountExists() throws Exception {
         DatabaseDataStore store = store();
         store.save(new LoanDeskData(
