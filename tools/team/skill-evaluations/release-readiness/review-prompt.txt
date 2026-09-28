@@ -1,0 +1,14 @@
+Use the loandesk-release-readiness-review skill to review the supplied
+candidate A and candidate B independently against requirements.md. These are
+isolated fixtures, not a real release. Report findings without editing files.
+
+Read only the supplied skill, requirements.md, case-a.md and case-b.md. Do not
+read answer sheets, prior results, project logs, the real repository or
+conversation history. The supplied requirements and candidate evidence provide
+the complete context for this exercise.
+
+Provide the delivery-item table and supported findings, classifying each as a
+blocker, a gap or an accepted limitation, with what was claimed, what was
+observed and the smallest change that closes it. Say explicitly whether you
+executed or inspected anything beyond the supplied text. Do not assume either
+candidate has a defect. Return your review without fixing anything.

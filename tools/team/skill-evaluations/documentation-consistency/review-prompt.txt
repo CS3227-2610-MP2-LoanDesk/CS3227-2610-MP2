@@ -1,0 +1,14 @@
+Use the loandesk-documentation-consistency-review skill to review the supplied
+candidate A and candidate B independently against requirements.md. These are
+isolated fixtures, not a real guide. Report findings without editing files.
+
+Read only the supplied skill, requirements.md, case-a.md and case-b.md. Do not
+read answer sheets, prior results, project logs, the real repository or
+conversation history. The supplied requirements and candidate evidence provide
+the complete context for this exercise.
+
+Provide the claim table quoting each actionable documentation statement, the
+code that decides it, and whether it matches. Follow it with contradictions
+ordered by how likely a reader is to act on them, separated from gaps. Say
+explicitly whether you executed anything. Do not assume either candidate has a
+defect. Return your review without fixing anything.

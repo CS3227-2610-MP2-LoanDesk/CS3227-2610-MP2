@@ -1,0 +1,32 @@
+{
+  "skills": [
+    {
+      "name": "loandesk-cross-role-scenario-review",
+      "trigger": "borrower request, supervisor decision or custodian fulfilment path",
+      "case": "cross-role/README.md",
+      "kind": "executable",
+      "expected": "Identify a request and its loan left disagreeing after checkout, while accepting the correct implementation."
+    },
+    {
+      "name": "loandesk-persistence-failure-test-review",
+      "trigger": "storage, repositories, multi-record writes, checkout, return, damage or maintenance flows",
+      "case": "persistence-failure/README.md",
+      "kind": "executable",
+      "expected": "Identify in-memory state mutated before a failed save, while accepting the correct implementation."
+    },
+    {
+      "name": "loandesk-release-readiness-review",
+      "trigger": "release candidate before tagging or publishing",
+      "case": "release-readiness/README.md",
+      "kind": "descriptive",
+      "expected": "Identify a platform-specific distribution behind a cross-platform claim and a missing acknowledgement section, without flagging the honestly recorded limitation."
+    },
+    {
+      "name": "loandesk-documentation-consistency-review",
+      "trigger": "user guide, developer guide or feature description is written or changed",
+      "case": "documentation-consistency/README.md",
+      "kind": "descriptive",
+      "expected": "Identify a guide claiming a required field the code treats as optional, without flagging the matching limit or the accurate unavailability note."
+    }
+  ]
+}
