@@ -256,7 +256,7 @@ class SupervisorRequestServiceTest {
     void theQueueExpiresApprovalsThatWereNeverCollected() throws Exception {
         DatabaseDataStore store = storeWith(
                 List.of(new Equipment("camera1", "Camera 1")),
-                List.of(approvedStartingOn("lapsed", "borrower", TODAY.minusDays(1))),
+                List.of(approvedStartingOn("lapsed", "borrower", TODAY.minusDays(4))),
                 List.of());
         SupervisorRequestService service = supervisorService(store);
 

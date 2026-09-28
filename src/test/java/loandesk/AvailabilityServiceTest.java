@@ -54,10 +54,23 @@ class AvailabilityServiceTest {
     }
 
     @Test
-    void approvedRequestPastItsCollectionDateDoesNotReserveEquipment() {
+    void approvedRequestReservesEquipmentThroughItsFinalGraceDate() {
         LoanRequest expiredCandidate = new LoanRequest(
                 "request-expired", "borrower", "camera1", "Academic project",
-                TODAY.minusDays(1), TODAY.plusDays(13), RequestStatus.APPROVED, null,
+                TODAY.minusDays(3), TODAY.plusDays(13), RequestStatus.APPROVED, null,
+                Instant.parse("2026-09-24T08:00:00Z"), Instant.parse("2026-09-24T08:00:00Z"),
+                "supervisor", Instant.parse("2026-09-24T09:00:00Z"), "Approved",
+                null, null, null);
+
+        assertEquals(AvailabilityStatus.RESERVED, new AvailabilityService().calculate(
+                CAMERA, List.of(expiredCandidate), List.of(), TODAY));
+    }
+
+    @Test
+    void approvedRequestReleasesEquipmentAfterItsFinalGraceDate() {
+        LoanRequest expiredCandidate = new LoanRequest(
+                "request-expired", "borrower", "camera1", "Academic project",
+                TODAY.minusDays(4), TODAY.plusDays(13), RequestStatus.APPROVED, null,
                 Instant.parse("2026-09-24T08:00:00Z"), Instant.parse("2026-09-24T08:00:00Z"),
                 "supervisor", Instant.parse("2026-09-24T09:00:00Z"), "Approved",
                 null, null, null);

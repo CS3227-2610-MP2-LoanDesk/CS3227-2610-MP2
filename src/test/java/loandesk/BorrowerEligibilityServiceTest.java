@@ -113,11 +113,25 @@ class BorrowerEligibilityServiceTest {
     }
 
     @Test
+    void approvedReservationsCountThroughTheFinalGraceDate() throws Exception {
+        List<LoanRequest> reservations = List.of(
+                requestWithDates("active-1", "camera1", TODAY.minusDays(3), RequestStatus.APPROVED),
+                requestWithDates("active-2", "camera2", TODAY.minusDays(3), RequestStatus.APPROVED),
+                requestWithDates("active-3", "camera3", TODAY.minusDays(3), RequestStatus.APPROVED));
+
+        BorrowerEligibility eligibility = new BorrowerEligibilityService(
+                storeWith(reservations, List.of()), borrowerSession(), CLOCK).currentEligibility();
+
+        assertFalse(eligibility.canSubmitRequest());
+        assertEquals(List.of(EligibilityBlocker.LOAN_OR_RESERVATION_LIMIT), eligibility.blockers());
+    }
+
+    @Test
     void expiredApprovedReservationsNoLongerCountTowardsTheLimit() throws Exception {
         List<LoanRequest> expiredRequests = List.of(
-                requestWithDates("expired-1", "camera1", TODAY.minusDays(1), RequestStatus.APPROVED),
-                requestWithDates("expired-2", "camera2", TODAY.minusDays(1), RequestStatus.APPROVED),
-                requestWithDates("expired-3", "camera3", TODAY.minusDays(1), RequestStatus.APPROVED));
+                requestWithDates("expired-1", "camera1", TODAY.minusDays(4), RequestStatus.APPROVED),
+                requestWithDates("expired-2", "camera2", TODAY.minusDays(4), RequestStatus.APPROVED),
+                requestWithDates("expired-3", "camera3", TODAY.minusDays(4), RequestStatus.APPROVED));
 
         BorrowerEligibility eligibility = new BorrowerEligibilityService(
                 storeWith(expiredRequests, List.of()), borrowerSession(), CLOCK).currentEligibility();
