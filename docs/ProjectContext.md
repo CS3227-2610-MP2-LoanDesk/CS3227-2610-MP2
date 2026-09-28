@@ -118,6 +118,9 @@ owners on 24 September 2026 and should guide implementation:
 - A checked-out request becomes `COLLECTED` and links to a separate loan.
   Expiry applies only before collection; overdue applies to the resulting loan
   after checkout. A lost loan continues to block new requests until resolved.
+- Recovering a lost item restores its loan to `ACTIVE` and its equipment to
+  `GOOD`; it is still on loan while the custodian records the observed return
+  condition in a separate return action. Recovery does not set a return date.
 - Request records and the shared loan/availability foundation use the existing
   `LoanDeskData` and H2 transaction boundary. The first schema change is
   additive: existing users, credentials and equipment are preserved.
@@ -196,11 +199,9 @@ parts inventory, repair costing, and detailed maintenance scheduling.
 ## Login direction
 
 The first screen presents three buttons labelled `Borrower`, `Supervisor`, and
-`Custodian`. The final role flows require passwords for borrowers, supervisors
-and custodians. The current foundation still opens singleton supervisor and
-custodian accounts directly; their role owners must replace that temporary
-entry with password login. The borrower path presents separate `Log in` and
-`Sign up` actions and uses a unique username with a password. Usernames are trimmed,
+`Custodian`. All role flows require passwords. Supervisor and custodian are
+fixed seeded singleton accounts, while the borrower path presents separate
+`Log in` and `Sign up` actions and uses a unique username with a password. Usernames are trimmed,
 compared case-insensitively, cannot be blank or invalid, and have a maximum
 length of 30 characters. Internal spaces are not allowed; letters, numbers,
 underscores, and hyphens are allowed. Borrower passwords must be 8 to 128

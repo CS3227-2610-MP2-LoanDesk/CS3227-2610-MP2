@@ -60,7 +60,7 @@ public final class CustodianFulfilmentService {
         return replaceLoanAndEquipment(loanId, LoanStatus.ACTIVE, LoanStatus.LOST, EquipmentCondition.LOST);
     }
 
-    /** Restores a lost item to an active loan so its return can be recorded separately. */
+    /** Restores a lost item to an active loan so its return condition can be recorded separately. */
     public Loan recoverLost(String loanId) throws IOException {
         permissions.require(Permission.RECORD_MAINTENANCE);
         return replaceLoanAndEquipment(loanId, LoanStatus.LOST, LoanStatus.ACTIVE, EquipmentCondition.GOOD);

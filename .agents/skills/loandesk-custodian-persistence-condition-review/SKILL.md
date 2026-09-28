@@ -19,10 +19,12 @@ fresh store reload preserves the changed condition, linked records and status.
 Test database failures with a temporary H2 store rather than `data/loandesk`.
 
 Check the agreed mappings: good return permits availability; damaged,
-under-maintenance and lost equipment remain unavailable; recovery returns the
-loan and sets equipment to GOOD. Check that availability and borrower
-eligibility consume the shared condition/availability result rather than a
-custodian-only copy of the rule.
+under-maintenance and lost equipment remain unavailable; recovery restores the
+loan to ACTIVE and sets equipment to GOOD so the custodian can record the
+observed return condition separately. Recovery has no return date and remains
+ON_LOAN until that return. Check that availability and borrower eligibility
+consume the shared condition/availability result rather than a custodian-only
+copy of the rule.
 
 Report a table with operation, records changed atomically, condition/status
 effect, and evidence. Then report findings with severity, file/symbol, a

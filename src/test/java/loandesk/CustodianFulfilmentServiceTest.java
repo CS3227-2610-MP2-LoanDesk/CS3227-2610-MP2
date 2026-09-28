@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -127,6 +130,28 @@ class CustodianFulfilmentServiceTest {
         assertThrows(StaleDataException.class,
                 () -> service(stale, Role.CUSTODIAN).recoverLost("loan-1"));
         assertEquals(lost, stale.loadOrSeed());
+    }
+
+    @Test
+    void databaseFailureDuringSnapshotWriteRollsBackTheReturn() throws Exception {
+        DatabaseDataStore store = storeWith(activeLoan(), EquipmentCondition.GOOD);
+        String jdbcUrl = "jdbc:h2:file:" + temporaryDirectory.resolve("loandesk")
+                .toAbsolutePath().normalize().toString().replace('\\', '/');
+        try (Connection connection = DriverManager.getConnection(jdbcUrl);
+                Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE equipment ADD CONSTRAINT reject_damaged_return "
+                    + "CHECK (equipment_condition <> 'DAMAGED')");
+        }
+
+        assertThrows(IOException.class, () -> service(store, Role.CUSTODIAN)
+                .returnLoan("loan-1", EquipmentCondition.DAMAGED));
+
+        LoanDeskData reloaded = new DatabaseDataStore(temporaryDirectory.resolve("loandesk"))
+                .loadOrSeed();
+        assertEquals(LoanStatus.ACTIVE, reloaded.loans().getFirst().status());
+        assertEquals(EquipmentCondition.GOOD, reloaded.equipment().getFirst().condition());
+        assertEquals(RequestStatus.COLLECTED, reloaded.requests().getFirst().status());
+        assertEquals("loan-1", reloaded.requests().getFirst().loanId());
     }
 
     private DatabaseDataStore storeWith(Loan loan, EquipmentCondition condition) throws Exception {

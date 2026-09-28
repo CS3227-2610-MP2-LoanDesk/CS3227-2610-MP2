@@ -277,10 +277,16 @@ The current loan vocabulary is:
 ACTIVE, RETURNED, LOST
 ```
 
-Borrower services currently implement submission, own-request listing,
-eligible editing and eligible cancellation. Supervisor approval and custodian
-checkout/return/condition mutations are shared integration work owned by the
-other role members.
+Borrower services implement submission, own-request listing, eligible editing
+and eligible cancellation. Supervisor and custodian services apply the shared
+lifecycle and availability checks at their role-specific boundaries. A
+custodian checkout changes an approved request to `COLLECTED` and creates its
+linked `ACTIVE` loan in one snapshot. A custodian return changes an `ACTIVE`
+loan to `RETURNED` with the selected condition. Loss changes an active loan and
+its equipment to `LOST`; recovery intentionally changes that loan back to
+`ACTIVE` with `GOOD` equipment, so a separate return action can capture the
+actual condition. Recovery has no return date and the equipment remains
+`ON_LOAN` until that return is recorded.
 
 ## Borrower service boundaries
 

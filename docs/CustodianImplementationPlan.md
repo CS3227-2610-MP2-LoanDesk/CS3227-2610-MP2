@@ -27,7 +27,7 @@ deliberately the final stage.
 | Good return | The loan becomes `RETURNED`, the item condition is `GOOD`, and it can become available. |
 | Damaged or maintenance return | The loan becomes `RETURNED`; the item becomes `DAMAGED` or `UNDER_MAINTENANCE` and unavailable. |
 | Lost item | Only a custodian may mark an active loan/item `LOST`. |
-| Recovered lost item | The custodian may make the loan `RETURNED` and the equipment `GOOD`. The earlier lost state is intentionally not retained. |
+| Recovered lost item | The custodian restores the loan to `ACTIVE` and the equipment to `GOOD`, then records a separate return with the observed condition. The earlier lost state is intentionally not retained. |
 | Maintenance scope | Condition-only. No maintenance record, issue/resolution text, or notes are part of the MVP. |
 | Persistence | Use the current transactional full-snapshot save and stale-revision protection for this MVP. A save conflict must be reported as a refresh/retry action. |
 | Deferred inventory fields | Categories, descriptions, retirement, deletion, notes, and bulk import are out of scope. |
@@ -245,8 +245,9 @@ records or notes.
 - Allow custodians to return active loans and select `GOOD`, `DAMAGED`, or
   `UNDER_MAINTENANCE` condition.
 - Allow custodians to mark an active loan/item `LOST`.
-- Allow custodians to recover a lost item by changing its loan to `RETURNED`
-  and its condition to `GOOD`.
+- Allow custodians to recover a lost item by changing its loan to `ACTIVE`
+  and its condition to `GOOD`, so they can then select and record its return
+  condition.
 
 ### Required outcomes
 
@@ -256,15 +257,16 @@ records or notes.
 | Damaged return | `RETURNED` | `DAMAGED` | `UNAVAILABLE` |
 | Maintenance return | `RETURNED` | `UNDER_MAINTENANCE` | `UNAVAILABLE` |
 | Mark lost | `LOST` | `LOST` | `UNAVAILABLE` |
-| Recover lost item | `RETURNED` | `GOOD` | `AVAILABLE` if no other blocker exists |
+| Recover lost item | `ACTIVE` | `GOOD` | `ON_LOAN` |
 
 ### TDD cases
 
 - Only custodians may return, mark lost, or recover.
 - Only active loans may be returned or marked lost.
-- Returned/lost loans cannot be processed repeatedly, except the agreed lost
-  recovery transition.
-- Return/recovery dates cannot precede checkout.
+- Returned loans cannot be processed repeatedly. Lost loans may be recovered
+  once to `ACTIVE`, after which the custodian records the return condition or
+  marks the item lost again.
+- Return dates cannot precede checkout; recovery has no return date.
 - Damaged, maintenance, and lost equipment block approval and checkout.
 - A lost loan blocks borrower eligibility; recovery removes that blocker.
 - Each multi-record update rolls back completely on a failed save and persists
@@ -322,7 +324,8 @@ Borrower submits request
 → Supervisor approves it
 → Custodian checks it out within the collection window
 → Borrower sees ACTIVE loan
-→ Custodian returns, damages, loses, or recovers the item
+→ Custodian returns, damages, loses, or recovers the item and records its
+  return condition
 → Application restarts
 → All roles see the appropriate final shared state
 ```

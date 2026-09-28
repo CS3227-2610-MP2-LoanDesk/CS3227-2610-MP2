@@ -4,8 +4,8 @@ The current workflow provides local role selection, password authentication,
 catalogue browsing, request submission, request history, request cancellation
 and a read-only loans/history view for borrowers, and request review,
 approval, rejection, booking cancellation and decision history for
-supervisors. Custodian workflow actions are still being implemented by their
-owner.
+supervisors. Custodians can manage collections, active loans, physical
+condition and the minimal equipment inventory.
 
 ## Running locally
 
@@ -27,8 +27,9 @@ The first screen provides three role buttons: `Borrower`, `Supervisor`, and
 - `Supervisor` requires the fixed supervisor account password. For local
   synthetic demonstrations only, the seeded password is `supervisor1`. Do not
   reuse this password.
-- `Custodian` still opens its fixed local role account directly. Password login
-  for that role is pending its owner's implementation.
+- `Custodian` requires the fixed custodian account password. For local
+  synthetic demonstrations only, the seeded password is `custodian1`. Do not
+  reuse this password.
 - The initial equipment records are `camera1` and `camera2`.
 - Local data is stored in an embedded H2 database rooted at `data/loandesk` and
   persists between launches. Users do not need to install a separate database
@@ -36,7 +37,9 @@ The first screen provides three role buttons: `Borrower`, `Supervisor`, and
 - The supervisor account is created when the database is first seeded. A
   database created before supervisor login existed has no supervisor account;
   sign-in then reports that the ignored local `data/loandesk` files must be
-  removed so the demonstration accounts are seeded again.
+  removed so the demonstration accounts are seeded again. A database that
+  predates custodian login is upgraded with the missing custodian account when
+  it is next opened.
 
 Existing JSON files are not imported. Use borrower sign-up to create accounts
 in the new local database. The generated database files remain local and are
@@ -108,15 +111,40 @@ longer eligible, both of which are rechecked at the moment of the decision
 rather than taken from the state at submission. A request that is already
 decided, cancelled, expired or collected can no longer be decided.
 
-An approved request that is not collected by the end of its requested start
-date becomes `EXPIRED` and releases its reservation. This is applied when the
-queue or a borrower's request list is next opened.
+An approved request is collectable on its requested start date and the next
+three calendar days. It becomes `EXPIRED` and releases its reservation the day
+after that window ends. This is applied when shared request data is next opened.
 
 Clarification and resubmission are not part of the current workflow. Supervisors
 do not edit physical equipment condition; that remains with the custodian.
 
 `Decision History` lists every recorded decision and cancellation, most recent
 first, showing who decided, when and why.
+
+## Custodian workflow
+
+Select `Custodian` from role selection and enter the custodian password. The
+dashboard provides `Collections`, `Active Loans`, and `Inventory`.
+
+`Collections` lists approved requests that are within the inclusive collection
+window: the requested start date through three additional calendar days. Select
+a request and choose `Check out selected request` to create its one linked
+active loan. Checkout is refused if the request is no longer approved or
+collectable, or if the equipment is unavailable or not in `GOOD` condition.
+
+`Active Loans` lists active and lost loans, with overdue active loans first.
+For an active loan, select a return condition (`GOOD`, `DAMAGED`, or
+`UNDER_MAINTENANCE`) and record its return. Marking an active item lost changes
+the loan and equipment to `LOST`. Recovering a lost item deliberately restores
+it to an `ACTIVE` loan with `GOOD` equipment; it remains on loan until the
+custodian selects and records the observed return condition. This two-step flow
+ensures the condition is chosen at physical return rather than assumed during
+recovery.
+
+`Inventory` lets custodians add equipment and edit its name or physical
+condition. Its availability is read-only and derived from the shared requests,
+loans and condition. Categories, notes, deletion, retirement, bulk import and
+maintenance records are outside this MVP.
 
 ## My loans and history
 
