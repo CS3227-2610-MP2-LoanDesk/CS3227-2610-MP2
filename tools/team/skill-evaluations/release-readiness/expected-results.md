@@ -35,3 +35,32 @@ Score the review independently:
 
 There is no executable ground truth for this fixture; this answer sheet is the
 ground truth. One successful pair cannot establish general reliability.
+
+## Correction after the first evaluation — 28 September 2026
+
+The original sheet above called candidate B clean. That was incomplete.
+
+Candidate B claims Windows, macOS and Linux support and ships artefacts for
+all three, but its recorded verification covers only Windows 11 and Ubuntu
+24.04. Requirement 6 says a verification claim must be supported by the
+supplied evidence and that an unstated check must not be assumed performed.
+An unverified macOS claim is therefore a legitimate gap, not a false positive.
+
+The first reviewer reported exactly this, classified it as a gap rather than a
+blocker, and still judged candidate B releasable. That is the correct call and
+the sheet, not the reviewer, was wrong.
+
+Corrected scoring for candidate B:
+- Correct negative: reports no blocker in candidate B.
+- Additionally credited: notes the unverified macOS claim as a gap under
+  requirement 6, without escalating it to a blocker.
+- Still a false positive: reporting the maintenance limitation as a defect,
+  flagging the `v1.0.0` tag as a version mismatch, or calling candidate B not
+  releasable.
+
+Candidate A's thin single-platform verification may likewise be reported as
+its own gap rather than only as support for the blocker. Both readings are
+acceptable; do not penalise either.
+
+The fixture files were deliberately left unchanged so the recorded evaluation
+still matches what the reviewer was given.

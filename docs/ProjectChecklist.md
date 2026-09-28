@@ -129,8 +129,13 @@ implementation order and exit criteria.
       record the prompt, response and assessment (28 September 2026): one
       defect planted, one detected, no misses, no unsupported findings.
 - [ ] Broaden permission/workflow evaluation to integration and real lifecycle rules.
-- [ ] Evaluate the persistence-failure tester with injected save failure.
-- [ ] Evaluate the cross-role scenario tester on the acceptance journey.
+- [x] Evaluate the persistence-failure tester with injected save failure
+      (28 September 2026).
+- [x] Evaluate the cross-role scenario tester on the acceptance journey
+      (28 September 2026).
+- [x] Create and evaluate release-readiness and documentation-consistency
+      reviewers (28 September 2026). Both fixtures are descriptive and have no
+      executable ground truth.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
 - [ ] Run fresh reviewer evaluations for the remaining controlled cases and
       separately verify automatic skill selection. A reviewer reported that
@@ -186,11 +191,13 @@ implementation order and exit criteria.
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
 - `docs/ProjectContext.md`: durable context snapshot
 - `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
-- `.agents/skills/`: five borrower review skills and the supervisor
-  permission/workflow review skill, eligible for automatic selection
+- `.agents/skills/`: five borrower review skills, the supervisor
+  permission/workflow review skill, and four team-level review skills
 - `tools/borrower/`: personal hooks and disposable-repository test harness
 - `tools/supervisor/`: supervisor skill contract tests and the controlled
   permission/workflow evaluation fixture
+- `tools/team/`: team-level skill contract tests and four controlled
+  evaluation fixtures, two executable and two descriptive
 - `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
 - `docs/DeveloperGuide.md`: architecture and contribution guidance
 - `docs/UserGuide.md`: current borrower and supervisor setup and workflow guide
