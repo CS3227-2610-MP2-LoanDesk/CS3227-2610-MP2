@@ -33,7 +33,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TextArea;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -311,12 +310,10 @@ public final class LoanDeskApp extends Application {
         submit.getStyleClass().add("auth-submit-button");
         submit.setMaxWidth(Double.MAX_VALUE);
         Button back = roleSelectionBackButton();
-        TextArea feedback = new TextArea();
-        feedback.setEditable(false);
+        Label feedback = new Label();
         feedback.setWrapText(true);
-        feedback.setPrefRowCount(2);
         feedback.setMaxWidth(440);
-        feedback.getStyleClass().add("copyable-error-message");
+        feedback.getStyleClass().add("auth-feedback");
         feedback.setVisible(false);
         feedback.setManaged(false);
         Runnable login = () -> {
@@ -465,7 +462,7 @@ public final class LoanDeskApp extends Application {
         VBox heading = new VBox(4, title, subtitle);
 
         Button inventory = new Button("Manage inventory");
-        inventory.getStyleClass().add("custodian-secondary-button");
+        inventory.getStyleClass().add("custodian-workflow-button");
         inventory.setOnAction(event -> showCustodianInventory());
         Button logout = new Button("Log out");
         logout.getStyleClass().add("custodian-logout-button");
@@ -484,6 +481,10 @@ public final class LoanDeskApp extends Application {
             showCustodianFeedback(feedback, custodianDashboardMessage, custodianDashboardMessageIsError);
             custodianDashboardMessage = null;
         }
+        StackPane loanOverlay = new StackPane();
+        loanOverlay.getStyleClass().add("custodian-overlay");
+        loanOverlay.setVisible(false);
+        loanOverlay.setManaged(false);
 
         ObservableList<LoanRequest> requestItems = FXCollections.observableArrayList();
         FilteredList<LoanRequest> filteredRequests = new FilteredList<>(requestItems, item -> true);
@@ -535,7 +536,7 @@ public final class LoanDeskApp extends Application {
                 textColumn("Checked out", loan -> loan.checkoutDate().toString()),
                 textColumn("Due date", loan -> loan.dueDate().toString()),
                 textColumn("Status", this::loanDisplayStatus),
-                loanActionColumn(feedback));
+                loanActionColumn(loanOverlay, names));
 
         requestSearch.textProperty().addListener((observable, oldValue, value) ->
                 applyRequestFilter(filteredRequests, value, requestStatus.getValue(), names));
@@ -610,7 +611,8 @@ public final class LoanDeskApp extends Application {
         ScrollPane scroll = new ScrollPane(page);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("custodian-dashboard-scroll");
-        showScene(scroll);
+        StackPane root = new StackPane(scroll, loanOverlay);
+        showScene(root);
     }
 
     private Node spacer() {
@@ -661,6 +663,79 @@ public final class LoanDeskApp extends Application {
         return column;
     }
 
+    private TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem>
+            inventoryNameColumn(Label feedback, Runnable reload) {
+        TableColumn<CustodianInventoryService.InventoryItem, CustodianInventoryService.InventoryItem> column
+                = new TableColumn<>("Item");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(CustodianInventoryService.InventoryItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Equipment equipment = item.equipment();
+                Label name = new Label(equipment.name());
+                name.getStyleClass().add("custodian-item-name");
+                Button edit = new Button();
+                edit.setGraphic(penIcon());
+                edit.setAccessibleText("Edit name for " + equipment.name());
+                edit.setTooltip(new Tooltip("Edit item name"));
+                edit.getStyleClass().add("custodian-inline-edit-button");
+                HBox nameLine = new HBox(4, name, edit);
+                nameLine.setAlignment(Pos.CENTER_LEFT);
+                Label identifier = new Label(equipment.id());
+                identifier.getStyleClass().add("custodian-item-id");
+                VBox display = new VBox(1, nameLine, identifier);
+                edit.setOnAction(event -> showInlineNameEditor(
+                        display, equipment, identifier, feedback, reload));
+                setGraphic(display);
+            }
+        });
+        return column;
+    }
+
+    private void showInlineNameEditor(
+            VBox display, Equipment equipment, Label identifier, Label feedback, Runnable reload) {
+        TextField name = new TextField(equipment.name());
+        name.getStyleClass().add("custodian-inline-name-field");
+        name.setMaxWidth(Double.MAX_VALUE);
+        Button save = new Button();
+        save.setGraphic(tickIcon());
+        save.setAccessibleText("Save name for " + equipment.name());
+        save.setTooltip(new Tooltip("Save item name"));
+        save.getStyleClass().add("custodian-inline-save-button");
+        HBox editor = new HBox(4, name, save);
+        editor.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(name, javafx.scene.layout.Priority.ALWAYS);
+        editor.setMaxWidth(Double.MAX_VALUE);
+        display.setMaxWidth(Double.MAX_VALUE);
+        display.getChildren().setAll(editor, identifier);
+        name.requestFocus();
+        save.setOnAction(event -> {
+            save.setDisable(true);
+            runInventoryAction(feedback, reload, () -> custodianInventoryService.updateEquipment(
+                    equipment.id(), name.getText(), equipment.condition()), "Item name updated.");
+        });
+        name.setOnAction(event -> save.fire());
+    }
+
+    private Node penIcon() {
+        SVGPath icon = new SVGPath();
+        icon.setContent("M3,14.5 L3,17 L5.5,17 L15.8,6.7 L13.3,4.2 Z M14.7,2.8 L17.2,5.3 L18.3,4.2 C18.9,3.6 18.9,2.7 18.3,2.1 C17.7,1.5 16.8,1.5 16.2,2.1 Z");
+        icon.setFill(Color.web("#5b6370"));
+        return icon;
+    }
+
+    private Node tickIcon() {
+        SVGPath icon = new SVGPath();
+        icon.setContent("M3,10 L7.2,14.2 L17,4.4 L19,6.4 L7.2,18 L1,12 Z");
+        icon.setFill(Color.web("#ffffff"));
+        return icon;
+    }
+
     private TableColumn<LoanRequest, LoanRequest> requestActionColumn(Label feedback) {
         TableColumn<LoanRequest, LoanRequest> column = new TableColumn<>("Action");
         column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
@@ -673,7 +748,7 @@ public final class LoanDeskApp extends Application {
                     return;
                 }
                 Button checkout = new Button("Check out");
-                checkout.getStyleClass().add("custodian-primary-button");
+                checkout.getStyleClass().add("custodian-workflow-button");
                 checkout.setOnAction(event -> {
                     try {
                         Loan loan = custodianCollectionService.checkout(request.requestId());
@@ -690,7 +765,7 @@ public final class LoanDeskApp extends Application {
         return column;
     }
 
-    private TableColumn<Loan, Loan> loanActionColumn(Label feedback) {
+    private TableColumn<Loan, Loan> loanActionColumn(StackPane loanOverlay, Map<String, String> equipmentNames) {
         TableColumn<Loan, Loan> column = new TableColumn<>("Action");
         column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
         column.setCellFactory(table -> new TableCell<>() {
@@ -702,32 +777,105 @@ public final class LoanDeskApp extends Application {
                     return;
                 }
                 Button manage = new Button("Return / update");
-                manage.getStyleClass().add("custodian-secondary-button");
-                manage.setOnAction(event -> showCustodianActiveLoans());
-                Button action = new Button(loan.status() == LoanStatus.LOST ? "Recover" : "Mark lost");
-                action.getStyleClass().add(loan.status() == LoanStatus.LOST
-                        ? "custodian-secondary-button" : "custodian-danger-button");
-                action.setOnAction(event -> {
-                    try {
-                        if (loan.status() == LoanStatus.LOST) {
-                            custodianFulfilmentService.recoverLost(loan.loanId());
-                            rememberCustodianDashboardMessage(
-                                    "Lost item recovered. Use the Active Loans page to record its return.", false);
-                        } else {
-                            custodianFulfilmentService.markLost(loan.loanId());
-                            rememberCustodianDashboardMessage("Item marked lost.", false);
-                        }
-                        showCustodianDashboard(session.requireUser());
-                    } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
-                        showCustodianFeedback(feedback, exception.getMessage(), true);
-                    }
-                });
-                HBox actions = new HBox(6, manage, action);
-                actions.setAlignment(Pos.CENTER_LEFT);
-                setGraphic(actions);
+                manage.getStyleClass().add("custodian-workflow-button");
+                manage.setOnAction(event -> showLoanOverlay(loanOverlay, loan, equipmentNames));
+                setGraphic(manage);
             }
         });
         return column;
+    }
+
+    private void showLoanOverlay(StackPane overlay, Loan loan, Map<String, String> equipmentNames) {
+        String equipmentName = equipmentNames.getOrDefault(loan.equipmentId(), loan.equipmentId());
+        Label title = new Label("Loan details");
+        title.getStyleClass().add("custodian-section-heading");
+        Label item = new Label(equipmentName);
+        item.getStyleClass().add("custodian-detail-value");
+        Label itemId = new Label(loan.equipmentId());
+        itemId.getStyleClass().add("custodian-item-id");
+        VBox identity = new VBox(2, item, itemId);
+        VBox details = new VBox(8,
+                detailRow("Borrower", loan.borrowerUsername()),
+                detailRow("Status", loanDisplayStatus(loan)),
+                detailRow("Collection date", loan.checkoutDate().toString()),
+                detailRow("Due date", loan.dueDate().toString()));
+        Label panelFeedback = new Label();
+        panelFeedback.getStyleClass().add("custodian-feedback");
+        panelFeedback.setVisible(false);
+        panelFeedback.setManaged(false);
+        ComboBox<EquipmentCondition> returnCondition = new ComboBox<>();
+        returnCondition.getItems().addAll(EquipmentCondition.GOOD, EquipmentCondition.DAMAGED,
+                EquipmentCondition.UNDER_MAINTENANCE);
+        returnCondition.setPromptText("Select condition");
+        returnCondition.getStyleClass().add("custodian-filter-select");
+        Label conditionLabel = new Label("Return condition *");
+        conditionLabel.getStyleClass().add("custodian-form-label");
+        VBox conditionField = new VBox(6, conditionLabel, returnCondition);
+
+        Button cancel = new Button("Cancel");
+        cancel.getStyleClass().add("custodian-secondary-button");
+        cancel.setOnAction(event -> hideOverlay(overlay));
+        Button returnLoan = new Button("Mark as returned");
+        returnLoan.getStyleClass().add("custodian-primary-button");
+        returnLoan.getStyleClass().add("custodian-create-button");
+        returnLoan.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> loan.status() != LoanStatus.ACTIVE || returnCondition.getValue() == null,
+                returnCondition.valueProperty()));
+        returnLoan.setTooltip(new Tooltip(loan.status() == LoanStatus.LOST
+                ? "Recover the item before recording its return."
+                : "Select the observed return condition."));
+        returnLoan.setOnAction(event -> runLoanOverlayAction(panelFeedback, overlay, () ->
+                custodianFulfilmentService.returnLoan(loan.loanId(), returnCondition.getValue()),
+                "Return recorded."));
+
+        Button markLost = new Button("Mark as lost");
+        markLost.getStyleClass().add("custodian-danger-button");
+        markLost.setDisable(loan.status() == LoanStatus.LOST);
+        markLost.setTooltip(new Tooltip(loan.status() == LoanStatus.LOST
+                ? "This item is already marked lost." : "Mark this active loan and item as lost."));
+        markLost.setOnAction(event -> {
+            Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Mark " + equipmentName + " as lost? The item will become unavailable.");
+            confirmation.setTitle("Confirm lost item");
+            confirmation.setHeaderText("Mark item as lost");
+            if (confirmation.showAndWait().filter(ButtonType.OK::equals).isPresent()) {
+                runLoanOverlayAction(panelFeedback, overlay,
+                        () -> custodianFulfilmentService.markLost(loan.loanId()), "Item marked lost.");
+            }
+        });
+        Button recover = new Button("Recover item");
+        recover.getStyleClass().add("custodian-secondary-button");
+        recover.setVisible(loan.status() == LoanStatus.LOST);
+        recover.setManaged(loan.status() == LoanStatus.LOST);
+        recover.setOnAction(event -> runLoanOverlayAction(panelFeedback, overlay,
+                () -> custodianFulfilmentService.recoverLost(loan.loanId()),
+                "Lost item recovered. Record its observed return when ready."));
+        HBox actions = new HBox(10, cancel, recover, markLost, returnLoan);
+        actions.setAlignment(Pos.CENTER_RIGHT);
+        VBox panel = new VBox(16, title, identity, details, conditionField, panelFeedback, actions);
+        panel.getStyleClass().add("custodian-loan-overlay-panel");
+        overlay.getChildren().setAll(panel);
+        overlay.setVisible(true);
+        overlay.setManaged(true);
+    }
+
+    private void runLoanOverlayAction(
+            Label panelFeedback, StackPane overlay, LoanAction action, String success) {
+        try {
+            action.run();
+            rememberCustodianDashboardMessage(success, false);
+            hideOverlay(overlay);
+            showCustodianDashboard(session.requireUser());
+        } catch (StaleDataException exception) {
+            showCustodianFeedback(panelFeedback, "Loan data changed. Close and retry.", true);
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            showCustodianFeedback(panelFeedback, exception.getMessage(), true);
+        }
+    }
+
+    private void hideOverlay(StackPane overlay) {
+        overlay.setVisible(false);
+        overlay.setManaged(false);
     }
 
     private void applyRequestFilter(
@@ -754,6 +902,9 @@ public final class LoanDeskApp extends Application {
         statTitle.getStyleClass().add("custodian-stat-title");
         Label statValue = new Label(String.valueOf(value));
         statValue.getStyleClass().add("custodian-stat-value");
+        if (title.equals("Active loans") || title.equals("Total inventory")) {
+            statValue.getStyleClass().add("custodian-stat-value-blue");
+        }
         Label statDescription = new Label(description);
         statDescription.getStyleClass().add("custodian-stat-description");
         VBox card = new VBox(5, statTitle, statValue, statDescription);
@@ -860,7 +1011,6 @@ public final class LoanDeskApp extends Application {
         items.getStyleClass().add("custodian-table");
         items.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         items.setPrefHeight(330);
-        Map<String, String> names = new HashMap<>();
         VBox details = new VBox(12);
         details.getStyleClass().add("custodian-detail-panel");
         details.setVisible(false);
@@ -874,13 +1024,13 @@ public final class LoanDeskApp extends Application {
         TextField name = new TextField();
         name.setPromptText("e.g. Canon EOS R6 Camera");
         name.getStyleClass().add("custodian-filter-field");
-        Label nameLabel = new Label("Name *");
+        Label nameLabel = new Label("Name");
         nameLabel.getStyleClass().add("custodian-form-label");
         ComboBox<EquipmentCondition> initialCondition = new ComboBox<>();
         initialCondition.getItems().setAll(EquipmentCondition.values());
         initialCondition.setValue(EquipmentCondition.GOOD);
         initialCondition.getStyleClass().add("custodian-filter-select");
-        Label conditionLabel = new Label("Condition *");
+        Label conditionLabel = new Label("Condition");
         conditionLabel.getStyleClass().add("custodian-form-label");
         VBox nameField = new VBox(6, nameLabel, name);
         VBox conditionField = new VBox(6, conditionLabel, initialCondition);
@@ -896,8 +1046,6 @@ public final class LoanDeskApp extends Application {
         Runnable reload = () -> {
             try {
                 items.getItems().setAll(custodianInventoryService.inventory());
-                names.clear();
-                items.getItems().forEach(item -> names.put(item.equipment().id(), item.equipment().name()));
                 if (items.getItems().isEmpty()) {
                     showCustodianFeedback(feedback, "No equipment has been added. Add an item to begin.", false);
                 } else if (feedback.getText().isBlank()) {
@@ -910,7 +1058,7 @@ public final class LoanDeskApp extends Application {
             }
         };
         items.getColumns().addAll(
-                equipmentColumn("Item", item -> item.equipment().id(), names),
+                inventoryNameColumn(feedback, reload),
                 inventoryConditionColumn(feedback, reload),
                 textColumn("Availability", item -> item.availability().name()),
                 inventoryDetailsColumn(details, feedback));
@@ -1088,15 +1236,12 @@ public final class LoanDeskApp extends Application {
     private void runInventoryAction(Label feedback, Runnable reload, InventoryAction action, String success) {
         try {
             action.run();
-            feedback.getStyleClass().remove("error-label");
-            feedback.setText(success);
+            showCustodianFeedback(feedback, success, false);
             reload.run();
         } catch (StaleDataException exception) {
-            feedback.setText("Inventory data changed. Refresh the list and retry.");
-            feedback.getStyleClass().add("error-label");
+            showCustodianFeedback(feedback, "Inventory data changed. Refresh the list and retry.", true);
         } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
-            feedback.setText(exception.getMessage());
-            feedback.getStyleClass().add("error-label");
+            showCustodianFeedback(feedback, exception.getMessage(), true);
         }
     }
 

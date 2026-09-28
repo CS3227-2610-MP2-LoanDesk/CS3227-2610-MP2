@@ -141,18 +141,20 @@ refused if the request is no longer approved or collectable, or if the
 equipment is unavailable or not in `GOOD` condition.
 
 `Active Loans` lists active and lost loans, with overdue active loans first.
-For an active loan, select a return condition (`GOOD`, `DAMAGED`, or
-`UNDER_MAINTENANCE`) and record its return. Marking an active item lost changes
-the loan and equipment to `LOST`. Recovering a lost item deliberately restores
-it to an `ACTIVE` loan with `GOOD` equipment; it remains on loan until the
-custodian selects and records the observed return condition. This two-step flow
-ensures the condition is chosen at physical return rather than assumed during
-recovery.
+Choose `Return / update` to open the loan-details overlay. For an active loan,
+select a return condition (`GOOD`, `DAMAGED`, or `UNDER_MAINTENANCE`) before
+marking it returned. Marking an active item lost changes the loan and equipment
+to `LOST`; that control is disabled for a loan already marked lost. Recovering
+a lost item deliberately restores it to an `ACTIVE` loan with `GOOD`
+equipment; it remains on loan until the custodian selects and records the
+observed return condition. This two-step flow ensures the condition is chosen
+at physical return rather than assumed during recovery.
 
 `Manage Inventory` opens a table of all equipment, its physical condition and
 read-only availability derived from shared requests, loans and condition. From
 there, custodians can add equipment, or change an item's condition directly in
-its table row. The `Add equipment` button opens a panel for the required name
+its table row. Use the pen beside an item's name to edit it in place, then the
+tick to save. The `Add equipment` button opens a panel for the required name
 and initial condition. Condition changes are disabled while an item is reserved. The eye action opens item details, including condition,
 availability and any current borrower's collection and due dates. Categories,
 notes, deletion, retirement, bulk import and maintenance records are outside
