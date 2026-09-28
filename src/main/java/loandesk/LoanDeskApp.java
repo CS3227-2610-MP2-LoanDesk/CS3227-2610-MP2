@@ -33,6 +33,7 @@ import loandesk.application.AuthenticationService;
 import loandesk.application.BorrowerLoanService;
 import loandesk.application.BorrowerRequestService;
 import loandesk.application.CatalogueService;
+import loandesk.application.CustodianCollectionService;
 import loandesk.application.ReviewFilter;
 import loandesk.application.Session;
 import loandesk.application.SupervisorRequestService;
@@ -45,6 +46,7 @@ import loandesk.domain.Role;
 import loandesk.domain.User;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.DatabaseDataStore;
+import loandesk.persistence.StaleDataException;
 
 public final class LoanDeskApp extends Application {
     private static final String ANY_STATUS = "Any status";
@@ -57,6 +59,7 @@ public final class LoanDeskApp extends Application {
     private BorrowerRequestService borrowerRequestService;
     private BorrowerLoanService borrowerLoanService;
     private SupervisorRequestService supervisorRequestService;
+    private CustodianCollectionService custodianCollectionService;
     private DataStore dataStore;
     private Stage stage;
 
@@ -70,6 +73,7 @@ public final class LoanDeskApp extends Application {
             borrowerRequestService = new BorrowerRequestService(dataStore, session);
             borrowerLoanService = new BorrowerLoanService(dataStore, session);
             supervisorRequestService = new SupervisorRequestService(dataStore, session);
+            custodianCollectionService = new CustodianCollectionService(dataStore, session);
         } catch (IOException exception) {
             showError("Unable to load LoanDesk data", exception.getMessage());
             return;
@@ -242,8 +246,13 @@ public final class LoanDeskApp extends Application {
         } else {
             Label section = new Label("Custodian workspace");
             section.getStyleClass().add("section-heading");
-            content.getChildren().addAll(section,
-                    new Label("Custodian fulfilment functions will be available here."));
+            Button collections = new Button("Collections Queue");
+            collections.setOnAction(event -> showCollectionsQueue());
+            VBox actions = new VBox(12, dashboardCard("Collections Queue",
+                    "Issue approved equipment within its collection window.", collections));
+            actions.setMaxWidth(520);
+            actions.setAlignment(Pos.CENTER);
+            content.getChildren().addAll(section, centeredContainer(actions));
         }
         Button logout = new Button("Log out");
         logout.getStyleClass().add("secondary-button");
@@ -290,6 +299,69 @@ public final class LoanDeskApp extends Application {
         Button loans = new Button("My Loans");
         loans.setOnAction(event -> showMyLoans());
         return loans;
+    }
+
+    private void showCollectionsQueue() {
+        VBox content = layout("Collections Queue",
+                "Approved requests can be issued from their start date through the third day after it.");
+        Label feedback = new Label();
+        ListView<LoanRequest> requests = new ListView<>();
+        requests.setPrefHeight(280);
+        requests.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(LoanRequest item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null
+                        : item.borrowerUsername() + " — " + item.equipmentId() + "\n"
+                                + "Collect: " + item.startDate() + " to "
+                                + item.startDate().plusDays(3) + ", due: " + item.dueDate());
+            }
+        });
+        Button checkout = new Button("Check out selected item");
+        checkout.getStyleClass().add("primary-button");
+        checkout.disableProperty().bind(requests.getSelectionModel().selectedItemProperty().isNull());
+        Button refresh = new Button("Refresh queue");
+        refresh.getStyleClass().add("secondary-button");
+        Button back = new Button("Back to dashboard");
+        back.getStyleClass().add("secondary-button");
+
+        Runnable reload = () -> {
+            try {
+                requests.getItems().setAll(custodianCollectionService.collectionsQueue());
+                feedback.getStyleClass().remove("error-label");
+                feedback.setText(requests.getItems().isEmpty()
+                        ? "No approved requests are collectable today."
+                        : requests.getItems().size() + " request(s) ready for collection.");
+            } catch (IllegalStateException | IOException exception) {
+                requests.getItems().clear();
+                feedback.setText("Unable to load the collections queue: " + exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            }
+        };
+        refresh.setOnAction(event -> reload.run());
+        checkout.setOnAction(event -> {
+            LoanRequest selected = requests.getSelectionModel().getSelectedItem();
+            if (selected == null) {
+                return;
+            }
+            try {
+                Loan loan = custodianCollectionService.checkout(selected.requestId());
+                feedback.getStyleClass().remove("error-label");
+                feedback.setText("Checked out " + loan.equipmentId() + " to "
+                        + loan.borrowerUsername() + ".");
+                reload.run();
+            } catch (StaleDataException exception) {
+                feedback.setText("Collection data changed. Refresh the queue and retry.");
+                feedback.getStyleClass().add("error-label");
+            } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+                feedback.setText(exception.getMessage());
+                feedback.getStyleClass().add("error-label");
+            }
+        });
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        reload.run();
+        content.getChildren().addAll(feedback, requests, checkout, refresh, back);
+        showScrollableScene(content);
     }
 
     private void showMyLoans() {
