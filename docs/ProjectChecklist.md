@@ -122,7 +122,7 @@ implementation order and exit criteria.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
 - [ ] Run fresh reviewer evaluations for the remaining controlled cases and
       separately verify automatic skill selection.
-- [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
+- [x] Create `docs/Reflections_Yikbing.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
 ## 8. Hooks, quality, and delivery automation
@@ -197,5 +197,5 @@ implementation order and exit criteria.
   evaluation cases. The first ownership skill fixture evaluation is complete;
   fresh reviewer runs for the other cases, automatic-selection checks and
   integration/system evaluations remain unfinished.
-- Release packaging remains unfinished; `Reflections.md` is complete and
+- Release packaging remains unfinished; `Reflections_Yikbing.md` is complete and
   committed.

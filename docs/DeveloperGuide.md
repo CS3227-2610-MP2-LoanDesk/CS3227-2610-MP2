@@ -1,221 +1,330 @@
 # LoanDesk Developer Guide
 
-## Baseline structure
+This guide explains the current architecture, local development workflow,
+borrower implementation boundaries and extension rules. LoanDesk is a JavaFX
+desktop application backed by an embedded H2 database.
 
-- `src/main/java`: production Java source
-- `src/test/java`: automated tests
-- `docs`: user and developer documentation
-- `docs/ProjectContext.md`: compact context and current decisions
-- `docs/BorrowerMilestones.md`: sequential borrower implementation plan
-- `docs/AgenticSE.md`: borrower skills/hooks and future team proposals
-- `logs/Yikbing-logs`: Yikbing's dated, verified AI-session summaries
+## Prerequisites and local setup
 
-The current shared Java package layout is:
+- JDK 25.
+- Internet access for the first Gradle dependency download.
+- Git and a shell capable of running the Gradle wrapper.
 
-- `domain`: models, roles, and statuses independent of JavaFX and persistence
-- `application`: use cases, permissions, and workflow rules
-- `persistence`: shared H2 database store, repositories and first-launch initialization
-- `ui/common`: role selection, login, sign-up, session, and logout
-- `features/borrower`, `features/supervisor`, `features/custodian`: role-owned
-  `ui/` and `application/` packages as those role slices are added
-
-Borrower-owned services currently include `AuthenticationService`,
-`CatalogueService`, `BorrowerEligibilityService`, `BorrowerRequestService` and
-`BorrowerLoanService`. The JavaFX composition currently remains in
-`loandesk.LoanDeskApp` while role owners continue migrating toward the feature
-package layout.
-
-The intended application direction is:
-
-```text
-JavaFX views/controllers -> application services -> repositories/local persistence
-```
-
-Views should collect input and display results. Services should enforce role,
-ownership, and workflow rules. Persistence should remain behind repository
-interfaces rather than being implemented directly in controllers.
-
-## Branching workflow
-
-- `main` is the shared integration branch.
-- Create focused branches such as `feature/borrower-workflow`.
-- Run `./gradlew test` before opening a pull request.
-- Pull requests require review from at least one teammate.
-- Use the repository PR template to record test results, relevant borrower
-  skill reviews, independent-review evidence, data safety and shared-contract
-  coordination.
-- Do not merge changes that break the build or change a shared contract without
-  discussing it with affected owners.
-
-The application uses the embedded H2 dependency declared in `build.gradle`.
-Normal users do not install or run a separate database server; the Gradle
-application distribution supplies the H2 JAR and the application creates its
-ignored local database files under `data/loandesk`. The current schema stores
-users, credentials, equipment, equipment condition, requests, loans and a
-database revision row. A store must load the database before saving; snapshot
-writes then use an atomic revision update inside the transaction, rejecting
-stale or concurrent writers instead of silently replacing another instance's
-newer shared update. Request and loan records are separate: a request is
-created by a borrower, while a loan is created by the future custodian
-checkout workflow. Borrower screens read these shared records but do not
-duplicate them or mutate custodian state.
-
-The initial borrower catalogue is implemented by `CatalogueService`. It loads
-equipment through `DataStore` only for an active borrower session and owns
-case-insensitive name filtering, while the JavaFX screen is responsible only
-for collecting the filter and displaying the results. The filtering helper is
-pure; the persistence boundary is protected by the role check. Category,
-condition and availability are represented by shared equipment and request/loan
-state; borrower-visible availability is derived from that shared state rather
-than duplicated in the catalogue UI.
-
-`BorrowerRequestService` enforces session ownership, request validation,
-eligibility, availability, pending-request editing, cancellation state/date
-rules and persistence. Its edit operation updates only the purpose and dates
-of an eligible pending request while preserving the request and equipment IDs.
-The borrower request screen displays persisted requests and invokes only
-permitted borrower actions. `BorrowerLoanService` reads loans for the active borrower,
-filters by session-derived username, and orders active/lost loans before
-returned history. Loan overdue status is derived from the due date; checkout,
-return and physical-condition mutations remain custodian responsibilities.
-
-Run the complete verification suite on Windows with:
-
-```text
-.\\gradlew.bat clean test --no-daemon
-```
-
-JavaFX interaction is currently verified manually because the project does not
-have an automated JavaFX interaction harness. The borrower review skills and
-the independent review panel are run at meaningful feature or milestone
-readiness points; their evidence is recorded in `logs/Yikbing-logs/`.
-
-## AI-assisted development records
-
-For each meaningful AI-assisted session, add a dated summary under
-`logs/Yikbing-logs/`. Record only observed commands, results, decisions, and
-files changed. These summaries are checked by a human before submission and
-are not intended to replace the full conversation transcript.
-
-## Borrower skills and personal hooks
-
-Five skills live under `.agents/skills/`: `loandesk-borrower-ui-review`,
-`loandesk-borrower-ownership-review`, and
-`loandesk-borrower-edge-case-test-review`,
-`loandesk-borrower-change-completeness-review` and
-`loandesk-borrower-implementation-preflight`. Their descriptions enable automatic
-selection for relevant borrower changes; this is agent selection, not background
-execution. You can also invoke a skill by its `$name`. If newly created skills
-are not visible, start a fresh session. Review-only requests produce findings;
-fixes/tests are made only within an authorized implementation task.
-
-For a meaningful borrower feature or milestone slice, before finalizing its
-commit or PR, the completeness skill arranges a fresh, read-only reviewer pass
-over the
-relevant change diff. The reviewer must not receive the implementing agent's
-conclusions and must report findings with severity, file/line references,
-reasoning and next actions. Repeat it before a PR if meaningful changes were
-made after the last completion check. Save decision-relevant prompt/output
-evidence in a dated log. Routine substeps, small documentation edits, trivial
-formatting changes and ordinary test runs do not automatically invoke a fresh
-reviewer. If a valid finding is fixed, rerun affected tests and the full clean
-suite; repeat the panel only for a material behavioral change or major finding.
-This independent pass is not launched by Git hooks; hooks stay deterministic and
-local. GitHub Actions runs the repository's build/test checks, while
-GitHub-native review services are an optional additional PR-comment layer.
-
-The completeness workflow also maintains `docs/ReviewGapRegistry.md`. Read it
-before a meaningful borrower review and add valid reviewer findings with their
-prevention and verification after reconciliation. Deferred recommendations and
-environment limitations are recorded separately from resolved gaps.
-
-Before implementing a meaningful borrower feature, invoke the implementation
-preflight skill. It converts applicable registry gaps into a short prevention
-checklist, identifies focused tests and GUI evidence, and flags unresolved
-shared-policy questions. It is planning guidance, not a substitute for the
-later implementation reviews or independent panel.
-
-Git for Windows supplies Bash for `tools/borrower/hooks/pre-commit` and
-`pre-push`. No Python dependency is needed to run the hooks. Pre-commit checks
-staged content for local data, conflict markers and whitespace, and warns about
-shared/other-role source changes. Pre-push runs the full clean test suite on
-the current working tree; uncommitted changes mean this is not proof that the
-commits being pushed pass independently. CI checks the submitted commit.
-
-Activation is per clone. Inspect `git config --show-origin --get core.hooksPath`
-and existing `.git/hooks` first; do not replace active hooks without coordination.
-When no existing configuration needs preserving:
+Clone the repository, change into its root, and use the wrapper rather than a
+machine-installed Gradle version:
 
 ```powershell
-git config --local core.hooksPath tools/borrower/hooks
-git config --local --get core.hooksPath
+.\gradlew.bat clean test --no-daemon
+.\gradlew.bat run
 ```
 
-To disable this setup, first confirm that the local value is still
-`tools/borrower/hooks`, then run `git config --local --unset core.hooksPath`.
-This restores default/inherited hook lookup; it does not delete hook scripts.
-Local hooks are bypassable and do not replace CI. Marker-like text in docs can
-be flagged; inspect and rephrase intentional examples rather than auto-editing.
+On macOS/Linux, use `./gradlew` instead of `gradlew.bat`.
 
-Reproduce the hook checks with Python 3 (test tooling only):
+The JavaFX plugin supplies JavaFX 21.0.6 modules and the project targets Java
+25. H2 2.5.250 is an application dependency. No external database server is
+required.
+
+## Architecture
+
+The intended dependency direction is:
+
+```text
+JavaFX UI
+    |
+    v
+Application services and session authorization
+    |
+    v
+Shared domain records and workflow rules
+    |
+    v
+DataStore interface -> DatabaseDataStore -> embedded H2 database
+```
+
+The layers have deliberately different responsibilities:
+
+| Layer | Responsibility | Examples |
+| --- | --- | --- |
+| UI | Collect input, display results, show permitted actions and feedback | `LoanDeskApp`, JavaFX controls, CSS |
+| Application | Enforce role, ownership, eligibility, dates, state transitions and persistence calls | `BorrowerRequestService`, `BorrowerLoanService`, `AvailabilityService` |
+| Domain | Immutable records and enums that express valid data | `Equipment`, `LoanRequest`, `Loan`, status enums |
+| Persistence | Schema creation, seed initialization, loading, validation, atomic saves and revision checks | `DataStore`, `DatabaseDataStore` |
+| Security | Password hashing and verification | `PasswordHasher` |
+
+The current JavaFX composition remains in `loandesk.LoanDeskApp`. Borrower
+feature-area README guidance is present for future migration into
+`features/borrower/ui` and `features/borrower/application`; do not duplicate
+shared services merely to achieve that folder structure.
+
+## Source layout
+
+```text
+src/main/java/loandesk/
+  LoanDeskApp.java
+  application/       use cases, session and shared rules
+  domain/            records, roles and status enums
+  persistence/       H2-backed DataStore implementation
+  security/          password hashing
+  features/          role-owned extension boundaries
+src/main/resources/  loandesk.css
+src/test/java/       JUnit unit and integration-style tests
+docs/                 guides, context, milestones and reflections
+logs/Yikbing-logs/   dated development evidence
+.agents/skills/       borrower review skills
+tools/borrower/       personal hooks and skill-evaluation fixtures
+```
+
+## Shared data model and persistence
+
+`DatabaseDataStore` creates or upgrades these H2 tables:
+
+| Table | Main contents |
+| --- | --- |
+| `users` | username, normalized username key and role |
+| `credentials` | password algorithm, iterations, salt and derived hash |
+| `equipment` | equipment ID, name and condition |
+| `loan_requests` | borrower request, dates, status, decisions and cancellation metadata |
+| `loans` | checkout, due and return dates, borrower, equipment and status |
+| `database_state` | revision used for stale-snapshot detection |
+
+The database path is `data/loandesk`, resolved from the process working
+directory. The first empty database is seeded once; later launches preserve
+existing records. JSON is no longer the production persistence mechanism and
+there is no JSON importer.
+
+Saves are transactional. Before writing, the store checks the loaded revision;
+an older snapshot cannot silently overwrite a newer one. It validates foreign
+keys, request/loan relationships, unique IDs and collected-request links. A
+failed save rolls back the transaction and leaves the previous database state
+intact.
+
+Do not place passwords, real borrower data or `data/loandesk` in Git. Tests use
+temporary directories and synthetic records.
+
+## Domain and workflow rules
+
+### Authentication and sessions
+
+`AuthenticationService` handles borrower login and sign-up. Usernames are
+normalized and validated by `UsernamePolicy`. Passwords must be 8–128
+characters and are hashed with salted `PBKDF2WithHmacSHA256` using 600,000
+iterations. `Session` is the source of the authenticated identity; services
+must not trust a caller-supplied borrower ID as an authorization substitute.
+
+`requireUser()` confirms that a session exists. `requireRole(...)` builds on
+that check and additionally enforces the required role. Borrower operations
+must call the role-specific guard before reading or mutating borrower data.
+
+### Equipment and availability
+
+Equipment condition is one of `GOOD`, `DAMAGED`, `UNDER_MAINTENANCE` or `LOST`.
+Availability is derived by `AvailabilityService`:
+
+```text
+physical condition not GOOD or lost loan -> UNAVAILABLE
+active loan                         -> ON_LOAN
+future approved request             -> RESERVED
+otherwise                           -> AVAILABLE
+```
+
+Pending requests do not reserve equipment. Availability is recalculated at
+the service operation, not trusted from an earlier UI display.
+
+### Requests and loans
+
+Requests and loans are separate records. A borrower creates a request; a
+supervisor decides it; a custodian creates the loan during physical checkout.
+A collected request links to exactly one loan. Rejected, cancelled and expired
+requests do not create loans.
+
+The current request vocabulary is:
+
+```text
+PENDING, APPROVED, COLLECTED, REJECTED, CANCELLED, EXPIRED
+```
+
+The current loan vocabulary is:
+
+```text
+ACTIVE, RETURNED, LOST
+```
+
+Borrower services currently implement submission, own-request listing,
+eligible editing and eligible cancellation. Supervisor approval and custodian
+checkout/return/condition mutations are shared integration work owned by the
+other role members.
+
+## Borrower service boundaries
+
+- `CatalogueService` permits catalogue loading only for an active borrower and
+  performs case-insensitive name filtering.
+- `BorrowerEligibilityService` checks overdue/lost loans and the limit of three
+  active loans or approved reservations.
+- `BorrowerRequestService` validates equipment, purpose, dates, availability,
+  duplicate pending requests, ownership, request state and save outcomes.
+- `BorrowerLoanService` lists only loans belonging to the active borrower and
+  places active/lost loans before returned history.
+- `AvailabilityService` centralizes derived availability rules.
+
+Every service operation should be safe when called directly, bypassing the UI:
+logged-out access, wrong-role access, unknown IDs, foreign-owned records,
+stale states and failed saves must be rejected without unauthorized mutation.
+
+## Design decisions and trade-offs
+
+### H2 instead of JSON
+
+JSON was simple for the first prototype, but H2 provides structured tables,
+constraints, transactions and a better path for concurrent/shared updates while
+remaining local and dependency-contained for a standalone laptop. The trade-off
+is more schema and migration code. The current store uses additive schema
+initialization and a revision row rather than a full migration framework.
+
+### Separate requests and loans
+
+A request represents an approval decision and may never become a physical loan.
+A loan represents actual checkout and return activity. Keeping them separate
+prevents rejected or uncollected requests from appearing as borrowed equipment
+and allows the borrower history to distinguish planned borrowing from physical
+possession.
+
+### Derived availability
+
+Availability is derived from condition, approved reservations and loans rather
+than stored as a manually edited duplicate. This avoids contradictory states,
+but means every approving or checkout operation must recalculate availability
+against fresh data.
+
+### Service-layer authorization
+
+The UI hides unavailable buttons for usability, but services enforce the rules
+because direct calls, stale screens and future role integrations can bypass UI
+controls. The trade-off is more explicit service checks and focused tests, in
+exchange for stronger ownership guarantees.
+
+### Manual JavaFX verification
+
+The project has JUnit coverage for services, domain rules, persistence and
+application-level integration, but no automated JavaFX interaction harness.
+GUI layout and navigation are therefore verified manually with documented
+scenarios. This is a known testing limitation, not evidence that the UI has
+been exhaustively tested.
+
+## Testing workflow
+
+Run the main suite on Windows with:
 
 ```powershell
-python tools/borrower/test_hooks.py
-git hook run pre-commit
-git hook run pre-push
+.\gradlew.bat clean test --no-daemon
 ```
 
-Fixtures use synthetic files in disposable repositories under ignored `build/`.
-Never run `clean` concurrently with these fixtures. No real commit or push is
-needed. Skills, hooks and the harness do not modify application data. Unix
-execution has not been verified; a future Unix checkout may also require
-executable permissions on the two hook scripts.
+The test suite covers authentication, password boundaries and hash-only
+storage, session roles, catalogue filtering and authorization, availability,
+eligibility, request submission/edit/cancellation, loan listing and ordering,
+domain validation, H2 persistence, failed saves, restart reloads and stale
+snapshot/concurrency checks. `BorrowerLifecycleIntegrationTest` covers
+synthetic persisted lifecycle states without claiming that supervisor or
+custodian UI exists.
 
-## First ownership skill evaluation
+Manual borrower GUI checks should cover:
 
-Follow the [beginner walkthrough](../tools/borrower/skill-evaluations/ownership/README.md).
-It contains neutral case A/B examples, synthetic requirements, seven shared
-JUnit tests, a reviewer prompt and a separate evaluator answer sheet.
+1. role selection, borrower login and sign-up;
+2. wrong credentials and invalid sign-up input;
+3. catalogue filtering, uppercase/partial input, clear and no matches;
+4. request validation, success and duplicate/eligibility rejection;
+5. request editing, locked equipment identity, invalid input and confirmation;
+6. future cancellation, reason selection and terminal-state restrictions;
+7. dashboard, scrolling, empty states, responsive sizing and logout;
+8. My Loans active/history layout using synthetic shared records when available.
+
+Skill contract checks and controlled evaluation cases are described in
+`tools/borrower/skill-evaluations/README.md`. Run the repository-side check
+with Python 3:
+
+```powershell
+python tools/borrower/test_skill_contracts.py
+```
+
+This validates the skill definitions and fixtures; it cannot prove Codex's
+external automatic-selection model. The existing ownership fixture has a
+separate acceptance command:
 
 ```powershell
 .\gradlew.bat -p tools/borrower/skill-evaluations/ownership verifyFixtures --no-daemon
 ```
 
-An intentional test failure in case A is expected; the harness checks its exact
-identity and requires all case B tests to pass. Do not run only the fixture
-`test` task and interpret its exit status as acceptance: `verifyFixtures` is the
-acceptance task. The application build and normal pre-push tests exclude these
-fixtures. See the dated log for the independent review and assessment; use a
-fresh reviewer without the answer sheet when repeating the evaluation.
+Its case A intentional failure is expected; the acceptance task verifies that
+case A has exactly one expected failure and case B passes all seven tests.
 
-JUnit runs Java assertions only; it does not send the review prompt to an AI.
-The agent review and assessment are separate steps. When switching chats/models,
-start with `CODEX_HANDOFF.md` for the current stopping point and user preferences.
+## Development and review workflow
 
-## Open workflow policies
+Use the project workflow:
 
-The agreed request/loan policy is recorded in `ProjectContext.md`. It covers
-separate request and loan records, supervisor approval, custodian
-checkout/return, fourteen-day default due dates, expiry after a missed
-collection, cancellation, overdue eligibility and derived availability. Shared
-request and loan contracts should follow those decisions rather than inventing
-role-specific alternatives.
+```text
+Plan -> implement -> focused tests -> review -> fix -> full test -> GUI verify
+-> document -> commit -> push -> PR
+```
 
-The borrower request UX is also recorded in `ProjectContext.md`. Its important
-implementation boundaries are that the UI may explain or disable actions, but
-the application service must remain authoritative for eligibility, duplicate
-pending requests, ownership, date rules and fresh availability checks. The
-dashboard may summarize active loans, overdue warnings, approved collection
-reminders and request history, while shared persistence remains responsible for
-the underlying records. Supervisor reasons and custodian condition data are
-shared inputs; they are not reimplemented as borrower-only state.
+Before a meaningful borrower feature, use the implementation-preflight skill.
+Before a milestone or PR readiness decision, use the relevant UI, ownership,
+edge-case and completeness skills. Independent reviewers are separate evidence
+and do not replace tests or human review.
 
-The first request implementation slice adds shared request/loan vocabulary,
-additive H2 persistence and read-only eligibility/availability queries. It does
-not add supervisor approval or custodian checkout/return screens. A checked-out
-request is `COLLECTED` and links to a separate loan; `OVERDUE` is derived from
-an active loan and its due date. Existing local H2 data must remain readable
-after the additive schema change.
+The personal hooks are optional per checkout:
 
-See [ProjectContext.md](ProjectContext.md) for the current context snapshot and
-[AgenticSE.md](AgenticSE.md) for the skill and hook proposal.
+- pre-commit checks staged whitespace, conflict markers, local data and scope
+  warnings;
+- pre-push runs the full clean Gradle test suite.
+
+Hooks do not launch agents or make network calls. GitHub Actions also runs the
+Gradle test task for pushes to `main` and pull requests targeting `main`.
+
+## Extending the project safely
+
+When adding a borrower feature:
+
+1. Read `docs/ProjectContext.md`, `docs/ProjectChecklist.md` and
+   `docs/ReviewGapRegistry.md`.
+2. Confirm whether the change affects a shared contract, role permission,
+   availability rule or persistence schema. Coordinate before changing shared
+   contracts.
+3. Add service-layer authorization and state checks before wiring the UI.
+4. Add success, rejection, boundary, failed-save and restart tests as
+   applicable.
+5. Add manual GUI evidence when JavaFX screens change.
+6. Update both guides and a dated session log when behaviour or design changes.
+7. Run the full clean suite and complete the relevant review before committing.
+
+Do not place domain or persistence logic in `LoanDeskApp`, duplicate H2 stores
+inside role folders, trust UI-only authorization, or use production data in
+fixtures.
+
+## Packaging and release status
+
+The Gradle `application` plugin is configured with
+`loandesk.LoanDeskApp` as the main class. A final release still needs a verified
+distribution containing JavaFX runtime modules and dependencies, followed by
+clean-machine checks on the supported operating systems. A plain JAR is not
+currently a verified cross-platform release artifact. Do not claim Windows,
+macOS or Linux compatibility until the packaged distribution has been tested
+on those systems.
+
+## AI-assisted development records
+
+Meaningful AI-assisted sessions are summarized under
+`logs/Yikbing-logs/`. Records should contain observed commands, results,
+decisions, changed files, reviewer evidence and limitations. `docs/AgenticSE.md`
+describes the five borrower skills, controlled evaluations and personal hooks.
+
+## Open shared-workflow boundary
+
+The borrower implementation depends on supervisor and custodian members
+completing the shared integration points:
+
+- supervisors review pending requests and approve/reject them;
+- custodians check out approved equipment and create loans;
+- custodians record returns, condition and maintenance state;
+- all roles use the same H2 request, loan and equipment contracts.
+
+Fine settlement, supervisor overrides, clarification workflows and a complete
+cross-role acceptance journey remain outside the completed borrower-only scope.
