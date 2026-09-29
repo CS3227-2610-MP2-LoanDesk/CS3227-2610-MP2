@@ -19,5 +19,6 @@ borrowers, supervisors, and custodians.
 - [Project Checklist](ProjectChecklist.md)
 - [Borrower Milestones](BorrowerMilestones.md)
 - [Custodian Implementation Plan](CustodianImplementationPlan.md)
+- [Agentic Software Engineering Reflections](Reflections.md)
 - [Review Gap Registry](ReviewGapRegistry.md)
 - [Agentic Software Engineering Record](AgenticSE.md)

@@ -174,6 +174,11 @@ days. Choose `Check out` to create its one linked active loan. Checkout is
 refused if the request is no longer approved or collectable, or if the
 equipment is unavailable or not in `GOOD` condition.
 
+Use the request search field to filter by equipment name or ID, borrower, or
+request ID. The request status filter can show all rows or only approved rows.
+The collection window and due date are shown for every row; expired approvals
+are removed when the queue is refreshed or opened.
+
 `Active Loans` lists active and lost loans, with overdue active loans first.
 Choose `Return / update` to open the loan-details overlay. For an active loan,
 select a return condition (`GOOD`, `DAMAGED`, or `UNDER_MAINTENANCE`) before
@@ -189,10 +194,13 @@ read-only availability derived from shared requests, loans and condition. From
 there, custodians can add equipment, or change an item's condition directly in
 its table row. Use the pen beside an item's name to edit it in place, then the
 tick to save. The `Add equipment` button opens a panel for the required name
-and initial condition. Condition changes are disabled while an item is reserved. The eye action opens item details, including condition,
-availability and any current borrower's collection and due dates. Categories,
-notes, deletion, retirement, bulk import and maintenance records are outside
-this MVP.
+and initial condition. Condition changes are disabled while an item is
+reserved; other condition changes are saved immediately. The eye action opens
+item details, including condition, availability and any current borrower's
+collection and due dates. Dashboard tables can be filtered by item, borrower
+or record ID and by `ACTIVE`, `OVERDUE` or `LOST` status. Categories, notes,
+deletion, retirement, bulk import and maintenance records are outside this
+MVP.
 
 ## My loans and history
 
