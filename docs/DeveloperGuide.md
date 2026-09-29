@@ -434,13 +434,18 @@ fixtures.
 
 ## Packaging and release status
 
-The Gradle `application` plugin is configured with
-`loandesk.LoanDeskApp` as the main class. A final release still needs a verified
-distribution containing JavaFX runtime modules and dependencies, followed by
-clean-machine checks on the supported operating systems. A plain JAR is not
-currently a verified cross-platform release artifact. Do not claim Windows,
-macOS or Linux compatibility until the packaged distribution has been tested
-on those systems.
+`./gradlew fatJar` creates an executable JAR for the current platform at
+`build/libs/loandesk-0.1.0-all.jar`. Its manifest launches
+`loandesk.LoanDeskLauncher`, which starts `LoanDeskApp`, and it embeds the
+application, H2, and the platform-specific JavaFX runtime dependencies.
+
+The `Build and test` workflow builds the JAR on Linux, Windows, Intel macOS,
+and Apple-silicon macOS. Pushing a `v*` tag creates a GitHub Release containing
+`loandesk-linux.jar`, `loandesk-windows.jar`, `loandesk-macos-intel.jar`, and
+`loandesk-macos-arm64.jar`. JavaFX native libraries are OS-specific, so each
+JAR must be tested on its matching operating system before compatibility is
+claimed. Use `.\gradlew.bat fatJar` on Windows and `./gradlew fatJar` on macOS
+or Linux for a locally built JAR.
 
 ## AI-assisted development records
 

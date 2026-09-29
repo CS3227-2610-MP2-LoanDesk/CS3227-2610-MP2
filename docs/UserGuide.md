@@ -1,11 +1,7 @@
 # LoanDesk User Guide
 
-The current workflow provides local role selection, password authentication,
-catalogue browsing, request submission, request history, request cancellation
-and a read-only loans/history view for borrowers, and request review,
-approval, rejection, booking cancellation and decision history for
-supervisors. Custodians can manage collections, active loans, physical
-condition and the minimal equipment inventory.
+LoanDesk is a desktop application for managing shared equipment loans. It
+supports borrowers, supervisors, and custodians throughout the lending process.
 
 ## Starting LoanDesk
 

@@ -33,6 +33,29 @@ application {
     mainClass = 'loandesk.LoanDeskApp'
 }
 
+tasks.register('fatJar', Jar) {
+    group = 'distribution'
+    description = 'Builds an executable JAR with all runtime dependencies.'
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes 'Main-Class': 'loandesk.LoanDeskLauncher'
+    }
+
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { dependency ->
+            dependency.isDirectory() ? dependency : zipTree(dependency)
+        }
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn tasks.named('fatJar')
+}
+
 tasks.named('test') {
     useJUnitPlatform()
 }
