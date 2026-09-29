@@ -17,7 +17,6 @@ command:
 | --- | --- | --- |
 | Windows | `loandesk-windows.jar` | `java -jar .\loandesk-windows.jar` |
 | Linux | `loandesk-linux.jar` | `java -jar ./loandesk-linux.jar` |
-| Intel Mac | `loandesk-macos-intel.jar` | `java -jar ./loandesk-macos-intel.jar` |
 | Apple-silicon Mac (M-series) | `loandesk-macos-arm64.jar` | `java -jar ./loandesk-macos-arm64.jar` |
 
 Each release JAR is built with the JavaFX native libraries for its named
