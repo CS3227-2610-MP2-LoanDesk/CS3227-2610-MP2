@@ -1,0 +1,4 @@
+Use loandesk-custodian-fulfilment-workflow-review to review the two supplied
+CheckoutService.java files against requirements.md. Do not read tests or
+expected-results.md. Report concrete findings and evidence.
+

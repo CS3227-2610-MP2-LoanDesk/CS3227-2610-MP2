@@ -1,0 +1,16 @@
+{
+  "skills": [
+    {
+      "name": "loandesk-custodian-fulfilment-workflow-review",
+      "trigger": "checkout, return, lost/recovery, collection-window, request/loan transition, or custodian-permission",
+      "case": "fulfilment-workflow/README.md",
+      "expected": "Identify the duplicate checkout and the missing collection-window check in case A while accepting case B."
+    },
+    {
+      "name": "loandesk-custodian-persistence-condition-review",
+      "trigger": "equipment condition, return/lost/recovery, H2 save, schema, or persistence",
+      "case": "persistence-condition/README.md",
+      "expected": "Identify the partial save and condition availability mismatch in case A while accepting case B."
+    }
+  ]
+}

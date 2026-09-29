@@ -165,14 +165,13 @@ created by a borrower, while a loan is created by the future custodian
 checkout workflow. Borrower screens read these shared records but do not
 duplicate them or mutate custodian state.
 
-The initial borrower catalogue is implemented by `CatalogueService`. It loads
-equipment through `DataStore` only for an active borrower session and owns
-case-insensitive name filtering, while the JavaFX screen is responsible only
-for collecting the filter and displaying the results. The filtering helper is
-pure; the persistence boundary is protected by the role check. Category,
-condition and availability are represented by shared equipment and request/loan
-state; borrower-visible availability is derived from that shared state rather
-than duplicated in the catalogue UI.
+The borrower catalogue is implemented by `CatalogueService`. It loads equipment
+through `DataStore` only for an active borrower session, calculates each row's
+availability from the shared request/loan and equipment-condition state, and
+owns case-insensitive name filtering plus availability-first, alphabetical
+ordering. The JavaFX screen collects the filter and displays the resulting
+read-only rows; it does not duplicate the availability calculation. The
+persistence boundary is protected by the role check.
 
 `BorrowerRequestService` enforces session ownership, request validation,
 eligibility, availability, pending-request editing, cancellation state/date
@@ -277,10 +276,16 @@ The current loan vocabulary is:
 ACTIVE, RETURNED, LOST
 ```
 
-Borrower services currently implement submission, own-request listing,
-eligible editing and eligible cancellation. Supervisor approval and custodian
-checkout/return/condition mutations are shared integration work owned by the
-other role members.
+Borrower services implement submission, own-request listing, eligible editing
+and eligible cancellation. Supervisor and custodian services apply the shared
+lifecycle and availability checks at their role-specific boundaries. A
+custodian checkout changes an approved request to `COLLECTED` and creates its
+linked `ACTIVE` loan in one snapshot. A custodian return changes an `ACTIVE`
+loan to `RETURNED` with the selected condition. Loss changes an active loan and
+its equipment to `LOST`; recovery intentionally changes that loan back to
+`ACTIVE` with `GOOD` equipment, so a separate return action can capture the
+actual condition. Recovery has no return date and the equipment remains
+`ON_LOAN` until that return is recorded.
 
 ## Borrower service boundaries
 
@@ -429,13 +434,18 @@ fixtures.
 
 ## Packaging and release status
 
-The Gradle `application` plugin is configured with
-`loandesk.LoanDeskApp` as the main class. A final release still needs a verified
-distribution containing JavaFX runtime modules and dependencies, followed by
-clean-machine checks on the supported operating systems. A plain JAR is not
-currently a verified cross-platform release artifact. Do not claim Windows,
-macOS or Linux compatibility until the packaged distribution has been tested
-on those systems.
+`./gradlew fatJar` creates an executable JAR for the current platform at
+`build/libs/loandesk-0.1.0-all.jar`. Its manifest launches
+`loandesk.LoanDeskLauncher`, which starts `LoanDeskApp`, and it embeds the
+application, H2, and the platform-specific JavaFX runtime dependencies.
+
+The `Build and test` workflow builds the JAR on Linux, Windows, Intel macOS,
+and Apple-silicon macOS. Pushing a `v*` tag creates a GitHub Release containing
+`loandesk-linux.jar`, `loandesk-windows.jar`, `loandesk-macos-intel.jar`, and
+`loandesk-macos-arm64.jar`. JavaFX native libraries are OS-specific, so each
+JAR must be tested on its matching operating system before compatibility is
+claimed. Use `.\gradlew.bat fatJar` on Windows and `./gradlew fatJar` on macOS
+or Linux for a locally built JAR.
 
 ## AI-assisted development records
 

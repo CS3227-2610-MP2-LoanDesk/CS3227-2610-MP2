@@ -10,7 +10,6 @@ import loandesk.domain.EquipmentCondition;
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
 import loandesk.domain.LoanRequest;
-import loandesk.domain.RequestStatus;
 
 public final class AvailabilityService {
     public AvailabilityStatus calculate(
@@ -33,8 +32,7 @@ public final class AvailabilityService {
             return AvailabilityStatus.ON_LOAN;
         }
         if (requests.stream().anyMatch(request -> request.equipmentId().equals(equipment.id())
-                && request.status() == RequestStatus.APPROVED
-                && !request.startDate().isBefore(today))) {
+                && RequestLifecycleService.isActiveApprovedReservation(request, today))) {
             return AvailabilityStatus.RESERVED;
         }
         return AvailabilityStatus.AVAILABLE;

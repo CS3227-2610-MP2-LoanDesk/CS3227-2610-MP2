@@ -79,12 +79,22 @@ class RequestLifecycleServiceTest {
     }
 
     @Test
-    void expiryStartsOnlyAfterTheEndOfTheStartDate() {
+    void collectionWindowIncludesStartDateAndFinalGraceDate() {
         LoanRequest startingToday = approved("today", TODAY);
-        LoanRequest startedYesterday = approved("yesterday", TODAY.minusDays(1));
+        LoanRequest endingToday = approved("ending-today", TODAY.minusDays(3));
 
         assertFalse(RequestLifecycleService.hasExpired(startingToday, TODAY));
-        assertTrue(RequestLifecycleService.hasExpired(startedYesterday, TODAY));
+        assertFalse(RequestLifecycleService.hasExpired(endingToday, TODAY));
+        assertTrue(RequestLifecycleService.isWithinCollectionWindow(startingToday, TODAY));
+        assertTrue(RequestLifecycleService.isWithinCollectionWindow(endingToday, TODAY));
+    }
+
+    @Test
+    void expiryStartsTheDayAfterTheFinalGraceDate() {
+        LoanRequest expiredYesterday = approved("expired", TODAY.minusDays(4));
+
+        assertFalse(RequestLifecycleService.isWithinCollectionWindow(expiredYesterday, TODAY));
+        assertTrue(RequestLifecycleService.hasExpired(expiredYesterday, TODAY));
     }
 
     @Test
@@ -98,7 +108,7 @@ class RequestLifecycleServiceTest {
     @Test
     void sweepPersistsExpiryAndReleasesTheReservation() throws Exception {
         DatabaseDataStore store = storeWith(
-                approved("lapsed", TODAY.minusDays(1)),
+                approved("lapsed", TODAY.minusDays(4)),
                 approved("upcoming", TODAY.plusDays(1)));
 
         LoanDeskData swept = new RequestLifecycleService(store, CLOCK).loadWithExpiredApprovals();
@@ -114,7 +124,7 @@ class RequestLifecycleServiceTest {
 
     @Test
     void expiryKeepsTheOriginalDecisionRecord() throws Exception {
-        DatabaseDataStore store = storeWith(approved("lapsed", TODAY.minusDays(2)));
+        DatabaseDataStore store = storeWith(approved("lapsed", TODAY.minusDays(4)));
 
         LoanRequest expired = byId(
                 new RequestLifecycleService(store, CLOCK).loadWithExpiredApprovals(), "lapsed");

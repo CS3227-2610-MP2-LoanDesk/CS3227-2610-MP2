@@ -1,22 +1,55 @@
 # LoanDesk User Guide
 
-The current workflow provides local role selection, password authentication,
-catalogue browsing, request submission, request history, request cancellation
-and a read-only loans/history view for borrowers, and request review,
-approval, rejection, booking cancellation and decision history for
-supervisors. Custodian workflow actions are still being implemented by their
-owner.
+LoanDesk is a desktop application for managing shared equipment loans. It
+supports borrowers, supervisors, and custodians throughout the lending process.
 
-## Running locally
+## Starting LoanDesk
 
-Install JDK 25, then run `./gradlew run` from the repository root.
+### From a GitHub Release
+
+Download the JAR that matches both your operating system and processor from
+the latest GitHub Release. The release JAR already includes JavaFX and H2, so
+you do not need to install JavaFX separately. Install a Java 25 runtime, open
+a terminal in the folder containing the downloaded JAR, then run the matching
+command:
+
+| Computer | Release asset | Command |
+| --- | --- | --- |
+| Windows | `loandesk-windows.jar` | `java -jar .\loandesk-windows.jar` |
+| Linux | `loandesk-linux.jar` | `java -jar ./loandesk-linux.jar` |
+| Intel Mac | `loandesk-macos-intel.jar` | `java -jar ./loandesk-macos-intel.jar` |
+| Apple-silicon Mac (M-series) | `loandesk-macos-arm64.jar` | `java -jar ./loandesk-macos-arm64.jar` |
+
+Each release JAR is built with the JavaFX native libraries for its named
+platform. Do not use a JAR intended for another operating system or processor.
+If `java` is not recognised, install Java 25 and reopen the terminal. On macOS,
+you may need to approve the app in **System Settings > Privacy & Security** if
+the operating system blocks software downloaded from the internet.
+
+### From the project source
+
+To run a checked-out copy of the project, install JDK 25. JavaFX is downloaded
+by Gradle automatically on the first run; internet access is therefore needed
+once. From the repository root, run:
+
+| Operating system | Command |
+| --- | --- |
+| Windows | `.\gradlew.bat run` |
+| macOS or Linux | `./gradlew run` |
+
+To make a runnable JAR for the current platform from source, replace `run` with
+`fatJar`. The output is `build/libs/loandesk-0.1.0-all.jar`, which can be
+started with `java -jar build/libs/loandesk-0.1.0-all.jar`.
 
 ## Login foundation
 
-The first screen provides three role buttons: `Borrower`, `Supervisor`, and
-`Custodian`.
+The first screen provides three role cards: `Borrower`, `Supervisor`, and
+`Custodian`. Selecting a role opens its sign-in form directly. Each form shows
+the selected role and includes a `Return to role selection` action.
 
-- `Borrower` provides `Log in` and `Sign up` actions with a password field.
+- `Borrower` opens with username and password fields. Select `Sign up instead`
+  below the red `Log in` button to create an account, or `Log in instead` to
+  return to sign-in.
 - Borrower usernames are unique and may contain letters, numbers, underscores,
   and hyphens up to 30 characters.
 - Borrower passwords must be 8 to 128 characters. The application stores
@@ -27,16 +60,23 @@ The first screen provides three role buttons: `Borrower`, `Supervisor`, and
 - `Supervisor` requires the fixed supervisor account password. For local
   synthetic demonstrations only, the seeded password is `supervisor1`. Do not
   reuse this password.
-- `Custodian` still opens its fixed local role account directly. Password login
-  for that role is pending its owner's implementation.
-- The initial equipment records are `camera1` and `camera2`.
+- `Custodian` requires the fixed custodian account password. For local
+  synthetic demonstrations only, the seeded password is `custodian1`. Do not
+  reuse this password.
+- The initial catalogue has ten available items and no bookings: Canon EOS 90D
+  DSLR Camera, Sony Alpha a6400 Mirrorless Camera, Logitech Brio 4K Webcam,
+  Logitech C920 HD Pro Webcam, Dell UltraSharp U2723QE 27-inch Monitor, LG
+  UltraFine 27UP850 27-inch Monitor, Epson EB-FH52 Projector, Blue Yeti USB
+  Microphone, Manfrotto Befree Advanced Tripod, and Apple iPad Air 11-inch.
 - Local data is stored in an embedded H2 database rooted at `data/loandesk` and
   persists between launches. Users do not need to install a separate database
   server.
 - The supervisor account is created when the database is first seeded. A
   database created before supervisor login existed has no supervisor account;
   sign-in then reports that the ignored local `data/loandesk` files must be
-  removed so the demonstration accounts are seeded again.
+  removed so the demonstration accounts are seeded again. A database that
+  predates custodian login is upgraded with the missing custodian account when
+  it is next opened.
 
 Existing JSON files are not imported. Use borrower sign-up to create accounts
 in the new local database. The generated database files remain local and are
@@ -49,13 +89,13 @@ logging in again.
 
 ## Borrower catalogue
 
-After logging in as a borrower, select `Catalogue` to view the seeded equipment
-identifiers and names. Enter part of an equipment name and select `Filter` to
-perform a case-insensitive search. Select `Clear` to restore the full catalogue.
-If no item matches, the screen displays an empty-results message. The current
-catalogue slice is read-only; category, condition, availability and borrowing
-metadata will be added with later workflow milestones, while eligible borrowers
-can already start a request from the catalogue.
+After logging in as a borrower, select `View Catalogue` to view equipment names
+and their current availability. Available equipment appears first; each group is
+then ordered alphabetically by name. Enter part of an equipment name and select
+`Filter` to perform a case-insensitive search. Select `Clear` to restore the full
+catalogue. If no item matches, the screen displays an empty-results message.
+Only equipment marked `AVAILABLE` can be selected for a request. The catalogue
+is read-only; category and physical-condition management remain custodian work.
 
 ## Borrower requests
 
@@ -66,9 +106,10 @@ shorter borrowing periods are allowed. Past start dates and due dates before
 the start date are rejected.
 
 After submission, select `My Requests` from the dashboard to view your own
-requests. Active requests appear before terminal history. Borrowers may edit
-the purpose and dates of an eligible `PENDING` request before its start date;
-the equipment and request ID remain unchanged. Borrowers may also cancel
+requests. The table shows the equipment name, status, requested start and due
+dates, and submission date. Active requests appear before terminal history.
+Borrowers may edit the purpose and dates of an eligible `PENDING` request
+before its start date; the equipment and request ID remain unchanged. Borrowers may also cancel
 eligible future `PENDING` or `APPROVED` requests by selecting a cancellation
 reason and confirming the action. Rejected requests are read-only and must be
 replaced by a new request. Clarification and revision/resubmission are not part
@@ -108,9 +149,9 @@ longer eligible, both of which are rechecked at the moment of the decision
 rather than taken from the state at submission. A request that is already
 decided, cancelled, expired or collected can no longer be decided.
 
-An approved request that is not collected by the end of its requested start
-date becomes `EXPIRED` and releases its reservation. This is applied when the
-queue or a borrower's request list is next opened.
+An approved request is collectable on its requested start date and the next
+three calendar days. It becomes `EXPIRED` and releases its reservation the day
+after that window ends. This is applied when shared request data is next opened.
 
 Clarification and resubmission are not part of the current workflow. Supervisors
 do not edit physical equipment condition; that remains with the custodian.
@@ -118,10 +159,46 @@ do not edit physical equipment condition; that remains with the custodian.
 `Decision History` lists every recorded decision and cancellation, most recent
 first, showing who decided, when and why.
 
+## Custodian workflow
+
+Select `Custodian` from role selection and enter the custodian password. The
+dashboard shows non-clickable collection, loan, inventory and condition-alert
+statistics, followed by filterable `Loan Requests` and `Active Loans` tables.
+Each table keeps up to five rows visible at once and can scroll for more.
+Equipment names always show their item ID underneath in muted text. Use
+`Manage inventory` in the top-right corner to open the separate inventory
+table; inventory is not duplicated on the dashboard.
+
+`Loan Requests` lists approved requests that are within the inclusive
+collection window: the requested start date through three additional calendar
+days. Choose `Check out` to create its one linked active loan. Checkout is
+refused if the request is no longer approved or collectable, or if the
+equipment is unavailable or not in `GOOD` condition.
+
+`Active Loans` lists active and lost loans, with overdue active loans first.
+Choose `Return / update` to open the loan-details overlay. For an active loan,
+select a return condition (`GOOD`, `DAMAGED`, or `UNDER_MAINTENANCE`) before
+marking it returned. Marking an active item lost changes the loan and equipment
+to `LOST`; that control is disabled for a loan already marked lost. Recovering
+a lost item deliberately restores it to an `ACTIVE` loan with `GOOD`
+equipment; it remains on loan until the custodian selects and records the
+observed return condition. This two-step flow ensures the condition is chosen
+at physical return rather than assumed during recovery.
+
+`Manage Inventory` opens a table of all equipment, its physical condition and
+read-only availability derived from shared requests, loans and condition. From
+there, custodians can add equipment, or change an item's condition directly in
+its table row. Use the pen beside an item's name to edit it in place, then the
+tick to save. The `Add equipment` button opens a panel for the required name
+and initial condition. Condition changes are disabled while an item is reserved. The eye action opens item details, including condition,
+availability and any current borrower's collection and due dates. Categories,
+notes, deletion, retirement, bulk import and maintenance records are outside
+this MVP.
+
 ## My loans and history
 
-Select `My Loans` from the borrower dashboard to view persisted loans belonging
-to the logged-in borrower. Active and lost loans appear above returned history.
+Select `View past loans` from the borrower dashboard to view returned persisted
+loans belonging to the logged-in borrower. Active loans remain on the dashboard.
 Each entry shows the equipment, checkout date, due date, return date when
 available, and a displayed status such as `ACTIVE`, `OVERDUE`, `LOST` or
 `RETURNED`. Overdue is derived when an active loan is past its due date.

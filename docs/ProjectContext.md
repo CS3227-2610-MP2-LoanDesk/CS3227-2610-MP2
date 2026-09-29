@@ -118,6 +118,9 @@ owners on 24 September 2026 and should guide implementation:
 - A checked-out request becomes `COLLECTED` and links to a separate loan.
   Expiry applies only before collection; overdue applies to the resulting loan
   after checkout. A lost loan continues to block new requests until resolved.
+- Recovering a lost item restores its loan to `ACTIVE` and its equipment to
+  `GOOD`; it is still on loan while the custodian records the observed return
+  condition in a separate return action. Recovery does not set a return date.
 - Request records and the shared loan/availability foundation use the existing
   `LoanDeskData` and H2 transaction boundary. The first schema change is
   additive: existing users, credentials and equipment are preserved.
@@ -196,11 +199,9 @@ parts inventory, repair costing, and detailed maintenance scheduling.
 ## Login direction
 
 The first screen presents three buttons labelled `Borrower`, `Supervisor`, and
-`Custodian`. The final role flows require passwords for borrowers, supervisors
-and custodians. The current foundation still opens singleton supervisor and
-custodian accounts directly; their role owners must replace that temporary
-entry with password login. The borrower path presents separate `Log in` and
-`Sign up` actions and uses a unique username with a password. Usernames are trimmed,
+`Custodian`. All role flows require passwords. Supervisor and custodian are
+fixed seeded singleton accounts, while the borrower path presents separate
+`Log in` and `Sign up` actions and uses a unique username with a password. Usernames are trimmed,
 compared case-insensitively, cannot be blank or invalid, and have a maximum
 length of 30 characters. Internal spaces are not allowed; letters, numbers,
 underscores, and hyphens are allowed. Borrower passwords must be 8 to 128
@@ -217,8 +218,9 @@ The local database is an embedded H2 store rooted at `data/loandesk`; H2
 creates its database files in that ignored directory. On first launch, if the
 database is empty, the persistence layer creates the schema and seeds the
 initial borrower accounts `testBorrower1` and `testBorrower2`, plus equipment
-records `camera1` and `camera2`. If the database already contains records, it
-is loaded unchanged and is never reseeded automatically. New borrower sign-ups
+records for a ten-item demo catalogue: cameras, webcams, monitors, a projector,
+a microphone, a tripod and a tablet. The demo catalogue has no requests or
+loans. If the database already contains records, it is loaded unchanged and is never reseeded automatically. New borrower sign-ups
 are written transactionally. Each loaded store tracks a database revision, and
 an atomic revision update prevents stale or concurrent snapshots from
 overwriting a newer shared update. The same shared database is available to
@@ -263,7 +265,7 @@ just to avoid coordination.
 - Keep supervisor and custodian as fixed singleton roles without usernames
 - Cross-role demonstration data after workflow features exist
 - Reset behaviour for demonstration data
-- Packaging and cross-platform release verification
+- Cross-platform release verification
 
 ## Session continuity
 

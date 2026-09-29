@@ -34,6 +34,10 @@ public final class DatabaseDataStore implements DataStore {
     public static final String SUPERVISOR_USERNAME = "supervisor";
     /** Demonstration password for the seeded supervisor account. */
     public static final String SUPERVISOR_DEMONSTRATION_PASSWORD = "supervisor1";
+    /** The fixed singleton custodian account used by custodian login. */
+    public static final String CUSTODIAN_USERNAME = "custodian";
+    /** Demonstration password for the seeded custodian account. */
+    public static final String CUSTODIAN_DEMONSTRATION_PASSWORD = "custodian1";
 
     private static final String CREATE_USERS = """
             CREATE TABLE IF NOT EXISTS users (
@@ -112,6 +116,11 @@ public final class DatabaseDataStore implements DataStore {
                 revision BIGINT NOT NULL
             )
             """;
+    private static final String CREATE_CUSTODIAN_AUTH_MIGRATION = """
+            CREATE TABLE IF NOT EXISTS custodian_auth_migration (
+                id INT PRIMARY KEY
+            )
+            """;
     private static final String INSERT_INITIAL_STATE =
             "INSERT INTO database_state (id, revision) "
                     + "SELECT 1, 0 WHERE NOT EXISTS "
@@ -134,6 +143,15 @@ public final class DatabaseDataStore implements DataStore {
             if (isEmpty(connection)) {
                 writeData(connection, seededData());
                 incrementRevision(connection);
+                markCustodianAuthMigration(connection);
+            } else if (requiresCustodianAuthMigration(connection)) {
+                LoanDeskData currentData = readData(connection);
+                LoanDeskData migratedData = withSeededCustodian(currentData);
+                if (!migratedData.equals(currentData)) {
+                    writeData(connection, migratedData);
+                    incrementRevision(connection);
+                }
+                markCustodianAuthMigration(connection);
             }
             connection.commit();
             loadedRevision = readRevision(connection);
@@ -186,6 +204,7 @@ public final class DatabaseDataStore implements DataStore {
             statement.executeUpdate(CREATE_LOAN_REQUESTS);
             statement.executeUpdate(CREATE_LOANS);
             statement.executeUpdate(CREATE_DATABASE_STATE);
+            statement.executeUpdate(CREATE_CUSTODIAN_AUTH_MIGRATION);
             statement.executeUpdate(INSERT_INITIAL_STATE);
         }
     }
@@ -221,6 +240,19 @@ public final class DatabaseDataStore implements DataStore {
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("Unable to update LoanDesk database revision");
             }
+        }
+    }
+
+    private static boolean requiresCustodianAuthMigration(Connection connection) throws SQLException {
+        return count(connection, "custodian_auth_migration") == 0;
+    }
+
+    private static void markCustodianAuthMigration(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "INSERT INTO custodian_auth_migration (id) "
+                        + "SELECT 1 WHERE NOT EXISTS "
+                        + "(SELECT 1 FROM custodian_auth_migration WHERE id = 1)")) {
+            statement.executeUpdate();
         }
     }
 
@@ -499,14 +531,48 @@ public final class DatabaseDataStore implements DataStore {
         User firstBorrower = new User("testBorrower1", Role.BORROWER);
         User secondBorrower = new User("testBorrower2", Role.BORROWER);
         return new LoanDeskData(
-                List.of(firstBorrower, secondBorrower, new User(SUPERVISOR_USERNAME, Role.SUPERVISOR)),
+                List.of(firstBorrower, secondBorrower,
+                        new User(SUPERVISOR_USERNAME, Role.SUPERVISOR),
+                        new User(CUSTODIAN_USERNAME, Role.CUSTODIAN)),
                 List.of(
                         PasswordHasher.hash(firstBorrower.username(), "password1"),
                         PasswordHasher.hash(secondBorrower.username(), "password2"),
-                        PasswordHasher.hash(SUPERVISOR_USERNAME, SUPERVISOR_DEMONSTRATION_PASSWORD)),
+                        PasswordHasher.hash(SUPERVISOR_USERNAME, SUPERVISOR_DEMONSTRATION_PASSWORD),
+                        PasswordHasher.hash(CUSTODIAN_USERNAME, CUSTODIAN_DEMONSTRATION_PASSWORD)),
                 List.of(
-                        new Equipment("camera1", "Camera 1"),
-                        new Equipment("camera2", "Camera 2")));
+                        new Equipment("camera-dslr", "Canon EOS 90D DSLR Camera"),
+                        new Equipment("camera-mirrorless", "Sony Alpha a6400 Mirrorless Camera"),
+                        new Equipment("webcam-brio", "Logitech Brio 4K Webcam"),
+                        new Equipment("webcam-c920", "Logitech C920 HD Pro Webcam"),
+                        new Equipment("monitor-dell-u2723qe", "Dell UltraSharp U2723QE 27-inch Monitor"),
+                        new Equipment("monitor-lg-27up850", "LG UltraFine 27UP850 27-inch Monitor"),
+                        new Equipment("projector-epson-fh52", "Epson EB-FH52 Projector"),
+                        new Equipment("microphone-yeti", "Blue Yeti USB Microphone"),
+                        new Equipment("tripod-befree", "Manfrotto Befree Advanced Tripod"),
+                        new Equipment("tablet-ipad-air", "Apple iPad Air 11-inch")));
+    }
+
+    /** Adds the Stage 1 singleton account to databases created before custodian login existed. */
+    private static LoanDeskData withSeededCustodian(LoanDeskData data) {
+        boolean hasCustodian = data.users().stream()
+                .anyMatch(user -> user.username().equals(CUSTODIAN_USERNAME)
+                        && user.role() == Role.CUSTODIAN);
+        boolean hasCredential = data.credentials().stream()
+                .anyMatch(credential -> credential.username().equals(CUSTODIAN_USERNAME));
+        if (hasCustodian && hasCredential) {
+            return data;
+        }
+
+        List<User> users = new ArrayList<>(data.users());
+        if (!hasCustodian) {
+            users.add(new User(CUSTODIAN_USERNAME, Role.CUSTODIAN));
+        }
+        List<PasswordCredential> credentials = new ArrayList<>(data.credentials());
+        if (!hasCredential) {
+            credentials.add(PasswordHasher.hash(
+                    CUSTODIAN_USERNAME, CUSTODIAN_DEMONSTRATION_PASSWORD));
+        }
+        return new LoanDeskData(users, credentials, data.equipment(), data.requests(), data.loans());
     }
 
     private static IOException databaseException(String message, SQLException cause) {

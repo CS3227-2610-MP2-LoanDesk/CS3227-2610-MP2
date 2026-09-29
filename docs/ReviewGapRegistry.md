@@ -28,6 +28,9 @@ was addressed for the recorded scope; it does not claim exhaustive coverage.
 | RG-017 | 2026-09-26 | Loans UI error state | A loan-load failure could leave empty-list placeholders that looked like a successful account with no loans. | Use failure-specific placeholders and record manual load-error verification as a GUI limitation. | Resolved |
 | RG-018 | 2026-09-26 | Synthetic lifecycle ownership evidence | The initial borrower-only lifecycle fixture did not include foreign records or all non-borrower session boundaries. | Add foreign request/loan filtering plus logged-out, supervisor and custodian rejection assertions, and confirm persisted state is unchanged. | Resolved |
 | RG-019 | 2026-09-26 | Borrower UI styling | Initial UI polish used mismatched CSS descendant selectors and one inline cancellation error style. | Match selectors to the JavaFX node structure and use the shared borrower error class consistently. | Resolved |
+| RG-020 | 2026-09-29 | Borrower loans UI | The `My Loans` table included lost loans despite being labelled as active loans. | Filter the dashboard table to `ACTIVE` loans; retain overdue as a derived display state. | Resolved |
+| RG-021 | 2026-09-29 | Request form UI | The due-date picker allowed dates outside the agreed start-to-14-day period, relying on submit-time rejection. | Disable due dates before the selected start date or more than fourteen days after it; keep service validation. | Resolved |
+| RG-022 | 2026-09-29 | Catalogue tests | New borrower availability queries lacked direct authorization and non-available-status coverage. | Exercise every derived status, logged-out and wrong-role rejection, and availability-group alphabetical ordering. | Resolved |
 
 ## Deferred hardening or known limitations
 

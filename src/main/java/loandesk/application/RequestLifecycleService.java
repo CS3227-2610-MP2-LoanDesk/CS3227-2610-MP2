@@ -28,6 +28,8 @@ import loandesk.persistence.LoanDeskData;
  * lapsed overnight is released without a background task.
  */
 public final class RequestLifecycleService {
+    /** Number of additional calendar days an approved request remains collectable. */
+    private static final long COLLECTION_GRACE_DAYS = 3;
     private static final Map<RequestStatus, Set<RequestStatus>> LEGAL_TRANSITIONS =
             buildTransitions();
 
@@ -70,14 +72,42 @@ public final class RequestLifecycleService {
     }
 
     /**
-     * Reports whether an approved request was not collected by the end of its
-     * start date. Collected, cancelled and rejected requests never expire.
+     * Reports whether today falls in a request's inclusive collection window:
+     * its start date plus three additional calendar days.
+     *
+     * <p>The predicate intentionally only describes dates. Callers that need an
+     * approved request must check its status as well, which lets checkout reuse
+     * this rule before it performs its separate lifecycle validation.
+     */
+    public static boolean isWithinCollectionWindow(LoanRequest request, LocalDate today) {
+        Objects.requireNonNull(request);
+        Objects.requireNonNull(today);
+        return !today.isBefore(request.startDate())
+                && !today.isAfter(request.startDate().plusDays(COLLECTION_GRACE_DAYS));
+    }
+
+    /**
+     * Reports whether an approved request was not collected before its
+     * collection window ended. Collected, cancelled and rejected requests never
+     * expire.
      */
     public static boolean hasExpired(LoanRequest request, LocalDate today) {
         Objects.requireNonNull(request);
         Objects.requireNonNull(today);
         return request.status() == RequestStatus.APPROVED
-                && request.startDate().isBefore(today);
+                && today.isAfter(request.startDate().plusDays(COLLECTION_GRACE_DAYS));
+    }
+
+    /**
+     * Reports whether an approval still reserves its equipment. Future approvals
+     * reserve equipment too; an approval releases it only after the collection
+     * window has elapsed.
+     */
+    public static boolean isActiveApprovedReservation(LoanRequest request, LocalDate today) {
+        Objects.requireNonNull(request);
+        Objects.requireNonNull(today);
+        return request.status() == RequestStatus.APPROVED
+                && (today.isBefore(request.startDate()) || isWithinCollectionWindow(request, today));
     }
 
     /**

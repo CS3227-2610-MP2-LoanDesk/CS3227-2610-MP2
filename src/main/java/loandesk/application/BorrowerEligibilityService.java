@@ -9,7 +9,6 @@ import java.util.Objects;
 
 import loandesk.domain.Loan;
 import loandesk.domain.LoanStatus;
-import loandesk.domain.RequestStatus;
 import loandesk.persistence.DataStore;
 import loandesk.persistence.LoanDeskData;
 
@@ -62,8 +61,7 @@ public final class BorrowerEligibilityService {
                 .count();
         long approvedReservations = data.requests().stream()
                 .filter(request -> request.borrowerUsername().equals(borrowerUsername))
-                .filter(request -> request.status() == RequestStatus.APPROVED)
-                .filter(request -> !request.startDate().isBefore(today))
+                .filter(request -> RequestLifecycleService.isActiveApprovedReservation(request, today))
                 .count();
         if (activeLoans + approvedReservations >= MAX_ACTIVE_LOANS_OR_RESERVATIONS) {
             blockers.add(EligibilityBlocker.LOAN_OR_RESERVATION_LIMIT);

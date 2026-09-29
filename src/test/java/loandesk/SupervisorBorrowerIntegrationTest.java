@@ -134,7 +134,7 @@ class SupervisorBorrowerIntegrationTest {
     }
 
     @Test
-    void anApprovalThatWasNeverCollectedExpiresOnTheNextDay() throws Exception {
+    void anApprovalThatWasNeverCollectedExpiresAfterTheCollectionGracePeriod() throws Exception {
         Path databasePath = temporaryDirectory.resolve("loandesk");
         DatabaseDataStore store = initialStore(databasePath);
         BorrowerRequestService borrower = borrowerService(store);
@@ -143,16 +143,16 @@ class SupervisorBorrowerIntegrationTest {
                 "camera1", "Academic project", TODAY, TODAY.plusDays(2));
         supervisorService(store).approve(submitted.requestId(), null);
 
-        Clock nextDay = Clock.fixed(NOW.plusSeconds(86_400), ZoneOffset.UTC);
+        Clock afterCollectionWindow = Clock.fixed(NOW.plusSeconds(4 * 86_400), ZoneOffset.UTC);
         DatabaseDataStore restarted = new DatabaseDataStore(databasePath);
         restarted.loadOrSeed();
-        SupervisorRequestService tomorrow = new SupervisorRequestService(
-                restarted, supervisorSession(), nextDay);
+        SupervisorRequestService afterWindow = new SupervisorRequestService(
+                restarted, supervisorSession(), afterCollectionWindow);
 
-        List<LoanRequest> queue = tomorrow.reviewQueue(ReviewFilter.none());
+        List<LoanRequest> queue = afterWindow.reviewQueue(ReviewFilter.none());
 
         assertEquals(RequestStatus.EXPIRED, queue.get(0).status());
-        assertEquals(AvailabilityStatus.AVAILABLE, tomorrow.availabilityOf("camera1"));
+        assertEquals(AvailabilityStatus.AVAILABLE, afterWindow.availabilityOf("camera1"));
         assertTrue(new DatabaseDataStore(databasePath).loadOrSeed().requests().stream()
                 .allMatch(request -> request.status() == RequestStatus.EXPIRED));
     }

@@ -7,9 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.IOException;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,10 +33,18 @@ class AuthenticationServiceTest {
 
         assertEquals("testBorrower1", service.loginBorrower(" TESTBORROWER1 ", "password1").username());
         LoanDeskData loaded = new DatabaseDataStore(databasePath).loadOrSeed();
-        assertEquals(2, loaded.equipment().size());
+        assertEquals(10, loaded.equipment().size());
+        assertEquals(List.of(
+                "camera-dslr", "camera-mirrorless", "microphone-yeti", "monitor-dell-u2723qe",
+                "monitor-lg-27up850", "projector-epson-fh52", "tablet-ipad-air",
+                "tripod-befree", "webcam-brio", "webcam-c920"),
+                loaded.equipment().stream().map(item -> item.id()).toList());
+        assertTrue(loaded.requests().isEmpty());
+        assertTrue(loaded.loans().isEmpty());
         assertTrue(Files.exists(Path.of(databasePath + ".mv.db")));
         assertFalse(Files.exists(temporaryDirectory.resolve("loandesk.json")));
-        assertEquals(Role.CUSTODIAN, service.loginStaff(Role.CUSTODIAN).role());
+        assertEquals(Role.CUSTODIAN, service.loginCustodian(
+                DatabaseDataStore.CUSTODIAN_DEMONSTRATION_PASSWORD).role());
     }
 
     @Test
