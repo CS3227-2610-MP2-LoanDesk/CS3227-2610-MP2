@@ -40,53 +40,27 @@ To make a runnable JAR for the current platform from source, replace `run` with
 `fatJar`. The output is `build/libs/loandesk-0.1.0-all.jar`, which can be
 started with `java -jar build/libs/loandesk-0.1.0-all.jar`.
 
-## Login foundation
+## Logging In 
 
 The first screen provides three role cards: `Borrower`, `Supervisor`, and
-`Custodian`. Selecting a role opens its sign-in form directly. Each form shows
-the selected role and includes a `Return to role selection` action.
+`Custodian`. Selecting a role opens its sign-in form directly.
 
-- `Borrower` opens with username and password fields. Select `Sign up instead`
-  below the red `Log in` button to create an account, or `Log in instead` to
-  return to sign-in.
-- Borrower usernames are unique and may contain letters, numbers, underscores,
-  and hyphens up to 30 characters.
-- Borrower passwords must be 8 to 128 characters. The application stores
-  salted password hashes rather than plaintext passwords.
-- The initial seeded borrower usernames are `testBorrower1` and `testBorrower2`.
+For each of the roles, we have provided some testing accounts to aid in the testing process.
+- The seeded borrower usernames are `testBorrower1` and `testBorrower2`.
   For local synthetic demonstrations only, their passwords
-  are `password1` and `password2` respectively. Do not reuse these passwords.
-- `Supervisor` requires the fixed supervisor account password. For local
-  synthetic demonstrations only, the seeded password is `supervisor1`. Do not
-  reuse this password.
-- `Custodian` requires the fixed custodian account password. For local
-  synthetic demonstrations only, the seeded password is `custodian1`. Do not
-  reuse this password.
-- The initial catalogue has ten available items and no bookings: Canon EOS 90D
-  DSLR Camera, Sony Alpha a6400 Mirrorless Camera, Logitech Brio 4K Webcam,
-  Logitech C920 HD Pro Webcam, Dell UltraSharp U2723QE 27-inch Monitor, LG
-  UltraFine 27UP850 27-inch Monitor, Epson EB-FH52 Projector, Blue Yeti USB
-  Microphone, Manfrotto Befree Advanced Tripod, and Apple iPad Air 11-inch.
-- Local data is stored in an embedded H2 database rooted at `data/loandesk` and
-  persists between launches. Users do not need to install a separate database
-  server.
-- The supervisor account is created when the database is first seeded. A
-  database created before supervisor login existed has no supervisor account;
-  sign-in then reports that the ignored local `data/loandesk` files must be
-  removed so the demonstration accounts are seeded again. A database that
-  predates custodian login is upgraded with the missing custodian account when
-  it is next opened.
+  are `password1` and `password2` respectively. 
+- `Supervisor` requires the fixed supervisor account password. The seeded password is `supervisor1`. 
+- `Custodian` requires the fixed custodian account password. The seeded password is `custodian1`.
 
-Existing JSON files are not imported. Use borrower sign-up to create accounts
-in the new local database. The generated database files remain local and are
-ignored by Git.
+The initial catalogue has ten available items and no bookings.
 
-After a successful login or sign-up, the borrower dashboard and its protected
-catalogue actions become available. Select `Log out` to clear the active
-session and return to role selection; protected borrower actions require
-logging in again.
+After a successful login or sign-up, the role dashboard and its protected actions become available. 
+Select `Log out` to clear the active session and return to role selection.
 
-## Borrower catalogue
+
+## Borrower Features
+
+### Catalogue
 
 After logging in as a borrower, select `View Catalogue` to view equipment names
 and their current availability. Available equipment appears first; each group is
@@ -94,9 +68,9 @@ then ordered alphabetically by name. Enter part of an equipment name and select
 `Filter` to perform a case-insensitive search. Select `Clear` to restore the full
 catalogue. If no item matches, the screen displays an empty-results message.
 Only equipment marked `AVAILABLE` can be selected for a request. The catalogue
-is read-only; category and physical-condition management remain custodian work.
+is read-only for borrowers.
 
-## Borrower requests
+### Borrower requests
 
 From the catalogue, select one available equipment item and choose `Request`.
 The request form requires a non-blank purpose and a requested start date. The
@@ -115,20 +89,18 @@ replaced by a new request. Clarification and revision/resubmission are not part
 of the current borrower workflow.
 
 Borrowing is blocked when the service detects an unresolved overdue or lost
-loan, or when the borrower has reached the agreed active-loan/reservation
-limit. The service rechecks ownership, current state, date rules and
-availability when a request is submitted.
+loan, or when the borrower has reached the active-loan/reservation
+limit.
 
-## Supervisor review
+## Supervisor Features
 
 Select `Supervisor` from role selection, enter the supervisor password, and the
 supervisor dashboard offers `Review Queue` and `Decision History`.
 
 `Review Queue` lists borrower requests with those still awaiting a decision
-first and the longest-waiting request at the top. Filter by status, by borrower
-username, and by the requested start date falling on or after and on or before
-chosen dates. The queue opens filtered to `PENDING`; select `Clear` to see every
-status. Select a request and choose `Review selected request`.
+first and the longest-waiting request at the top. Users can use the filter function
+to easily sort through multiple requests. To approve or reject a request, select 
+a request and choose `Review selected request`.
 
 `Review Details` shows the borrower, equipment, purpose and requested dates,
 together with the decision context: the equipment's current availability, the
@@ -145,8 +117,7 @@ From that screen:
 
 Approval is refused when the item is no longer available or the borrower is no
 longer eligible, both of which are rechecked at the moment of the decision
-rather than taken from the state at submission. A request that is already
-decided, cancelled, expired or collected can no longer be decided.
+rather than taken from the state at submission. 
 
 An approved request is collectable on its requested start date and the next
 three calendar days. It becomes `EXPIRED` and releases its reservation the day
@@ -158,36 +129,35 @@ do not edit physical equipment condition; that remains with the custodian.
 `Decision History` lists every recorded decision and cancellation, most recent
 first, showing who decided, when and why.
 
-## Custodian workflow
+
+## Custodian Features
 
 Select `Custodian` from role selection and enter the custodian password. The
 dashboard shows non-clickable collection, loan, inventory and condition-alert
 statistics, followed by filterable `Loan Requests` and `Active Loans` tables.
-Each table keeps up to five rows visible at once and can scroll for more.
-Equipment names always show their item ID underneath in muted text. Use
-`Manage inventory` in the top-right corner to open the separate inventory
-table; inventory is not duplicated on the dashboard.
+
+Use `Manage inventory` in the top-right corner to open the separate inventory
+table.
 
 `Loan Requests` lists approved requests that are within the inclusive
 collection window: the requested start date through three additional calendar
-days. Choose `Check out` to create its one linked active loan. Checkout is
+days. Choose `Check out` once a user has collected their item. Checkout is
 refused if the request is no longer approved or collectable, or if the
 equipment is unavailable or not in `GOOD` condition.
 
 Use the request search field to filter by equipment name or ID, borrower, or
-request ID. The request status filter can show all rows or only approved rows.
-The collection window and due date are shown for every row; expired approvals
-are removed when the queue is refreshed or opened.
+request ID. 
 
 `Active Loans` lists active and lost loans, with overdue active loans first.
-Choose `Return / update` to open the loan-details overlay. For an active loan,
-select a return condition (`GOOD`, `DAMAGED`, or `UNDER_MAINTENANCE`) before
-marking it returned. Marking an active item lost changes the loan and equipment
-to `LOST`; that control is disabled for a loan already marked lost. Recovering
-a lost item deliberately restores it to an `ACTIVE` loan with `GOOD`
-equipment; it remains on loan until the custodian selects and records the
-observed return condition. This two-step flow ensures the condition is chosen
-at physical return rather than assumed during recovery.
+Choose `Return / update` to open the loan-details overlay. 
+- For an active loan, select a return condition (`GOOD`, `DAMAGED`, 
+or `UNDER_MAINTENANCE`) before marking it returned.
+- If the borrower has misplaced an item, mark it as `LOST`.
+- If a `LOST` item has been returned, you can recover it on this page.
+This restores it to an `ACTIVE` loan with `GOOD` equipment; it remains on loan 
+until you select and record the observed return condition. This two-step flow 
+ensures the condition is chosen at physical return rather than assumed during 
+recovery.
 
 `Manage Inventory` opens a table of all equipment, its physical condition and
 read-only availability derived from shared requests, loans and condition. From
@@ -201,15 +171,3 @@ collection and due dates. Dashboard tables can be filtered by item, borrower
 or record ID and by `ACTIVE`, `OVERDUE` or `LOST` status. Categories, notes,
 deletion, retirement, bulk import and maintenance records are outside this
 MVP.
-
-## My loans and history
-
-Select `View past loans` from the borrower dashboard to view returned persisted
-loans belonging to the logged-in borrower. Active loans remain on the dashboard.
-Each entry shows the equipment, checkout date, due date, return date when
-available, and a displayed status such as `ACTIVE`, `OVERDUE`, `LOST` or
-`RETURNED`. Overdue is derived when an active loan is past its due date.
-
-This screen is read-only. It may be empty until a custodian checks out or
-returns equipment. Borrower checkout, return and physical-condition updates
-are not performed from this screen.
