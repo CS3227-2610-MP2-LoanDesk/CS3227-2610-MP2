@@ -55,13 +55,13 @@ logging in again.
 
 ## Borrower catalogue
 
-After logging in as a borrower, select `Catalogue` to view the seeded equipment
-identifiers and names. Enter part of an equipment name and select `Filter` to
-perform a case-insensitive search. Select `Clear` to restore the full catalogue.
-If no item matches, the screen displays an empty-results message. The current
-catalogue slice is read-only; category, condition, availability and borrowing
-metadata will be added with later workflow milestones, while eligible borrowers
-can already start a request from the catalogue.
+After logging in as a borrower, select `View Catalogue` to view equipment names
+and their current availability. Available equipment appears first; each group is
+then ordered alphabetically by name. Enter part of an equipment name and select
+`Filter` to perform a case-insensitive search. Select `Clear` to restore the full
+catalogue. If no item matches, the screen displays an empty-results message.
+Only equipment marked `AVAILABLE` can be selected for a request. The catalogue
+is read-only; category and physical-condition management remain custodian work.
 
 ## Borrower requests
 
@@ -72,9 +72,10 @@ shorter borrowing periods are allowed. Past start dates and due dates before
 the start date are rejected.
 
 After submission, select `My Requests` from the dashboard to view your own
-requests. Active requests appear before terminal history. Borrowers may edit
-the purpose and dates of an eligible `PENDING` request before its start date;
-the equipment and request ID remain unchanged. Borrowers may also cancel
+requests. The table shows the equipment name, status, requested start and due
+dates, and submission date. Active requests appear before terminal history.
+Borrowers may edit the purpose and dates of an eligible `PENDING` request
+before its start date; the equipment and request ID remain unchanged. Borrowers may also cancel
 eligible future `PENDING` or `APPROVED` requests by selecting a cancellation
 reason and confirming the action. Rejected requests are read-only and must be
 replaced by a new request. Clarification and revision/resubmission are not part
@@ -162,8 +163,8 @@ this MVP.
 
 ## My loans and history
 
-Select `My Loans` from the borrower dashboard to view persisted loans belonging
-to the logged-in borrower. Active and lost loans appear above returned history.
+Select `View past loans` from the borrower dashboard to view returned persisted
+loans belonging to the logged-in borrower. Active loans remain on the dashboard.
 Each entry shows the equipment, checkout date, due date, return date when
 available, and a displayed status such as `ACTIVE`, `OVERDUE`, `LOST` or
 `RETURNED`. Overdue is derived when an active loan is past its due date.

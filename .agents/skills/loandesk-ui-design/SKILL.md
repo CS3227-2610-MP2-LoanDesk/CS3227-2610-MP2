@@ -28,6 +28,7 @@ Use these exact values unless a state rule below specifies another value.
 | --- | --- | --- |
 | Ink | `#17191e` | Primary page headings, prominent text, and icon outlines. |
 | Accent red | `#d9202b` | Brand emphasis, selected/active emphasis, and icon highlights. |
+| Visual emphasis blue | `#3267C8` | Secondary workflow emphasis, compact dashboard actions, and informative values. |
 | Accent gradient | `#d71e2a` → `#e22832` | Primary call-to-action buttons, left to right. |
 | Accent hover | `#bb1520` | Hover/pressed primary-button treatment and red text hover. |
 | Page white | `#ffffff` | Main page and card surfaces. |
@@ -42,8 +43,9 @@ Use these exact values unless a state rule below specifies another value.
 
 Use white cards on a white-to-neutral page surface, `#e3e5e9` borders, rounded
 corners, and restrained soft shadows. Red is an action and emphasis colour,
-not a large-area page background. Do not introduce a new blue primary-button
-pattern for newly designed screens.
+not a large-area page background. Use `#3267C8` sparingly where a secondary
+workflow action or informative value needs visual emphasis; it does not replace
+the red primary call-to-action.
 
 ## Typography and spacing
 

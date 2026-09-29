@@ -26,6 +26,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DateCell;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -248,7 +249,10 @@ public final class LoanDeskApp extends Application {
         submit.getStyleClass().add("auth-submit-button");
         submit.setMaxWidth(Double.MAX_VALUE);
         Button switchAction = new Button(signUp ? "Log in instead" : "Sign up instead");
-        switchAction.getStyleClass().add("auth-link-button");
+        switchAction.getStyleClass().add(signUp ? "auth-link-button" : "auth-outline-button");
+        if (!signUp) {
+            switchAction.setMaxWidth(Double.MAX_VALUE);
+        }
         Button back = roleSelectionBackButton();
         Label feedback = new Label();
         feedback.setWrapText(true);
@@ -362,6 +366,10 @@ public final class LoanDeskApp extends Application {
             showCustodianDashboard(user);
             return;
         }
+        if (user.role() == Role.BORROWER) {
+            showBorrowerDashboard(user);
+            return;
+        }
         String title = switch (user.role()) {
             case BORROWER -> "Borrower Dashboard";
             case SUPERVISOR -> "Supervisor Dashboard";
@@ -370,23 +378,7 @@ public final class LoanDeskApp extends Application {
         VBox content = layout(title, "Manage your LoanDesk activity in one place.");
         Label welcome = new Label("Signed in as " + user.username());
         welcome.getStyleClass().add("welcome-label");
-        if (user.role() == Role.BORROWER) {
-            content.getStyleClass().add("borrower-page");
-            Label section = new Label("Borrowing workspace");
-            section.getStyleClass().add("section-heading");
-            VBox actions = new VBox(12,
-                    dashboardCard("Catalogue", "Browse equipment and start a request.",
-                            catalogueButton()),
-                    dashboardCard("My Requests", "Review request status and eligible actions.",
-                            requestsButton()),
-                    dashboardCard("My Loans", "See active loans and returned history.",
-                            loansButton()));
-            actions.setMaxWidth(520);
-            actions.setAlignment(Pos.CENTER);
-            HBox actionContainer = centeredContainer(actions);
-            actionContainer.getStyleClass().add("dashboard-actions");
-            content.getChildren().addAll(welcome, section, actionContainer);
-        } else if (user.role() == Role.SUPERVISOR) {
+        if (user.role() == Role.SUPERVISOR) {
             Label section = new Label("Review workspace");
             section.getStyleClass().add("section-heading");
             Button queue = new Button("Review Queue");
@@ -411,15 +403,99 @@ public final class LoanDeskApp extends Application {
             showRoleSelection();
         });
         content.getChildren().add(logout);
-        if (user.role() == Role.BORROWER) {
-            ScrollPane dashboard = new ScrollPane(content);
-            dashboard.setFitToWidth(true);
-            dashboard.setFitToHeight(true);
-            dashboard.getStyleClass().add("dashboard-scroll");
-            showScene(dashboard);
-        } else {
-            showScene(content);
+        showScene(content);
+    }
+
+    private void showBorrowerDashboard(User user) {
+        VBox page = new VBox(24);
+        page.getStyleClass().add("borrower-dashboard");
+
+        Label title = new Label("Borrower Dashboard");
+        title.getStyleClass().add("borrower-dashboard-heading");
+        Label subtitle = new Label("Manage your requests and keep track of your equipment loans.");
+        subtitle.getStyleClass().add("borrower-dashboard-subtitle");
+        Label signedIn = new Label("Signed in as " + user.username());
+        signedIn.getStyleClass().add("borrower-dashboard-signed-in");
+        VBox heading = new VBox(4, title, subtitle, signedIn);
+
+        Button logout = new Button("Log out");
+        logout.getStyleClass().add("custodian-logout-button");
+        logout.setOnAction(event -> {
+            session.clear();
+            showRoleSelection();
+        });
+        HBox header = new HBox(12, heading, spacer(), logout);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Button catalogue = new Button("View Catalogue  →");
+        catalogue.getStyleClass().add("borrower-workflow-button");
+        catalogue.setMaxWidth(Double.MAX_VALUE);
+        catalogue.setOnAction(event -> showCatalogue());
+        Button requests = new Button("My Requests  →");
+        requests.getStyleClass().add("borrower-workflow-button");
+        requests.setMaxWidth(Double.MAX_VALUE);
+        requests.setOnAction(event -> showMyRequests());
+        HBox actions = new HBox(16,
+                borrowerActionCard(catalogue, "Browse equipment",
+                        "View the catalogue and start a request when you find what you need."),
+                borrowerActionCard(requests, "Manage requests",
+                        "Review request statuses and take any available actions."));
+        actions.getStyleClass().add("borrower-action-row");
+
+        Label loansHeading = new Label("My Loans");
+        loansHeading.getStyleClass().add("borrower-section-heading");
+        Label loansDescription = new Label("Your equipment that is currently on loan.");
+        loansDescription.getStyleClass().add("borrower-section-description");
+        VBox loansHeadingGroup = new VBox(3, loansHeading, loansDescription);
+        Button history = new Button("View past loans");
+        history.getStyleClass().add("custodian-secondary-button");
+        history.setOnAction(event -> showMyLoans());
+        HBox loansHeader = new HBox(12, loansHeadingGroup, spacer(), history);
+        loansHeader.setAlignment(Pos.CENTER_LEFT);
+
+        TableView<Loan> activeLoans = new TableView<>();
+        activeLoans.getStyleClass().addAll("custodian-table", "borrower-active-loans-table");
+        configureCompactTable(activeLoans);
+        Map<String, String> equipmentNames = Map.of();
+        try {
+            equipmentNames = catalogueService.loadCatalogue().stream()
+                    .collect(Collectors.toMap(Equipment::id, Equipment::name));
+            activeLoans.getItems().setAll(borrowerLoanService.listOwnLoans().stream()
+                    .filter(loan -> loan.status() == LoanStatus.ACTIVE)
+                    .toList());
+            activeLoans.setPlaceholder(new Label("You have no active loans right now."));
+        } catch (IOException | IllegalStateException exception) {
+            activeLoans.setPlaceholder(new Label("Unable to load active loans: " + exception.getMessage()));
         }
+        Map<String, String> names = equipmentNames;
+        activeLoans.getColumns().addAll(
+                textColumn("Equipment", loan -> names.getOrDefault(
+                        loan.equipmentId(), "Unknown equipment")),
+                textColumn("Checked out", loan -> loan.checkoutDate().toString()),
+                textColumn("Due date", loan -> loan.dueDate().toString()),
+                textColumn("Status", this::loanDisplayStatus));
+
+        VBox loansPanel = new VBox(16, loansHeader, activeLoans);
+        loansPanel.getStyleClass().add("borrower-loans-panel");
+        page.getChildren().addAll(header, actions, loansPanel);
+        ScrollPane scroll = new ScrollPane(page);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("custodian-dashboard-scroll");
+        showScene(scroll);
+    }
+
+    private VBox borrowerActionCard(Button action, String heading, String description) {
+        Label title = new Label(heading);
+        title.getStyleClass().add("borrower-action-heading");
+        Label detail = new Label(description);
+        detail.getStyleClass().add("borrower-action-description");
+        detail.setWrapText(true);
+        StackPane actionSpacer = new StackPane();
+        VBox.setVgrow(actionSpacer, javafx.scene.layout.Priority.ALWAYS);
+        VBox card = new VBox(12, title, detail, actionSpacer, action);
+        card.getStyleClass().add("borrower-action-card");
+        HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+        return card;
     }
 
     private VBox dashboardCard(String title, String description, Button action) {
@@ -1349,29 +1425,34 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showMyLoans() {
-        VBox content = borrowerLayout("My Loans", "Your current loans and borrowing history.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("borrower-history-page");
+        Label title = new Label("Past Loans");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Your returned equipment loan history.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
-        Label activeHeading = new Label("Active loans");
-        activeHeading.getStyleClass().add("loan-section-heading");
-        Label historyHeading = new Label("History");
-        historyHeading.getStyleClass().add("loan-section-heading");
-        ListView<Loan> activeLoans = loanListView();
-        ListView<Loan> history = loanListView();
+        feedback.getStyleClass().add("custodian-feedback");
+        TableView<Loan> history = new TableView<>();
+        history.getStyleClass().addAll("custodian-table", "borrower-history-table");
+        configureCompactTable(history);
+        history.setPrefHeight(330);
+        history.setMaxHeight(330);
         Map<String, String> equipmentNames;
         boolean loadFailed = false;
         try {
             equipmentNames = catalogueService.loadCatalogue().stream()
                     .collect(Collectors.toMap(Equipment::id, Equipment::name));
             java.util.List<Loan> loans = borrowerLoanService.listOwnLoans();
-            activeLoans.getItems().setAll(loans.stream()
-                    .filter(loan -> loan.status() != LoanStatus.RETURNED)
-                    .toList());
             history.getItems().setAll(loans.stream()
                     .filter(loan -> loan.status() == LoanStatus.RETURNED)
                     .toList());
-            feedback.setText(loans.isEmpty()
-                    ? "You have no loans yet."
-                    : loans.size() + " loan(s) found.");
+            feedback.setText("Review your returned-loan history below.");
         } catch (IOException | IllegalStateException exception) {
             equipmentNames = Map.of();
             loadFailed = true;
@@ -1380,27 +1461,20 @@ public final class LoanDeskApp extends Application {
         }
 
         Map<String, String> names = equipmentNames;
-        activeLoans.setCellFactory(list -> loanCell(names));
-        history.setCellFactory(list -> loanCell(names));
-        Label activeEmpty = new Label(loadFailed
-                ? "Unable to load active loans."
-                : "No active loans.");
+        history.getColumns().addAll(
+                textColumn("Equipment", loan -> names.getOrDefault(
+                        loan.equipmentId(), "Unknown equipment")),
+                textColumn("Checked out", loan -> loan.checkoutDate().toString()),
+                textColumn("Returned", loan -> loan.returnedDate().toString()),
+                textColumn("Status", loan -> loan.status().name()));
         Label historyEmpty = new Label(loadFailed
                 ? "Unable to load loan history."
-                : "No returned loans yet.");
-        activeLoans.setPlaceholder(activeEmpty);
+                : "You have no past loans yet.");
         history.setPlaceholder(historyEmpty);
-        Button back = new Button("Back to dashboard");
-        back.setOnAction(event -> openDashboard(session.requireUser()));
-        VBox lists = new VBox(18, activeHeading, activeLoans, historyHeading, history, back);
-        lists.setMaxWidth(620);
-        lists.setAlignment(Pos.TOP_CENTER);
-        ScrollPane scroll = new ScrollPane(centeredContainer(lists));
-        scroll.setFitToWidth(true);
-        scroll.setFitToHeight(false);
-        scroll.getStyleClass().add("loan-scroll");
-        content.getChildren().addAll(feedback, scroll);
-        showScene(content);
+        VBox historyPanel = new VBox(16, history);
+        historyPanel.getStyleClass().add("borrower-history-panel");
+        content.getChildren().addAll(header, feedback, historyPanel);
+        showScrollableScene(content);
     }
 
     private ListView<Loan> loanListView() {
@@ -1443,20 +1517,24 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showMyRequests() {
-        VBox content = borrowerLayout("My Requests", "Your active requests and request history.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("borrower-requests-page");
+        Label title = new Label("My Requests");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Review your active requests and request history.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
-        ListView<LoanRequest> requests = new ListView<>();
-        requests.setPrefHeight(220);
-        requests.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(LoanRequest item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null
-                        ? null
-                        : item.status() + " — " + item.equipmentId()
-                                + " (" + item.startDate() + " to " + item.dueDate() + ")");
-            }
-        });
+        feedback.getStyleClass().add("custodian-feedback");
+        TableView<LoanRequest> requests = new TableView<>();
+        requests.getStyleClass().addAll("custodian-table", "borrower-requests-table");
+        configureCompactTable(requests);
+        requests.setPrefHeight(330);
+        requests.setMaxHeight(330);
 
         Label details = new Label(
                 "Select a request to view its details.\n"
@@ -1465,8 +1543,10 @@ public final class LoanDeskApp extends Application {
         ScrollPane detailsPane = new ScrollPane(details);
         detailsPane.setFitToWidth(true);
         detailsPane.setPrefViewportHeight(140);
+        detailsPane.getStyleClass().add("borrower-request-details-scroll");
         Label editInfo = new Label();
         Button edit = new Button("Edit request");
+        edit.getStyleClass().add("borrower-workflow-button");
         Label cancellationInfo = new Label();
         ComboBox<String> cancellationReason = new ComboBox<>();
         cancellationReason.getItems().addAll(
@@ -1480,6 +1560,7 @@ public final class LoanDeskApp extends Application {
         TextField otherCancellationReason = new TextField();
         otherCancellationReason.setPromptText("Explain the cancellation");
         Button cancel = new Button("Cancel request");
+        cancel.getStyleClass().add("custodian-danger-button");
         otherCancellationReason.setVisible(false);
         otherCancellationReason.setManaged(false);
         cancellationReason.setVisible(false);
@@ -1510,6 +1591,13 @@ public final class LoanDeskApp extends Application {
 
         Map<String, String> names = equipmentNames;
         Map<String, Equipment> equipment = equipmentById;
+        requests.getColumns().addAll(
+                textColumn("Equipment", request -> names.getOrDefault(
+                        request.equipmentId(), "Unknown equipment")),
+                textColumn("Status", request -> request.status().name()),
+                textColumn("Start date", request -> request.startDate().toString()),
+                textColumn("Due date", request -> request.dueDate().toString()),
+                textColumn("Requested", this::requestDate));
         requests.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldValue, selected) -> {
                     cancellationReason.setValue(null);
@@ -1572,24 +1660,21 @@ public final class LoanDeskApp extends Application {
                 feedback.getStyleClass().add("error-label");
             }
         });
-        Button back = new Button("Back to dashboard");
-        back.setOnAction(event -> openDashboard(session.requireUser()));
-        content.getChildren().addAll(
-                feedback,
-                requests,
+        VBox detailsPanel = new VBox(12,
                 detailsPane,
                 editInfo,
                 edit,
                 cancellationInfo,
                 cancellationReason,
                 otherCancellationReason,
-                cancel,
-                back);
-        ScrollPane requestScroll = new ScrollPane(content);
-        requestScroll.setFitToWidth(true);
-        requestScroll.setFitToHeight(false);
-        requestScroll.getStyleClass().add("request-scroll");
-        showScene(requestScroll);
+                cancel);
+        detailsPanel.getStyleClass().add("borrower-request-details");
+        content.getChildren().addAll(
+                header,
+                feedback,
+                requests,
+                detailsPanel);
+        showScrollableScene(content);
     }
 
     private HBox centeredContainer(Node child) {
@@ -1661,10 +1746,11 @@ public final class LoanDeskApp extends Application {
         }
         String equipmentName = equipmentNames.getOrDefault(request.equipmentId(), "Unknown equipment");
         StringBuilder text = new StringBuilder()
-                .append("Equipment: ").append(equipmentName).append(" (" ).append(request.equipmentId()).append(")\n")
+                .append("Equipment: ").append(equipmentName).append("\n")
                 .append("Purpose: ").append(request.purpose()).append("\n")
                 .append("Dates: ").append(request.startDate()).append(" to ").append(request.dueDate()).append("\n")
-                .append("Status: ").append(request.status());
+                .append("Status: ").append(request.status()).append("\n")
+                .append("Requested: ").append(requestDate(request));
         if (request.decisionReason() != null) {
             text.append("\nDecision reason: ").append(request.decisionReason());
         }
@@ -1674,48 +1760,73 @@ public final class LoanDeskApp extends Application {
         details.setText(text.toString());
     }
 
-    private void showCatalogue() {
-        VBox content = borrowerLayout("Catalogue", "Search equipment by name.");
-        TextField filter = new TextField();
-        filter.setPromptText("Name filter");
-        Button apply = new Button("Filter");
-        Button clear = new Button("Clear");
-        Button request = new Button("Request selected equipment");
-        Button back = new Button("Back");
-        HBox filterActions = new HBox(12, apply, clear);
-        filterActions.setAlignment(Pos.CENTER);
-        Label feedback = new Label();
-        ListView<Equipment> results = new ListView<>();
-        results.setPrefHeight(180);
-        results.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(Equipment item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : item.id() + " — " + item.name());
-            }
-        });
-        request.disableProperty().bind(results.getSelectionModel().selectedItemProperty().isNull());
+    private String requestDate(LoanRequest request) {
+        return request.createdAt() == null
+                ? "Not available"
+                : request.createdAt().atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString();
+    }
 
-        final java.util.List<Equipment> equipment;
+    private void showCatalogue() {
+        VBox content = new VBox(24);
+        content.getStyleClass().addAll("custodian-inventory-page", "borrower-catalogue-page");
+        Label title = new Label("Catalogue");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Browse equipment and see its current availability.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        TextField filter = new TextField();
+        filter.setPromptText("Search by equipment name");
+        filter.getStyleClass().add("custodian-filter-field");
+        Button apply = new Button("Filter");
+        apply.getStyleClass().add("borrower-workflow-button");
+        Button clear = new Button("Clear");
+        clear.getStyleClass().add("custodian-secondary-button");
+        Button request = new Button("Request selected equipment  →");
+        request.getStyleClass().add("borrower-workflow-button");
+        HBox filterActions = new HBox(12, apply, clear);
+        filterActions.setAlignment(Pos.CENTER_LEFT);
+        Label feedback = new Label();
+        feedback.getStyleClass().add("custodian-feedback");
+        TableView<CatalogueService.CatalogueItem> results = new TableView<>();
+        results.getStyleClass().addAll("custodian-table", "borrower-catalogue-table");
+        configureCompactTable(results);
+        results.getColumns().addAll(
+                textColumn("Equipment name", item -> item.equipment().name()),
+                textColumn("Availability", item -> item.availability().name()));
+        request.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> results.getSelectionModel().getSelectedItem() == null
+                        || results.getSelectionModel().getSelectedItem().availability()
+                                != loandesk.domain.AvailabilityStatus.AVAILABLE,
+                results.getSelectionModel().selectedItemProperty()));
+        request.setTooltip(new Tooltip("Only equipment marked AVAILABLE can be requested."));
+
+        final java.util.List<CatalogueService.CatalogueItem> equipment;
         try {
-            equipment = catalogueService.loadCatalogue();
-        } catch (IOException exception) {
-            feedback.setText("Unable to load the catalogue: " + exception.getMessage());
-            feedback.getStyleClass().add("error-label");
-            back.setOnAction(event -> openDashboard(session.requireUser()));
-            content.getChildren().addAll(feedback, back);
-            showScene(content);
+            equipment = catalogueService.loadCatalogueWithAvailability();
+        } catch (IOException | IllegalStateException exception) {
+            showCustodianFeedback(feedback, "Unable to load the catalogue: " + exception.getMessage(), true);
+            content.getChildren().addAll(header, feedback);
+            showScrollableScene(content);
             return;
         }
 
         Runnable renderResults = () -> {
-            java.util.List<Equipment> filtered = catalogueService.filterByName(equipment, filter.getText());
+            java.util.List<CatalogueService.CatalogueItem> filtered = catalogueService
+                    .filterAndSortByName(equipment, filter.getText());
             results.getItems().setAll(filtered);
-            feedback.setText(filtered.isEmpty()
-                    ? (equipment.isEmpty()
-                            ? "The catalogue is currently empty."
-                            : "No equipment matches that name.")
-                    : filtered.size() + " equipment item(s) found.");
+            if (filtered.isEmpty()) {
+                showCustodianFeedback(feedback, equipment.isEmpty()
+                        ? "The catalogue is currently empty."
+                        : "No equipment matches that name.", false);
+            } else {
+                feedback.setVisible(false);
+                feedback.setManaged(false);
+            }
         };
         apply.setOnAction(event -> renderResults.run());
         clear.setOnAction(event -> {
@@ -1723,12 +1834,14 @@ public final class LoanDeskApp extends Application {
             renderResults.run();
         });
         filter.setOnAction(event -> renderResults.run());
-        request.setOnAction(event -> showRequestForm(results.getSelectionModel().getSelectedItem()));
-        back.setOnAction(event -> openDashboard(session.requireUser()));
+        request.setOnAction(event -> showRequestForm(
+                results.getSelectionModel().getSelectedItem().equipment()));
         renderResults.run();
 
-        content.getChildren().addAll(filter, filterActions, feedback, results, request, back);
-        showScene(content);
+        HBox catalogueActions = new HBox(12, request);
+        catalogueActions.setAlignment(Pos.CENTER_RIGHT);
+        content.getChildren().addAll(header, filter, filterActions, feedback, results, catalogueActions);
+        showScrollableScene(content);
     }
 
     private void showRequestForm(Equipment equipment) {
@@ -1737,11 +1850,27 @@ public final class LoanDeskApp extends Application {
 
     private void showRequestForm(Equipment equipment, LoanRequest existingRequest) {
         boolean editing = existingRequest != null;
-        VBox content = borrowerLayout(
-                editing ? "Edit request" : "Request equipment",
-                editing ? "Update the purpose and dates before the request starts."
-                        : "Submit one borrowing request.");
-        Label selected = new Label(equipment.id() + " — " + equipment.name());
+        VBox content = new VBox(24);
+        content.getStyleClass().add("borrower-request-page");
+        Label title = new Label(editing ? "Edit request" : "Request equipment");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label(editing
+                ? "Update the purpose and dates before the request starts."
+                : "Submit one borrowing request.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button(editing ? "← Back to requests" : "← Back to catalogue");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> {
+            if (editing) {
+                showMyRequests();
+            } else {
+                showCatalogue();
+            }
+        });
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label selected = new Label("Equipment: " + equipment.name());
         selected.getStyleClass().add("selected-equipment");
         ComboBox<String> purpose = new ComboBox<>();
         purpose.getItems().addAll(
@@ -1763,7 +1892,7 @@ public final class LoanDeskApp extends Application {
         } else {
             purpose.setValue(purpose.getItems().get(0));
         }
-        VBox purposeGroup = formGroup("Purpose", purpose);
+        VBox purposeGroup = formGroup("Purpose *", purpose);
         VBox otherPurposeGroup = formGroup("Other purpose", otherPurpose);
         boolean initialOtherPurpose = "Other".equals(purpose.getValue());
         otherPurposeGroup.setVisible(initialOtherPurpose);
@@ -1780,6 +1909,10 @@ public final class LoanDeskApp extends Application {
                 : initialStartDate.plusDays(14);
         DatePicker startDate = new DatePicker(initialStartDate);
         DatePicker dueDate = new DatePicker(initialDueDate);
+        startDate.setEditable(false);
+        dueDate.setEditable(false);
+        startDate.setDayCellFactory(picker -> disabledPastDateCell());
+        dueDate.setDayCellFactory(picker -> disabledInvalidDueDateCell(startDate));
         startDate.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && oldValue != null && dueDate.getValue() != null) {
                 long currentDuration = ChronoUnit.DAYS.between(oldValue, dueDate.getValue());
@@ -1787,20 +1920,25 @@ public final class LoanDeskApp extends Application {
                     dueDate.setValue(newValue.plusDays(currentDuration));
                 }
             }
+            dueDate.setDayCellFactory(picker -> disabledInvalidDueDateCell(startDate));
         });
         HBox dateFields = new HBox(
-                formGroup("Start date", startDate),
-                formGroup("Due date", dueDate));
+                formGroup("Start date *", startDate),
+                formGroup("Due date *", dueDate));
         dateFields.getStyleClass().add("date-fields");
 
         Label feedback = new Label();
         feedback.setWrapText(true);
+        feedback.getStyleClass().add("request-feedback");
+        feedback.setManaged(false);
+        feedback.setVisible(false);
         Button submit = new Button(editing ? "Save changes" : "Submit request");
-        Button back = new Button(editing ? "Back to requests" : "Back to catalogue");
+        submit.getStyleClass().add("auth-submit-button");
         submit.setOnAction(event -> {
             String selectedPurpose = "Other".equals(purpose.getValue())
                     ? otherPurpose.getText()
                     : purpose.getValue();
+            submit.setDisable(true);
             try {
                 var request = editing
                         ? borrowerRequestService.editRequest(
@@ -1819,6 +1957,8 @@ public final class LoanDeskApp extends Application {
                 confirmation.setHeaderText(
                         editing ? "Your pending request was updated."
                                 : "Your request is pending review.");
+                confirmation.getDialogPane().getStyleClass().add("request-confirmation-dialog");
+                confirmation.getDialogPane().setPrefWidth(420);
                 confirmation.showAndWait();
                 if (editing) {
                     showMyRequests();
@@ -1828,28 +1968,55 @@ public final class LoanDeskApp extends Application {
             } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
                 feedback.setText(exception.getMessage());
                 feedback.getStyleClass().add("error-label");
-            }
-        });
-        back.setOnAction(event -> {
-            if (editing) {
-                showMyRequests();
-            } else {
-                showCatalogue();
+                feedback.setManaged(true);
+                feedback.setVisible(true);
+            } finally {
+                submit.setDisable(false);
             }
         });
 
-        content.getChildren().addAll(
+        Label requiredNote = new Label("* Required fields");
+        requiredNote.getStyleClass().add("request-required-note");
+        HBox formActions = new HBox(12, submit);
+        formActions.setAlignment(Pos.CENTER_RIGHT);
+        VBox form = new VBox(16,
                 selected,
                 purposeGroup,
                 otherPurposeGroup,
                 dateFields,
+                requiredNote,
                 feedback,
-                submit,
-                back);
+                formActions);
+        form.getStyleClass().add("borrower-request-form");
+        content.getChildren().addAll(header, form);
         ScrollPane formScroll = new ScrollPane(content);
         formScroll.setFitToWidth(true);
         formScroll.getStyleClass().add("form-scroll");
         showScene(formScroll);
+    }
+
+    private DateCell disabledPastDateCell() {
+        return new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+                setDisable(!empty && item.isBefore(LocalDate.now()));
+            }
+        };
+    }
+
+    private DateCell disabledInvalidDueDateCell(DatePicker startDate) {
+        return new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+                LocalDate earliestDate = startDate.getValue() == null
+                        ? LocalDate.now()
+                        : startDate.getValue();
+                setDisable(!empty && (item.isBefore(earliestDate)
+                        || item.isAfter(earliestDate.plusDays(14))));
+            }
+        };
     }
 
     private VBox formGroup(String labelText, Node input) {

@@ -165,14 +165,13 @@ created by a borrower, while a loan is created by the future custodian
 checkout workflow. Borrower screens read these shared records but do not
 duplicate them or mutate custodian state.
 
-The initial borrower catalogue is implemented by `CatalogueService`. It loads
-equipment through `DataStore` only for an active borrower session and owns
-case-insensitive name filtering, while the JavaFX screen is responsible only
-for collecting the filter and displaying the results. The filtering helper is
-pure; the persistence boundary is protected by the role check. Category,
-condition and availability are represented by shared equipment and request/loan
-state; borrower-visible availability is derived from that shared state rather
-than duplicated in the catalogue UI.
+The borrower catalogue is implemented by `CatalogueService`. It loads equipment
+through `DataStore` only for an active borrower session, calculates each row's
+availability from the shared request/loan and equipment-condition state, and
+owns case-insensitive name filtering plus availability-first, alphabetical
+ordering. The JavaFX screen collects the filter and displays the resulting
+read-only rows; it does not duplicate the availability calculation. The
+persistence boundary is protected by the role check.
 
 `BorrowerRequestService` enforces session ownership, request validation,
 eligibility, availability, pending-request editing, cancellation state/date
