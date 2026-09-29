@@ -32,6 +32,8 @@ import loandesk.persistence.LoanDeskData;
 class CustodianInventoryServiceTest {
     private static final Clock CLOCK = Clock.fixed(
             Instant.parse("2026-10-10T09:00:00Z"), ZoneOffset.UTC);
+    private static final String SEEDED_CAMERA_ID = "camera-dslr";
+    private static final String SEEDED_CAMERA_NAME = "Canon EOS 90D DSLR Camera";
 
     @TempDir
     Path temporaryDirectory;
@@ -74,7 +76,7 @@ class CustodianInventoryServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.updateEquipment("unknown", "Camera", EquipmentCondition.GOOD));
         assertThrows(IllegalArgumentException.class,
-                () -> service.updateEquipment("camera1", " ", EquipmentCondition.GOOD));
+                () -> service.updateEquipment(SEEDED_CAMERA_ID, " ", EquipmentCondition.GOOD));
         assertEquals(before, store.loadOrSeed());
     }
 
@@ -103,7 +105,8 @@ class CustodianInventoryServiceTest {
             assertThrows(IllegalStateException.class, service::inventory);
             assertThrows(IllegalStateException.class, () -> service.addEquipment("New item"));
             assertThrows(IllegalStateException.class,
-                    () -> service.updateEquipment("camera1", "Camera", EquipmentCondition.GOOD));
+                    () -> service.updateEquipment(
+                            SEEDED_CAMERA_ID, SEEDED_CAMERA_NAME, EquipmentCondition.GOOD));
         }
         CustodianInventoryService signedOut = new CustodianInventoryService(store, new Session(), CLOCK);
         assertThrows(IllegalStateException.class, signedOut::inventory);
@@ -115,10 +118,10 @@ class CustodianInventoryServiceTest {
         store.loadOrSeed();
         CustodianInventoryService service = service(store, Role.CUSTODIAN);
 
-        service.updateEquipment("camera1", "Camera 1", EquipmentCondition.DAMAGED);
-        assertEquals(AvailabilityStatus.UNAVAILABLE, availabilityOf(service, "camera1"));
-        service.updateEquipment("camera1", "Camera 1", EquipmentCondition.GOOD);
-        assertEquals(AvailabilityStatus.AVAILABLE, availabilityOf(service, "camera1"));
+        service.updateEquipment(SEEDED_CAMERA_ID, SEEDED_CAMERA_NAME, EquipmentCondition.DAMAGED);
+        assertEquals(AvailabilityStatus.UNAVAILABLE, availabilityOf(service, SEEDED_CAMERA_ID));
+        service.updateEquipment(SEEDED_CAMERA_ID, SEEDED_CAMERA_NAME, EquipmentCondition.GOOD);
+        assertEquals(AvailabilityStatus.AVAILABLE, availabilityOf(service, SEEDED_CAMERA_ID));
     }
 
     @Test
@@ -143,18 +146,18 @@ class CustodianInventoryServiceTest {
         List<User> users = new ArrayList<>(initial.users());
         users.add(new User("borrower", Role.BORROWER));
         LocalDate startDate = LocalDate.of(2026, 10, 10);
-        LoanRequest reservation = new LoanRequest("request-reserved", "borrower", "camera1", "Coursework",
+        LoanRequest reservation = new LoanRequest("request-reserved", "borrower", SEEDED_CAMERA_ID, "Coursework",
                 startDate, startDate.plusDays(7), RequestStatus.APPROVED, null, CLOCK.instant(), CLOCK.instant(),
                 "supervisor", CLOCK.instant(), "Approved", null, null, null);
         store.save(new LoanDeskData(users, initial.credentials(), initial.equipment(), List.of(reservation), List.of()));
         CustodianInventoryService service = service(store, Role.CUSTODIAN);
 
-        assertEquals(AvailabilityStatus.RESERVED, availabilityOf(service, "camera1"));
+        assertEquals(AvailabilityStatus.RESERVED, availabilityOf(service, SEEDED_CAMERA_ID));
         assertThrows(IllegalStateException.class, () -> service.updateEquipment(
-                "camera1", "Camera 1", EquipmentCondition.DAMAGED));
+                SEEDED_CAMERA_ID, SEEDED_CAMERA_NAME, EquipmentCondition.DAMAGED));
 
         assertEquals(EquipmentCondition.GOOD, store.loadOrSeed().equipment().stream()
-                .filter(equipment -> equipment.id().equals("camera1"))
+                .filter(equipment -> equipment.id().equals(SEEDED_CAMERA_ID))
                 .findFirst().orElseThrow().condition());
     }
 

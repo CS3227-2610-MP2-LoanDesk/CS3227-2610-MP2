@@ -28,6 +28,18 @@ import loandesk.persistence.DatabaseDataStore;
 import loandesk.persistence.LoanDeskData;
 
 class CatalogueServiceTest {
+    private static final List<Equipment> SEEDED_EQUIPMENT = List.of(
+            new Equipment("camera-dslr", "Canon EOS 90D DSLR Camera"),
+            new Equipment("camera-mirrorless", "Sony Alpha a6400 Mirrorless Camera"),
+            new Equipment("microphone-yeti", "Blue Yeti USB Microphone"),
+            new Equipment("monitor-dell-u2723qe", "Dell UltraSharp U2723QE 27-inch Monitor"),
+            new Equipment("monitor-lg-27up850", "LG UltraFine 27UP850 27-inch Monitor"),
+            new Equipment("projector-epson-fh52", "Epson EB-FH52 Projector"),
+            new Equipment("tablet-ipad-air", "Apple iPad Air 11-inch"),
+            new Equipment("tripod-befree", "Manfrotto Befree Advanced Tripod"),
+            new Equipment("webcam-brio", "Logitech Brio 4K Webcam"),
+            new Equipment("webcam-c920", "Logitech C920 HD Pro Webcam"));
+
     @TempDir
     Path temporaryDirectory;
 
@@ -35,20 +47,17 @@ class CatalogueServiceTest {
     void loadsEquipmentFromTheSharedDatabase() throws Exception {
         CatalogueService service = catalogueService(temporaryDirectory.resolve("loandesk"));
 
-        assertEquals(List.of(
-                new Equipment("camera1", "Camera 1"),
-                new Equipment("camera2", "Camera 2")), service.loadCatalogue());
+        assertEquals(SEEDED_EQUIPMENT, service.loadCatalogue());
     }
 
     @Test
     void loadsBorrowerCatalogueWithDerivedAvailability() throws Exception {
         CatalogueService service = catalogueService(temporaryDirectory.resolve("loandesk"));
 
-        assertEquals(List.of(
-                new CatalogueService.CatalogueItem(
-                        new Equipment("camera1", "Camera 1"), AvailabilityStatus.AVAILABLE),
-                new CatalogueService.CatalogueItem(
-                        new Equipment("camera2", "Camera 2"), AvailabilityStatus.AVAILABLE)),
+        assertEquals(SEEDED_EQUIPMENT.stream()
+                        .map(equipment -> new CatalogueService.CatalogueItem(
+                                equipment, AvailabilityStatus.AVAILABLE))
+                        .toList(),
                 service.loadCatalogueWithAvailability());
     }
 
