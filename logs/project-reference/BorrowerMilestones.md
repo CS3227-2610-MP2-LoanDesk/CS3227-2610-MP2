@@ -1,7 +1,7 @@
 # Borrower Milestones
 
 This is Yikbing's sequential plan for completing the borrower role. It
-complements `docs/ProjectChecklist.md`; it does not replace team-level
+complements `ProjectChecklist.md`; it does not replace team-level
 checklists or decide unresolved shared policies by itself.
 
 Each milestone should be completed with focused tests, relevant documentation,
@@ -46,9 +46,9 @@ direct unauthenticated calls safely.
 - [x] Agree date boundaries, collection windows, cancellation,
       clarification/resubmission and overdue-borrower rules.
 - [x] Record the agreed catalogue scope and future status vocabulary in
-      `docs/ProjectContext.md` before implementing the catalogue.
+      `ProjectContext.md` before implementing the catalogue.
 
-The agreed request/loan policy is recorded in `docs/ProjectContext.md` and is
+The agreed request/loan policy is recorded in `ProjectContext.md` and is
 the shared basis for the next implementation milestone.
 
 Exit criteria: the next borrower slice can be implemented without inventing a
@@ -71,7 +71,7 @@ filters and understand an empty result without changing shared workflow state.
 ## Milestone 3 — Submit a one-item request
 
 - [x] Agree or confirm the request input fields, borrower UX and validation
-      messages; decisions are recorded in `docs/ProjectContext.md`.
+      messages; decisions are recorded in `ProjectContext.md`.
 - [x] Add the shared request/loan domain vocabulary and persistence contract
       needed by the team.
 - [x] Add a borrower request form from the catalogue.
@@ -157,7 +157,7 @@ cross-role defects have explicit owners.
 - [ ] Run `.\gradlew.bat clean test --no-daemon` on Windows.
 - [ ] Run relevant borrower skills and record findings and limitations.
 - [ ] Confirm user and developer documentation matches implemented behaviour.
-- [ ] Update `docs/ProjectChecklist.md`, `docs/UserGuide.md` and the final
+- [ ] Update `ProjectChecklist.md`, `../../docs/UserGuide.md` and the final
       dated session log.
 - [ ] Review local-data, packaging and clean-install assumptions with the team.
 - [ ] Confirm no deliberate fixture defects or personal `data/` database files

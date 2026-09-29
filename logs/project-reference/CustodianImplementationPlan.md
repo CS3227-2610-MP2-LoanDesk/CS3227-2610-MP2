@@ -354,7 +354,7 @@ Perform this stage only after Stages 0–6 meet their exit criteria.
   checkout, returns, conditions, loss/recovery, and scope exclusions.
 - Update `docs/DeveloperGuide.md` with the service boundaries, shared date
   rule, permissions, snapshot-save behaviour, and retry semantics.
-- Update `docs/ProjectContext.md` and `docs/ProjectChecklist.md` to reflect
+- Update `ProjectContext.md` and `ProjectChecklist.md` to reflect
   completed work only.
 - Update `docs/AgenticSE.md` with custodian skill purpose, evaluations, and
   limitations.

@@ -1,8 +1,8 @@
 # Borrower Review Gap Registry
 
 This registry records valid gaps found by independent borrower reviewers and
-the process changes made to prevent repeating them. It is a development
-process aid, not production policy. A `Resolved` entry means the specific gap
+the process changes made to prevent repeating them. It is a project-reference
+aid, not production policy. A `Resolved` entry means the specific gap
 was addressed for the recorded scope; it does not claim exhaustive coverage.
 
 ## Resolved gaps

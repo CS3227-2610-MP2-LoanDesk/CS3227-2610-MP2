@@ -40,21 +40,22 @@ To make a runnable JAR for the current platform from source, replace `run` with
 `fatJar`. The output is `build/libs/loandesk-0.1.0-all.jar`, which can be
 started with `java -jar build/libs/loandesk-0.1.0-all.jar`.
 
-## Logging In 
+## Logging In
 
 The first screen provides three role cards: `Borrower`, `Supervisor`, and
 `Custodian`. Selecting a role opens its sign-in form directly.
 
-For each of the roles, we have provided some testing accounts to aid in the testing process.
+The following testing accounts are provided for local demonstrations:
+
 - The seeded borrower usernames are `testBorrower1` and `testBorrower2`.
   For local synthetic demonstrations only, their passwords
-  are `password1` and `password2` respectively. 
-- `Supervisor` requires the fixed supervisor account password. The seeded password is `supervisor1`. 
+  are `password1` and `password2` respectively.
+- `Supervisor` requires the fixed supervisor account password. The seeded password is `supervisor1`.
 - `Custodian` requires the fixed custodian account password. The seeded password is `custodian1`.
 
 The initial catalogue has ten available items and no bookings.
 
-After a successful login or sign-up, the role dashboard and its protected actions become available. 
+After a successful login or sign-up, the role dashboard and its protected actions become available.
 Select `Log out` to clear the active session and return to role selection.
 
 
@@ -98,9 +99,9 @@ Select `Supervisor` from role selection, enter the supervisor password, and the
 supervisor dashboard offers `Review Queue` and `Decision History`.
 
 `Review Queue` lists borrower requests with those still awaiting a decision
-first and the longest-waiting request at the top. Users can use the filter function
-to easily sort through multiple requests. To approve or reject a request, select 
-a request and choose `Review selected request`.
+first and the longest-waiting request at the top. Use the filters to narrow the
+list, then select a request and choose `Review selected request` to approve or
+reject it.
 
 `Review Details` shows the borrower, equipment, purpose and requested dates,
 together with the decision context: the equipment's current availability, the
@@ -117,7 +118,7 @@ From that screen:
 
 Approval is refused when the item is no longer available or the borrower is no
 longer eligible, both of which are rechecked at the moment of the decision
-rather than taken from the state at submission. 
+rather than taken from the state at submission.
 
 An approved request is collectable on its requested start date and the next
 three calendar days. It becomes `EXPIRED` and releases its reservation the day
@@ -146,17 +147,18 @@ refused if the request is no longer approved or collectable, or if the
 equipment is unavailable or not in `GOOD` condition.
 
 Use the request search field to filter by equipment name or ID, borrower, or
-request ID. 
+request ID.
 
 `Active Loans` lists active and lost loans, with overdue active loans first.
-Choose `Return / update` to open the loan-details overlay. 
-- For an active loan, select a return condition (`GOOD`, `DAMAGED`, 
+Choose `Return / update` to open the loan-details overlay.
+
+- For an active loan, select a return condition (`GOOD`, `DAMAGED`,
 or `UNDER_MAINTENANCE`) before marking it returned.
 - If the borrower has misplaced an item, mark it as `LOST`.
 - If a `LOST` item has been returned, you can recover it on this page.
-This restores it to an `ACTIVE` loan with `GOOD` equipment; it remains on loan 
-until you select and record the observed return condition. This two-step flow 
-ensures the condition is chosen at physical return rather than assumed during 
+This restores it to an `ACTIVE` loan with `GOOD` equipment; it remains on loan
+until you select and record the observed return condition. This two-step flow
+ensures the condition is chosen at physical return rather than assumed during
 recovery.
 
 `Manage Inventory` opens a table of all equipment, its physical condition and

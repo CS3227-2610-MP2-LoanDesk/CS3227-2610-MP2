@@ -181,16 +181,16 @@ implementation order and exit criteria.
 - `src/main/java/...`: JavaFX launcher, shared domain, application, and H2
   persistence foundation
 - `src/test/java/...`: baseline, authentication, persistence, and username tests
-- `docs/ProjectContext.md`: durable context snapshot
-- `docs/BorrowerMilestones.md`: sequential borrower implementation milestones
+- `ProjectContext.md`: durable context snapshot
+- `BorrowerMilestones.md`: sequential borrower implementation milestones
 - `.agents/skills/`: five borrower review skills and the supervisor
   permission/workflow review skill, eligible for automatic selection
 - `tools/borrower/`: personal hooks and disposable-repository test harness
 - `tools/supervisor/`: supervisor skill contract tests and the controlled
   permission/workflow evaluation fixture
-- `docs/AgenticSE.md`: implemented borrower tooling and future team proposals
-- `docs/DeveloperGuide.md`: architecture and contribution guidance
-- `docs/UserGuide.md`: current borrower and supervisor setup and workflow guide
+- `../../docs/AgenticSE.md`: implemented borrower tooling and future team proposals
+- `../../docs/DeveloperGuide.md`: architecture and contribution guidance
+- `../../docs/UserGuide.md`: current borrower and supervisor setup and workflow guide
 - `logs/Yikbing-logs/`: personal dated AI-session summaries
 - `logs/Supervisor-logs/`: dated supervisor-lane AI-session summaries
 

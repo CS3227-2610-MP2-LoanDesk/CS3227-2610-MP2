@@ -281,8 +281,8 @@ The fixture policy is not a production cancellation-policy decision.
 Yikbing owns borrower work; other team members own supervisor and custodian.
 The agreed development setup (21 September 2026) includes five automatically
 selectable borrower review skills under `.agents/skills/` and personal Git
-hooks under `tools/borrower/hooks/`. See `docs/AgenticSE.md` for their scope and
-`docs/DeveloperGuide.md` for local activation. Skills cover UI, ownership and
+hooks under `tools/borrower/hooks/`. See `../../docs/AgenticSE.md` for their scope and
+`../../docs/DeveloperGuide.md` for local activation. Skills cover UI, ownership and
 both existing test failures and additional edge cases. This setup changes no
 product contracts and does not settle the open workflow policies above.
 

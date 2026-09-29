@@ -81,8 +81,8 @@ is held by exactly one role, which is asserted by a test.
 The matrix decides role capability only. Record ownership, such as a borrower
 reading only their own requests, stays in the owning service, which filters by
 the session-derived username after the permission check passes. Custodian
-permissions are declared ahead of the custodian implementation so that owner
-adopts the same mechanism rather than adding role checks inline.
+services use the same permission mechanism rather than adding role checks
+inline.
 
 ## Request lifecycle
 
@@ -189,8 +189,8 @@ database revision row. A store must load the database before saving; snapshot
 writes then use an atomic revision update inside the transaction, rejecting
 stale or concurrent writers instead of silently replacing another instance's
 newer shared update. Request and loan records are separate: a request is
-created by a borrower, while a loan is created by the future custodian
-checkout workflow. Borrower screens read these shared records but do not
+created by a borrower, while a loan is created during custodian checkout.
+Borrower screens read these shared records but do not
 duplicate them or mutate custodian state.
 
 The borrower catalogue is implemented by `CatalogueService`. It loads equipment
@@ -223,8 +223,8 @@ src/main/java/loandesk/
   features/          role-owned extension boundaries
 src/main/resources/  loandesk.css
 src/test/java/       JUnit unit and integration-style tests
-docs/                 guides, context, milestones and reflections
-logs/Yikbing-logs/   dated development evidence
+docs/                 user and developer guides, reflections and site pages
+logs/                 dated development evidence and project references
 .agents/skills/       borrower review skills
 tools/borrower/       personal hooks and skill-evaluation fixtures
 ```
@@ -450,8 +450,8 @@ Gradle test task for pushes to `main` and pull requests targeting `main`.
 
 When adding a borrower feature:
 
-1. Read `docs/ProjectContext.md`, `docs/ProjectChecklist.md` and
-   `docs/ReviewGapRegistry.md`.
+1. Read the relevant documents in `logs/project-reference/`, including
+   `ProjectContext.md`, `ProjectChecklist.md` and `ReviewGapRegistry.md`.
 2. Confirm whether the change affects a shared contract, role permission,
    availability rule or persistence schema. Coordinate before changing shared
    contracts.
@@ -484,9 +484,14 @@ a locally built JAR.
 ## AI-assisted development records
 
 Meaningful AI-assisted sessions are summarized under
-`logs/Yikbing-logs/`. Records should contain observed commands, results,
-decisions, changed files, reviewer evidence and limitations. `docs/AgenticSE.md`
-describes the five borrower skills, controlled evaluations and personal hooks.
+`logs/`. Records should contain observed commands, results, decisions, changed
+files, reviewer evidence and limitations. `docs/AgenticSE.md` describes the
+review skills, controlled evaluations and personal hooks.
+
+## Acknowledgements
+
+The inventory-management UI design was informed in part by Zoho's blog post,
+["The Zoho Inventory UI/UX Design Process"](https://www.zoho.com/blog/inventory/zoho-inventory-ui-ux-design-process.html).
 
 ## Current scope boundary
 
