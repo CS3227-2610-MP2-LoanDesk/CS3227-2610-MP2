@@ -35,11 +35,11 @@ H2, and the platform-specific JavaFX runtime selected by Gradle. Run it with
 `java -jar build/libs/loandesk-0.1.0-all.jar`. Build it on each target OS; JavaFX
 native libraries are OS-specific. On macOS/Linux, use `./gradlew fatJar`.
 
-Pushing a version tag such as `v1.0.0` runs the four-platform CI matrix and
-publishes the resulting Linux, Windows, Intel macOS, and Apple-silicon macOS
-JARs to a GitHub Release: `loandesk-linux.jar`, `loandesk-windows.jar`,
-`loandesk-macos-intel.jar`, and `loandesk-macos-arm64.jar`. Test each release
-asset on its matching OS before announcing compatibility.
+Pushing a version tag such as `v1.0.0` runs the three-platform CI matrix and
+publishes the resulting Linux, Windows, and Apple-silicon macOS JARs to a
+GitHub Release: `loandesk-linux.jar`, `loandesk-windows.jar`, and
+`loandesk-macos-arm64.jar`. Test each release asset on its matching OS before
+announcing compatibility.
 
 The current `main` branch is the shared integration baseline. Create feature
 branches from it and use pull requests for changes.

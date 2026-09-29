@@ -24,9 +24,6 @@ jobs:
           - os: windows-latest
             label: Windows
             artifact_suffix: windows
-          - os: macos-13
-            label: macOS Intel
-            artifact_suffix: macos-intel
           - os: macos-14
             label: macOS Apple Silicon
             artifact_suffix: macos-arm64

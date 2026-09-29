@@ -439,13 +439,13 @@ fixtures.
 `loandesk.LoanDeskLauncher`, which starts `LoanDeskApp`, and it embeds the
 application, H2, and the platform-specific JavaFX runtime dependencies.
 
-The `Build and test` workflow builds the JAR on Linux, Windows, Intel macOS,
-and Apple-silicon macOS. Pushing a `v*` tag creates a GitHub Release containing
-`loandesk-linux.jar`, `loandesk-windows.jar`, `loandesk-macos-intel.jar`, and
-`loandesk-macos-arm64.jar`. JavaFX native libraries are OS-specific, so each
-JAR must be tested on its matching operating system before compatibility is
-claimed. Use `.\gradlew.bat fatJar` on Windows and `./gradlew fatJar` on macOS
-or Linux for a locally built JAR.
+The `Build and test` workflow builds the JAR on Linux, Windows, and
+Apple-silicon macOS. Pushing a `v*` tag creates a GitHub Release containing
+`loandesk-linux.jar`, `loandesk-windows.jar`, and `loandesk-macos-arm64.jar`.
+JavaFX native libraries are OS-specific, so each JAR must be tested on its
+matching operating system before compatibility is claimed. Use
+`.\gradlew.bat fatJar` on Windows and `./gradlew fatJar` on macOS or Linux for
+a locally built JAR.
 
 ## AI-assisted development records
 
