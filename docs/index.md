@@ -16,7 +16,5 @@ borrowers, supervisors, and custodians.
 ## Project documentation
 
 - [Project Context](ProjectContext.md)
-- [Project Checklist](ProjectChecklist.md)
-- [Borrower Milestones](BorrowerMilestones.md)
 - [Agentic Software Engineering Reflections](Reflections.md)
 - [Agentic Software Engineering Record](AgenticSE.md)
