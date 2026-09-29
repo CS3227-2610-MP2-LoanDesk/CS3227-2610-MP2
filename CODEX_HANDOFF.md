@@ -223,7 +223,8 @@ and removal. The first controlled ownership skill evaluation is under
 `tools/borrower/skill-evaluations/ownership/`, with evidence in the
 21 September ownership evaluation log. One fresh reviewer detected the planted
 defect and accepted the correct case; other skill evaluations, repeat runs,
-`docs/Reflections_Yikbing.md`, release packaging, website, and cross-role workflows remain.
+Release packaging, website, and cross-role workflows remain; reflections are
+now consolidated in `docs/Reflections.md`.
 
 ## Next work
 

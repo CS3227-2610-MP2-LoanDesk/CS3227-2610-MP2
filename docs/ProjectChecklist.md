@@ -133,7 +133,7 @@ implementation order and exit criteria.
 - [ ] Record prompts, outputs, verification, corrections, and limitations.
 - [ ] Run fresh reviewer evaluations for the remaining controlled cases and
       separately verify automatic skill selection.
-- [x] Create `docs/Reflections_Yikbing.md` with at least three detailed skill reflections.
+- [x] Create `docs/Reflections.md` with at least three detailed skill reflections.
 - [ ] Add a dated summary under `logs/Yikbing-logs/` for each meaningful session.
 
 ## 8. Hooks, quality, and delivery automation

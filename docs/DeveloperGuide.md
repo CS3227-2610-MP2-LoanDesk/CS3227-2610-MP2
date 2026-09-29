@@ -1,7 +1,7 @@
 # LoanDesk Developer Guide
 
 This guide explains the current architecture, local development workflow,
-borrower implementation boundaries and extension rules. LoanDesk is a JavaFX
+role-owned implementation boundaries and extension rules. LoanDesk is a JavaFX
 desktop application backed by an embedded H2 database.
 
 ## Prerequisites and local setup
@@ -129,6 +129,34 @@ limitation of the shared contract rather than a supervisor-specific rule.
 eligibility at decision time through the same shared calculations the borrower
 services use, so a request that was submittable earlier is refused once the
 item was taken or the borrower fell behind.
+
+## Custodian workflow
+
+Custodian behaviour is split into three services behind the shared permission
+and persistence boundaries:
+
+- `CustodianCollectionService` exposes approved requests inside the inclusive
+  start-date-plus-three-days collection window. `checkout` rechecks the
+  request state, window, equipment condition and derived availability, then
+  changes the request to `COLLECTED` and appends its linked `ACTIVE` loan in
+  one saved snapshot.
+- `CustodianFulfilmentService` lists active and lost loans with overdue active
+  loans first. It records a return only with an observed `GOOD`, `DAMAGED` or
+  `UNDER_MAINTENANCE` condition, marks an active loan and its equipment lost,
+  and recovers a lost loan to `ACTIVE` with `GOOD` equipment. Recovery does
+  not set a return date; a later return records the actual condition.
+- `CustodianInventoryService` lists equipment with availability calculated from
+  requests, loans and condition, adds equipment with a generated immutable ID,
+  and updates the name or condition without changing references. Condition
+  changes are rejected while an item has an active reservation.
+
+Each mutating operation saves the related records together and converts a
+stale-snapshot failure into `StaleDataException`, so the UI can ask the
+custodian to refresh rather than overwrite another instance's checkout or
+fulfilment. The JavaFX dashboard provides searchable request and loan tables,
+overdue/lost filtering, compact scrolling tables, checkout actions, a return
+details overlay, and a separate inventory screen with inline name editing,
+condition controls, add-equipment form and item details.
 
 ## Supervisor authentication
 
@@ -355,11 +383,13 @@ The test suite covers authentication, password boundaries and hash-only
 storage, session roles, catalogue filtering and authorization, availability,
 eligibility, request submission/edit/cancellation, loan listing and ordering,
 domain validation, H2 persistence, failed saves, restart reloads and stale
-snapshot/concurrency checks. `BorrowerLifecycleIntegrationTest` covers
-synthetic persisted lifecycle states without claiming that supervisor or
-custodian UI exists.
+snapshot/concurrency checks. Custodian coverage includes seeded-account
+migration, permission rejection, collection-window boundaries, atomic linked
+checkout, unavailable or non-`GOOD` equipment rejection, stale checkout,
+return-condition validation, loss/recovery, inventory add/update rules,
+restart persistence and end-to-end checkout-to-recovery scenarios.
 
-Manual borrower GUI checks should cover:
+Manual GUI checks should cover:
 
 1. role selection, borrower login and sign-up;
 2. wrong credentials and invalid sign-up input;
@@ -369,6 +399,10 @@ Manual borrower GUI checks should cover:
 6. future cancellation, reason selection and terminal-state restrictions;
 7. dashboard, scrolling, empty states, responsive sizing and logout;
 8. My Loans active/history layout using synthetic shared records when available.
+9. Custodian login, collection-window filtering, checkout, search/status
+   filters, return-condition validation, loss and recovery.
+10. Custodian inventory add/edit/detail flows, reservation-protected condition
+    editing, condition alerts, empty states, scrolling and logout.
 
 Skill contract checks and controlled evaluation cases are described in
 `tools/borrower/skill-evaluations/README.md`. Run the repository-side check
@@ -454,15 +488,11 @@ Meaningful AI-assisted sessions are summarized under
 decisions, changed files, reviewer evidence and limitations. `docs/AgenticSE.md`
 describes the five borrower skills, controlled evaluations and personal hooks.
 
-## Open shared-workflow boundary
+## Current scope boundary
 
-The borrower implementation depends on supervisor and custodian members
-completing the shared integration points:
-
-- supervisors review pending requests and approve/reject them;
-- custodians check out approved equipment and create loans;
-- custodians record returns, condition and maintenance state;
-- all roles use the same H2 request, loan and equipment contracts.
-
-Fine settlement, supervisor overrides, clarification workflows and a complete
-cross-role acceptance journey remain outside the completed borrower-only scope.
+Borrower, supervisor and custodian workflows now use the same H2 request, loan
+and equipment contracts. A complete persisted custodian journey is covered by
+`CustodianWorkflowIntegrationTest`, including checkout, loss/recovery,
+condition update and restart reload. Fine settlement, supervisor overrides,
+clarification workflows, deletion/retirement, bulk import and maintenance
+records remain outside the MVP.
