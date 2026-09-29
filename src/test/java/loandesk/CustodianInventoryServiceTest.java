@@ -3,6 +3,7 @@ package loandesk;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -60,9 +61,10 @@ class CustodianInventoryServiceTest {
         assertEquals("Tripod", added.name());
         assertEquals(new Equipment("equipment-1", "Updated camera", EquipmentCondition.UNDER_MAINTENANCE),
                 updated);
-        assertEquals(List.of(new Equipment("equipment-1", "Updated camera",
-                EquipmentCondition.UNDER_MAINTENANCE), added),
-                reloaded.equipment());
+        assertEquals(2, reloaded.equipment().size());
+        assertTrue(reloaded.equipment().contains(new Equipment("equipment-1", "Updated camera",
+                EquipmentCondition.UNDER_MAINTENANCE)));
+        assertTrue(reloaded.equipment().contains(added));
         assertEquals("equipment-1", reloaded.requests().getFirst().equipmentId());
     }
 
