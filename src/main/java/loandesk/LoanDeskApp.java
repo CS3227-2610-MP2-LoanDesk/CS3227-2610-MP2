@@ -34,6 +34,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -370,6 +372,10 @@ public final class LoanDeskApp extends Application {
             showBorrowerDashboard(user);
             return;
         }
+        if (user.role() == Role.SUPERVISOR) {
+            showSupervisorDashboard(user);
+            return;
+        }
         String title = switch (user.role()) {
             case BORROWER -> "Borrower Dashboard";
             case SUPERVISOR -> "Supervisor Dashboard";
@@ -378,24 +384,6 @@ public final class LoanDeskApp extends Application {
         VBox content = layout(title, "Manage your LoanDesk activity in one place.");
         Label welcome = new Label("Signed in as " + user.username());
         welcome.getStyleClass().add("welcome-label");
-        if (user.role() == Role.SUPERVISOR) {
-            Label section = new Label("Review workspace");
-            section.getStyleClass().add("section-heading");
-            Button queue = new Button("Review Queue");
-            queue.setOnAction(event -> showReviewQueue());
-            Button history = new Button("Decision History");
-            history.setOnAction(event -> showDecisionHistory());
-            VBox actions = new VBox(12,
-                    dashboardCard("Review Queue",
-                            "Filter requests and decide on them.", queue),
-                    dashboardCard("Decision History",
-                            "See who decided what, when and why.", history));
-            actions.setMaxWidth(520);
-            actions.setAlignment(Pos.CENTER);
-            HBox actionContainer = centeredContainer(actions);
-            actionContainer.getStyleClass().add("dashboard-actions");
-            content.getChildren().addAll(welcome, section, actionContainer);
-        }
         Button logout = new Button("Log out");
         logout.getStyleClass().add("secondary-button");
         logout.setOnAction(event -> {
@@ -404,6 +392,105 @@ public final class LoanDeskApp extends Application {
         });
         content.getChildren().add(logout);
         showScene(content);
+    }
+
+    private void showSupervisorDashboard(User user) {
+        VBox page = new VBox(24);
+        page.getStyleClass().add("supervisor-page");
+
+        Label title = new Label("Supervisor Dashboard");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Review borrower requests and keep decisions accountable.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Label signedIn = new Label("Signed in as " + user.username());
+        signedIn.getStyleClass().add("supervisor-signed-in");
+        VBox heading = new VBox(4, title, subtitle, signedIn);
+        Button logout = new Button("Log out");
+        logout.getStyleClass().add("custodian-logout-button");
+        logout.setOnAction(event -> {
+            session.clear();
+            showRoleSelection();
+        });
+        HBox header = new HBox(12, heading, spacer(), logout);
+        header.setAlignment(Pos.CENTER_LEFT);
+
+        Label feedback = new Label();
+        feedback.getStyleClass().add("custodian-feedback");
+        int pending = 0;
+        int decisions = 0;
+        try {
+            pending = supervisorRequestService.reviewQueue(
+                    ReviewFilter.ofStatus(RequestStatus.PENDING)).size();
+            decisions = supervisorRequestService.decisionHistory().size();
+        } catch (IOException | IllegalStateException exception) {
+            feedback.setText("Unable to load dashboard totals: " + exception.getMessage());
+            feedback.getStyleClass().add("custodian-feedback-error");
+        }
+        VBox pendingCard = supervisorStatCard("Awaiting review", Integer.toString(pending),
+                "Requests that still need a decision.", true);
+        VBox decisionsCard = supervisorStatCard("Recorded decisions", Integer.toString(decisions),
+                "Approved, rejected, or cancelled bookings.", false);
+
+        Button queue = new Button("Open review queue  →");
+        queue.getStyleClass().add("supervisor-primary-button");
+        queue.setMaxWidth(Double.MAX_VALUE);
+        queue.setOnAction(event -> showReviewQueue());
+        Button history = new Button("View decision history  →");
+        history.getStyleClass().add("supervisor-workflow-button");
+        history.setMaxWidth(Double.MAX_VALUE);
+        history.setOnAction(event -> showDecisionHistory());
+        VBox queueCard = supervisorActionCard("Review queue",
+                "Filter requests, inspect the details, and record a decision.", queue);
+        VBox historyCard = supervisorActionCard("Decision history",
+                "See the full decision record, including who acted and why.", history);
+        GridPane dashboardCards = new GridPane();
+        dashboardCards.setHgap(16);
+        dashboardCards.setVgap(16);
+        ColumnConstraints halfWidth = new ColumnConstraints();
+        halfWidth.setPercentWidth(50);
+        ColumnConstraints secondHalfWidth = new ColumnConstraints();
+        secondHalfWidth.setPercentWidth(50);
+        dashboardCards.getColumnConstraints().addAll(halfWidth, secondHalfWidth);
+        dashboardCards.add(pendingCard, 0, 0);
+        dashboardCards.add(decisionsCard, 1, 0);
+        dashboardCards.add(queueCard, 0, 1);
+        dashboardCards.add(historyCard, 1, 1);
+        page.getChildren().addAll(header, feedback, dashboardCards);
+        showScrollableScene(page);
+    }
+
+    private VBox supervisorStatCard(
+            String heading, String value, String description, boolean useAccentRed) {
+        Label title = new Label(heading);
+        title.getStyleClass().add("custodian-stat-title");
+        Label number = new Label(value);
+        number.getStyleClass().add("custodian-stat-value");
+        if (!useAccentRed) {
+            number.getStyleClass().add("custodian-stat-value-blue");
+        }
+        Label detail = new Label(description);
+        detail.getStyleClass().add("custodian-stat-description");
+        detail.setWrapText(true);
+        VBox card = new VBox(6, title, number, detail);
+        card.getStyleClass().add("custodian-stat-card");
+        card.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+        return card;
+    }
+
+    private VBox supervisorActionCard(String heading, String description, Button action) {
+        Label title = new Label(heading);
+        title.getStyleClass().add("custodian-section-heading");
+        Label detail = new Label(description);
+        detail.getStyleClass().add("custodian-section-description");
+        detail.setWrapText(true);
+        StackPane actionSpacer = new StackPane();
+        VBox.setVgrow(actionSpacer, javafx.scene.layout.Priority.ALWAYS);
+        VBox card = new VBox(12, title, detail, actionSpacer, action);
+        card.getStyleClass().add("supervisor-action-card");
+        card.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(card, javafx.scene.layout.Priority.ALWAYS);
+        return card;
     }
 
     private void showBorrowerDashboard(User user) {
@@ -2028,120 +2115,194 @@ public final class LoanDeskApp extends Application {
     }
 
     private void showReviewQueue() {
-        VBox content = layout("Review Queue", "Filter borrower requests and open one to decide.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("supervisor-page");
+        Label title = new Label("Review Queue");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Filter borrower requests, then open a record to make a decision.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
+        feedback.getStyleClass().add("custodian-feedback");
 
-        ComboBox<String> statusFilter = new ComboBox<>();
-        statusFilter.getItems().add(ANY_STATUS);
-        for (RequestStatus status : RequestStatus.values()) {
-            statusFilter.getItems().add(status.name());
-        }
-        statusFilter.setValue(RequestStatus.PENDING.name());
         TextField borrowerFilter = new TextField();
         borrowerFilter.setPromptText("Borrower username");
+        TextField equipmentFilter = new TextField();
+        equipmentFilter.setPromptText("Equipment name");
         DatePicker from = new DatePicker();
-        from.setPromptText("Starting on or after");
+        from.setPromptText("Start date from");
         DatePicker to = new DatePicker();
-        to.setPromptText("Starting on or before");
+        to.setPromptText("Start date to");
         Button apply = new Button("Apply filters");
-        apply.getStyleClass().add("primary-button");
+        apply.getStyleClass().add("supervisor-workflow-button");
         Button clear = new Button("Clear");
-        clear.getStyleClass().add("secondary-button");
+        clear.getStyleClass().add("custodian-secondary-button");
         HBox filterActions = new HBox(12, apply, clear);
-        filterActions.setAlignment(Pos.CENTER);
+        filterActions.setAlignment(Pos.CENTER_LEFT);
 
-        ListView<LoanRequest> requests = new ListView<>();
-        requests.setPrefHeight(200);
-        requests.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(LoanRequest item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null
-                        ? null
-                        : item.status() + " — " + item.borrowerUsername()
-                                + " — " + item.equipmentId()
-                                + " (" + item.startDate() + " to " + item.dueDate() + ")");
-            }
-        });
-
-        Button review = new Button("Review selected request");
-        review.getStyleClass().add("primary-button");
-        review.disableProperty().bind(requests.getSelectionModel().selectedItemProperty().isNull());
-        review.setOnAction(event ->
-                showReviewDetails(requests.getSelectionModel().getSelectedItem().requestId()));
+        TableView<LoanRequest> requests = new TableView<>();
+        requests.getStyleClass().addAll("custodian-table", "supervisor-review-table");
+        configureCompactTable(requests);
+        requests.setPrefHeight(330);
+        requests.setMaxHeight(330);
+        requests.getColumns().addAll(
+                textColumn("Status", request -> request.status().name()),
+                textColumn("Borrower", LoanRequest::borrowerUsername),
+                textColumn("Equipment", LoanRequest::equipmentId),
+                textColumn("Purpose", LoanRequest::purpose),
+                textColumn("Start date", request -> request.startDate().toString()),
+                textColumn("Due date", request -> request.dueDate().toString()),
+                supervisorReviewActionColumn());
 
         Runnable reload = () -> {
             try {
-                String status = statusFilter.getValue();
                 ReviewFilter filter = new ReviewFilter(
-                        ANY_STATUS.equals(status) || status == null
-                                ? null
-                                : RequestStatus.valueOf(status),
+                        RequestStatus.PENDING,
                         borrowerFilter.getText(),
                         from.getValue(),
-                        to.getValue());
+                        to.getValue(),
+                        equipmentFilter.getText());
                 requests.getItems().setAll(supervisorRequestService.reviewQueue(filter));
-                feedback.getStyleClass().remove("error-label");
+                feedback.getStyleClass().remove("custodian-feedback-error");
                 feedback.setText(requests.getItems().isEmpty()
-                        ? "No request matches these filters."
+                        ? "No requests match these filters. Try adjusting or clearing them."
                         : requests.getItems().size() + " request(s) found.");
             } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
                 requests.getItems().clear();
                 feedback.setText("Unable to load the review queue: " + exception.getMessage());
-                feedback.getStyleClass().add("error-label");
+                feedback.getStyleClass().add("custodian-feedback-error");
             }
         };
         apply.setOnAction(event -> reload.run());
         clear.setOnAction(event -> {
-            statusFilter.setValue(ANY_STATUS);
             borrowerFilter.clear();
+            equipmentFilter.clear();
             from.setValue(null);
             to.setValue(null);
             reload.run();
         });
         reload.run();
 
-        Button back = new Button("Back to dashboard");
-        back.getStyleClass().add("secondary-button");
-        back.setOnAction(event -> openDashboard(session.requireUser()));
-        VBox filters = new VBox(10, statusFilter, borrowerFilter, from, to, filterActions);
-        filters.setMaxWidth(320);
-        filters.setAlignment(Pos.CENTER);
-        content.getChildren().addAll(
-                centeredContainer(filters), feedback, requests, review, back);
+        borrowerFilter.getStyleClass().add("custodian-filter-field");
+        equipmentFilter.getStyleClass().add("custodian-filter-field");
+        from.getStyleClass().add("custodian-filter-select");
+        to.getStyleClass().add("custodian-filter-select");
+        VBox dateFilter = supervisorFilterGroup("Requested start date", new HBox(10, from, to));
+        VBox actionFilter = supervisorFilterGroup("Actions", filterActions);
+        HBox filterFields = new HBox(12,
+                supervisorFilterGroup("Borrower", borrowerFilter),
+                supervisorFilterGroup("Equipment", equipmentFilter),
+                dateFilter,
+                actionFilter);
+        filterFields.setAlignment(Pos.BOTTOM_LEFT);
+        VBox filters = new VBox(12, filterFields);
+        filters.getStyleClass().add("supervisor-filter-panel");
+        VBox tablePanel = new VBox(14, feedback, requests);
+        tablePanel.getStyleClass().add("custodian-panel");
+        content.getChildren().addAll(header, filters, tablePanel);
         showScrollableScene(content);
     }
 
+    private VBox supervisorFilterGroup(String labelText, Node input) {
+        Label label = new Label(labelText);
+        VBox group = new VBox(6, label, input);
+        group.getStyleClass().add("supervisor-filter-group");
+        return group;
+    }
+
+    private TableColumn<LoanRequest, LoanRequest> supervisorReviewActionColumn() {
+        TableColumn<LoanRequest, LoanRequest> column = new TableColumn<>("Action");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(LoanRequest request, boolean empty) {
+                super.updateItem(request, empty);
+                if (empty || request == null) {
+                    setGraphic(null);
+                    return;
+                }
+                Button review = new Button("Review");
+                review.getStyleClass().add("supervisor-table-action");
+                review.setOnAction(event -> showReviewDetails(request.requestId()));
+                setGraphic(review);
+            }
+        });
+        return column;
+    }
+
     private void showReviewDetails(String requestId) {
-        VBox content = layout("Review Details", "Check the request before deciding.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("supervisor-page");
+        Label title = new Label("Review Request");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Inspect the request and its current eligibility before recording a decision.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to review queue");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> showReviewQueue());
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
-        Label details = new Label();
-        details.setWrapText(true);
+        feedback.getStyleClass().add("custodian-feedback");
 
         LoanRequest request;
         try {
             request = supervisorRequestService.findRequest(requestId);
-            details.setText(reviewSummary(request));
         } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
             feedback.setText("Unable to load the request: " + exception.getMessage());
-            feedback.getStyleClass().add("error-label");
-            Button failedBack = new Button("Back to the review queue");
-            failedBack.setOnAction(event -> showReviewQueue());
-            content.getChildren().addAll(feedback, failedBack);
-            showScene(content);
+            feedback.getStyleClass().add("custodian-feedback-error");
+            content.getChildren().addAll(header, feedback);
+            showScrollableScene(content);
             return;
         }
+
+        Label requestTitle = new Label("Request details");
+        requestTitle.getStyleClass().add("custodian-section-heading");
+        Label requestIdLabel = new Label("Request " + request.requestId());
+        requestIdLabel.getStyleClass().add("supervisor-request-id");
+        HBox requestIdentity = new HBox(10, requestIdLabel, supervisorOutcomePill(request.status()));
+        requestIdentity.getStyleClass().add("supervisor-request-identity");
+        VBox requestDetails = new VBox(12, requestTitle, requestIdentity,
+                supervisorDetailRow("Borrower", request.borrowerUsername()),
+                supervisorDetailRow("Equipment", request.equipmentId()),
+                supervisorDetailRow("Purpose", request.purpose()),
+                supervisorDetailRow("Requested dates", request.startDate() + " to " + request.dueDate()));
+        requestDetails.getStyleClass().add("supervisor-detail-card");
+        requestDetails.setMaxWidth(Double.MAX_VALUE);
+
+        VBox decisionContext = supervisorDecisionContext(request);
+        decisionContext.setMaxWidth(Double.MAX_VALUE);
+        GridPane overview = new GridPane();
+        overview.setHgap(16);
+        ColumnConstraints requestDetailsColumn = new ColumnConstraints();
+        requestDetailsColumn.setPercentWidth(50);
+        ColumnConstraints reviewContextColumn = new ColumnConstraints();
+        reviewContextColumn.setPercentWidth(50);
+        overview.getColumnConstraints().addAll(requestDetailsColumn, reviewContextColumn);
+        overview.add(requestDetails, 0, 0);
+        overview.add(decisionContext, 1, 0);
+        overview.getStyleClass().add("supervisor-review-overview");
 
         TextField reason = new TextField();
         reason.setPromptText(request.status() == RequestStatus.PENDING
                 ? "Reason (required to reject, optional to approve)"
                 : "Cancellation reason");
-        reason.setMaxWidth(360);
+        reason.getStyleClass().add("supervisor-reason-field");
+        reason.setMaxWidth(Double.MAX_VALUE);
+        Label reasonLabel = new Label(request.status() == RequestStatus.PENDING
+                ? "Decision note" : "Cancellation reason *");
+        reasonLabel.getStyleClass().add("supervisor-detail-label");
 
         Button approve = new Button("Approve");
-        approve.getStyleClass().add("primary-button");
+        approve.getStyleClass().add("supervisor-primary-button");
         Button reject = new Button("Reject");
+        reject.getStyleClass().add("supervisor-danger-button");
         Button cancelApproved = new Button("Cancel booking");
+        cancelApproved.getStyleClass().add("supervisor-danger-button");
         boolean pending = request.status() == RequestStatus.PENDING;
         boolean approved = request.status() == RequestStatus.APPROVED;
         setShown(approve, pending);
@@ -2162,32 +2323,88 @@ public final class LoanDeskApp extends Application {
         if (!pending && !approved) {
             feedback.setText("This request is " + request.status()
                     + " and can no longer be decided.");
+            feedback.getStyleClass().add("custodian-feedback-error");
         }
 
         HBox decisions = new HBox(12, approve, reject, cancelApproved);
-        decisions.setAlignment(Pos.CENTER);
-        Button back = new Button("Back to the review queue");
-        back.getStyleClass().add("secondary-button");
-        back.setOnAction(event -> showReviewQueue());
-        ScrollPane detailsPane = new ScrollPane(details);
-        detailsPane.setFitToWidth(true);
-        detailsPane.setPrefViewportHeight(240);
-        content.getChildren().addAll(detailsPane, reason, decisions, feedback, back);
+        decisions.setAlignment(Pos.CENTER_RIGHT);
+        VBox decisionPanel = new VBox(10,
+                new Label("Record a decision"), reasonLabel, reason, feedback, decisions);
+        decisionPanel.getStyleClass().add("supervisor-decision-panel");
+        ((Label) decisionPanel.getChildren().get(0)).getStyleClass().add("custodian-section-heading");
+        content.getChildren().addAll(header, overview, decisionPanel);
         showScrollableScene(content);
     }
 
+    private VBox supervisorDecisionContext(LoanRequest request) {
+        Label title = new Label("Current review context");
+        title.getStyleClass().add("custodian-section-heading");
+        VBox context = new VBox(12, title);
+        context.getStyleClass().add("supervisor-detail-card");
+        try {
+            context.getChildren().add(supervisorDetailRow("Availability",
+                    supervisorRequestService.availabilityOf(request.equipmentId()).name()));
+            var eligibility = supervisorRequestService.eligibilityOf(request.borrowerUsername());
+            context.getChildren().add(supervisorDetailRow("Borrower eligibility",
+                    eligibility.canSubmitRequest() ? "Eligible" : eligibility.blockers().toString()));
+            var outstanding = supervisorRequestService.outstandingLoans(request.borrowerUsername());
+            context.getChildren().add(supervisorDetailRow("Outstanding loans", outstanding.isEmpty()
+                    ? "None" : outstanding.stream()
+                            .map(loan -> equipmentNameForReview(loan.equipmentId())
+                                    + " (due " + loan.dueDate() + ")")
+                            .collect(Collectors.joining(", "))));
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            context.getChildren().add(supervisorDetailRow("Review context",
+                    "Unable to load: " + exception.getMessage()));
+        }
+        return context;
+    }
+
+    private String equipmentNameForReview(String equipmentId) {
+        try {
+            return supervisorRequestService.equipmentNameOf(equipmentId);
+        } catch (IllegalArgumentException | IllegalStateException | IOException exception) {
+            return equipmentId;
+        }
+    }
+
+    private VBox supervisorDetailRow(String labelText, String value) {
+        Label label = new Label(labelText);
+        label.getStyleClass().add("supervisor-detail-label");
+        Label detail = new Label(value == null || value.isBlank() ? "—" : value);
+        detail.getStyleClass().add("supervisor-detail-value");
+        detail.setWrapText(true);
+        return new VBox(3, label, detail);
+    }
+
     private void showDecisionHistory() {
-        VBox content = layout("Decision History", "Every recorded decision, most recent first.");
+        VBox content = new VBox(24);
+        content.getStyleClass().add("supervisor-page");
+        Label title = new Label("Decision History");
+        title.getStyleClass().add("custodian-page-heading");
+        Label subtitle = new Label("Every recorded decision, most recent first.");
+        subtitle.getStyleClass().add("custodian-page-subtitle");
+        Button back = new Button("← Back to dashboard");
+        back.getStyleClass().add("custodian-secondary-button");
+        back.setOnAction(event -> openDashboard(session.requireUser()));
+        HBox header = new HBox(12, new VBox(4, title, subtitle), spacer(), back);
+        header.setAlignment(Pos.CENTER_LEFT);
         Label feedback = new Label();
-        ListView<LoanRequest> history = new ListView<>();
-        history.setPrefHeight(320);
-        history.setCellFactory(list -> new ListCell<>() {
-            @Override
-            protected void updateItem(LoanRequest item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : historyLine(item));
-            }
-        });
+        feedback.getStyleClass().add("custodian-feedback");
+        TableView<LoanRequest> history = new TableView<>();
+        history.getStyleClass().addAll("custodian-table", "supervisor-history-table");
+        configureCompactTable(history);
+        history.setPrefHeight(380);
+        history.setMaxHeight(380);
+        history.getColumns().addAll(
+                supervisorOutcomeColumn(),
+                textColumn("Borrower", LoanRequest::borrowerUsername),
+                textColumn("Equipment", LoanRequest::equipmentId),
+                textColumn("Decided by", request -> request.cancelledBy() != null
+                        ? request.cancelledBy() : request.decisionBy()),
+                textColumn("Decision date", request -> request.cancelledAt() != null
+                        ? request.cancelledAt().toString() : request.decisionAt().toString()),
+                textColumn("Reason", this::decisionReason));
         try {
             history.getItems().setAll(supervisorRequestService.decisionHistory());
             feedback.setText(history.getItems().isEmpty()
@@ -2195,13 +2412,47 @@ public final class LoanDeskApp extends Application {
                     : history.getItems().size() + " decision(s) recorded.");
         } catch (IllegalStateException | IOException exception) {
             feedback.setText("Unable to load the decision history: " + exception.getMessage());
-            feedback.getStyleClass().add("error-label");
+            feedback.getStyleClass().add("custodian-feedback-error");
         }
-        Button back = new Button("Back to dashboard");
-        back.getStyleClass().add("secondary-button");
-        back.setOnAction(event -> openDashboard(session.requireUser()));
-        content.getChildren().addAll(feedback, history, back);
+        history.setPlaceholder(new Label("No decisions have been recorded yet."));
+        VBox tablePanel = new VBox(8, feedback, history);
+        tablePanel.getStyleClass().addAll("custodian-panel", "supervisor-history-panel");
+        content.getChildren().addAll(header, tablePanel);
         showScrollableScene(content);
+    }
+
+    private String decisionReason(LoanRequest request) {
+        String reason = request.cancelledBy() != null
+                ? request.cancellationReason() : request.decisionReason();
+        return reason == null || reason.isBlank() ? "—" : reason;
+    }
+
+    private TableColumn<LoanRequest, LoanRequest> supervisorOutcomeColumn() {
+        TableColumn<LoanRequest, LoanRequest> column = new TableColumn<>("Outcome");
+        column.setCellValueFactory(cell -> new ReadOnlyObjectWrapper<>(cell.getValue()));
+        column.setCellFactory(table -> new TableCell<>() {
+            @Override
+            protected void updateItem(LoanRequest request, boolean empty) {
+                super.updateItem(request, empty);
+                if (empty || request == null) {
+                    setGraphic(null);
+                    return;
+                }
+                setGraphic(supervisorOutcomePill(request.status()));
+            }
+        });
+        return column;
+    }
+
+    private Label supervisorOutcomePill(RequestStatus status) {
+        Label outcome = new Label(status.name());
+        outcome.getStyleClass().add("supervisor-outcome-pill");
+        if (status == RequestStatus.REJECTED) {
+            outcome.getStyleClass().add("supervisor-outcome-rejected");
+        } else if (status == RequestStatus.APPROVED || status == RequestStatus.COLLECTED) {
+            outcome.getStyleClass().add("supervisor-outcome-blue");
+        }
+        return outcome;
     }
 
     private void decide(

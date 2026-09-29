@@ -540,8 +540,16 @@ public final class DatabaseDataStore implements DataStore {
                         PasswordHasher.hash(SUPERVISOR_USERNAME, SUPERVISOR_DEMONSTRATION_PASSWORD),
                         PasswordHasher.hash(CUSTODIAN_USERNAME, CUSTODIAN_DEMONSTRATION_PASSWORD)),
                 List.of(
-                        new Equipment("camera1", "Camera 1"),
-                        new Equipment("camera2", "Camera 2")));
+                        new Equipment("camera-dslr", "Canon EOS 90D DSLR Camera"),
+                        new Equipment("camera-mirrorless", "Sony Alpha a6400 Mirrorless Camera"),
+                        new Equipment("webcam-brio", "Logitech Brio 4K Webcam"),
+                        new Equipment("webcam-c920", "Logitech C920 HD Pro Webcam"),
+                        new Equipment("monitor-dell-u2723qe", "Dell UltraSharp U2723QE 27-inch Monitor"),
+                        new Equipment("monitor-lg-27up850", "LG UltraFine 27UP850 27-inch Monitor"),
+                        new Equipment("projector-epson-fh52", "Epson EB-FH52 Projector"),
+                        new Equipment("microphone-yeti", "Blue Yeti USB Microphone"),
+                        new Equipment("tripod-befree", "Manfrotto Befree Advanced Tripod"),
+                        new Equipment("tablet-ipad-air", "Apple iPad Air 11-inch")));
     }
 
     /** Adds the Stage 1 singleton account to databases created before custodian login existed. */

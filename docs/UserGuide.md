@@ -7,9 +7,43 @@ approval, rejection, booking cancellation and decision history for
 supervisors. Custodians can manage collections, active loans, physical
 condition and the minimal equipment inventory.
 
-## Running locally
+## Starting LoanDesk
 
-Install JDK 25, then run `./gradlew run` from the repository root.
+### From a GitHub Release
+
+Download the JAR that matches both your operating system and processor from
+the latest GitHub Release. The release JAR already includes JavaFX and H2, so
+you do not need to install JavaFX separately. Install a Java 25 runtime, open
+a terminal in the folder containing the downloaded JAR, then run the matching
+command:
+
+| Computer | Release asset | Command |
+| --- | --- | --- |
+| Windows | `loandesk-windows.jar` | `java -jar .\loandesk-windows.jar` |
+| Linux | `loandesk-linux.jar` | `java -jar ./loandesk-linux.jar` |
+| Intel Mac | `loandesk-macos-intel.jar` | `java -jar ./loandesk-macos-intel.jar` |
+| Apple-silicon Mac (M-series) | `loandesk-macos-arm64.jar` | `java -jar ./loandesk-macos-arm64.jar` |
+
+Each release JAR is built with the JavaFX native libraries for its named
+platform. Do not use a JAR intended for another operating system or processor.
+If `java` is not recognised, install Java 25 and reopen the terminal. On macOS,
+you may need to approve the app in **System Settings > Privacy & Security** if
+the operating system blocks software downloaded from the internet.
+
+### From the project source
+
+To run a checked-out copy of the project, install JDK 25. JavaFX is downloaded
+by Gradle automatically on the first run; internet access is therefore needed
+once. From the repository root, run:
+
+| Operating system | Command |
+| --- | --- |
+| Windows | `.\gradlew.bat run` |
+| macOS or Linux | `./gradlew run` |
+
+To make a runnable JAR for the current platform from source, replace `run` with
+`fatJar`. The output is `build/libs/loandesk-0.1.0-all.jar`, which can be
+started with `java -jar build/libs/loandesk-0.1.0-all.jar`.
 
 ## Login foundation
 
@@ -33,7 +67,11 @@ the selected role and includes a `Return to role selection` action.
 - `Custodian` requires the fixed custodian account password. For local
   synthetic demonstrations only, the seeded password is `custodian1`. Do not
   reuse this password.
-- The initial equipment records are `camera1` and `camera2`.
+- The initial catalogue has ten available items and no bookings: Canon EOS 90D
+  DSLR Camera, Sony Alpha a6400 Mirrorless Camera, Logitech Brio 4K Webcam,
+  Logitech C920 HD Pro Webcam, Dell UltraSharp U2723QE 27-inch Monitor, LG
+  UltraFine 27UP850 27-inch Monitor, Epson EB-FH52 Projector, Blue Yeti USB
+  Microphone, Manfrotto Befree Advanced Tripod, and Apple iPad Air 11-inch.
 - Local data is stored in an embedded H2 database rooted at `data/loandesk` and
   persists between launches. Users do not need to install a separate database
   server.

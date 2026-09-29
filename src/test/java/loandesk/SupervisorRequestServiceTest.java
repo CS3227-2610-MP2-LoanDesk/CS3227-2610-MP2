@@ -213,6 +213,7 @@ class SupervisorRequestServiceTest {
                     () -> service.cancelApproved("request1", "No"));
             assertThrows(IllegalStateException.class,
                     () -> service.reviewQueue(ReviewFilter.none()));
+            assertThrows(IllegalStateException.class, () -> service.equipmentNameOf("camera1"));
             assertThrows(IllegalStateException.class, service::decisionHistory);
         }
         assertEquals(RequestStatus.PENDING, reload(store, "request1").status());
@@ -225,6 +226,7 @@ class SupervisorRequestServiceTest {
                 store, new Session(), CLOCK);
 
         assertThrows(IllegalStateException.class, () -> service.reviewQueue(ReviewFilter.none()));
+        assertThrows(IllegalStateException.class, () -> service.equipmentNameOf("camera1"));
         assertThrows(IllegalStateException.class, () -> service.approve("request1", null));
     }
 
@@ -250,6 +252,21 @@ class SupervisorRequestServiceTest {
                 new ReviewFilter(null, null, TODAY.plusDays(1), null))));
         assertEquals(List.of("early"), ids(service.reviewQueue(
                 new ReviewFilter(null, null, null, TODAY))));
+    }
+
+    @Test
+    void theQueueFiltersRequestsByEquipmentName() throws Exception {
+        DatabaseDataStore store = storeWith(
+                List.of(new Equipment("camera1", "Studio Camera"),
+                        new Equipment("camera2", "Portable Projector")),
+                List.of(pendingFor("camera-request", "borrower", "camera1"),
+                        pendingFor("projector-request", "otherBorrower", "camera2")),
+                List.of());
+
+        List<LoanRequest> queue = supervisorService(store).reviewQueue(
+                new ReviewFilter(null, null, null, null, "  projector  "));
+
+        assertEquals(List.of("projector-request"), ids(queue));
     }
 
     @Test
@@ -282,6 +299,7 @@ class SupervisorRequestServiceTest {
 
         assertEquals(List.of("loan-1"),
                 service.outstandingLoans("borrower").stream().map(Loan::loanId).toList());
+        assertEquals("Camera 1", service.equipmentNameOf("camera1"));
         assertFalse(service.eligibilityOf("borrower").canSubmitRequest());
         assertTrue(service.eligibilityOf("otherBorrower").canSubmitRequest());
     }
@@ -318,6 +336,7 @@ class SupervisorRequestServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.findRequest("  "));
         assertThrows(IllegalArgumentException.class, () -> service.approve("missing", null));
         assertThrows(IllegalArgumentException.class, () -> service.availabilityOf("missing"));
+        assertThrows(IllegalArgumentException.class, () -> service.equipmentNameOf("missing"));
     }
 
     @Test

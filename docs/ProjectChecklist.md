@@ -33,8 +33,7 @@ are implemented and verified. Keep decisions and evidence truthful.
 - [x] Set username rules: trim, case-insensitive uniqueness, no internal spaces,
   letters/numbers/underscores/hyphens only, and no blank values.
 - [x] Decide that coherent demo data is seeded only on first launch.
-- [x] Choose initial demo names `testBorrower1`, `testBorrower2`, `camera1`,
-  and `camera2`.
+- [x] Choose initial demo accounts and a ten-item, booking-free equipment catalogue.
 - [x] Defer complex request, damage, and maintenance demo scenarios until after
   feature branches are created.
 - [ ] Decide local data location, reset, recovery, and schema version behaviour.
@@ -151,7 +150,7 @@ implementation order and exit criteria.
       yet, so the team must agree on one first.
 - [ ] Add dependency/security scanning where supported.
 - [ ] Add documentation-path/completeness checks.
-- [ ] Add release workflow for the Gradle-generated distributable artifact.
+- [x] Add release workflow for the Gradle-generated platform JAR artifacts.
 
 ## 9. Integration and final verification
 
@@ -226,5 +225,6 @@ implementation order and exit criteria.
   fresh reviewer runs for the other borrower cases, automatic-selection checks
   and integration/system evaluations remain unfinished. The supervisor
   permission/workflow skill has one completed fresh-reviewer evaluation.
-- Release packaging remains unfinished; `Reflections.md` is complete and
-  committed.
+- Release automation now creates four platform-specific JAR assets. Actual
+  release tagging and clean-machine verification on each platform remain
+  outstanding; `Reflections.md` is complete and committed.

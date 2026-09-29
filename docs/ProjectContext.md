@@ -218,8 +218,9 @@ The local database is an embedded H2 store rooted at `data/loandesk`; H2
 creates its database files in that ignored directory. On first launch, if the
 database is empty, the persistence layer creates the schema and seeds the
 initial borrower accounts `testBorrower1` and `testBorrower2`, plus equipment
-records `camera1` and `camera2`. If the database already contains records, it
-is loaded unchanged and is never reseeded automatically. New borrower sign-ups
+records for a ten-item demo catalogue: cameras, webcams, monitors, a projector,
+a microphone, a tripod and a tablet. The demo catalogue has no requests or
+loans. If the database already contains records, it is loaded unchanged and is never reseeded automatically. New borrower sign-ups
 are written transactionally. Each loaded store tracks a database revision, and
 an atomic revision update prevents stale or concurrent snapshots from
 overwriting a newer shared update. The same shared database is available to
@@ -264,7 +265,7 @@ just to avoid coordination.
 - Keep supervisor and custodian as fixed singleton roles without usernames
 - Cross-role demonstration data after workflow features exist
 - Reset behaviour for demonstration data
-- Packaging and cross-platform release verification
+- Cross-platform release verification
 
 ## Session continuity
 

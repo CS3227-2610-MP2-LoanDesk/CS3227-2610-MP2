@@ -1031,3 +1031,183 @@
     -fx-background-color: #fff4f2;
     -fx-text-fill: #b42318;
 }
+
+/* Supervisor workspace */
+.supervisor-page {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-background-color: linear-gradient(to bottom, #ffffff, #f6f7f9);
+    -fx-padding: 32px 40px 40px 40px;
+}
+
+.supervisor-signed-in {
+    -fx-text-fill: #525967;
+    -fx-font-size: 13px;
+}
+
+.supervisor-action-row,
+.supervisor-workspace {
+    -fx-alignment: stretch;
+}
+
+.supervisor-action-card,
+.supervisor-filter-panel {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16px;
+    -fx-border-color: #e3e5e9;
+    -fx-border-radius: 16px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(31, 38, 50, 0.06), 12, 0.12, 0, 3);
+}
+
+.supervisor-action-card {
+    -fx-min-height: 164px;
+}
+
+.supervisor-workflow-button {
+    -fx-background-color: #3267C8;
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 10px 14px;
+    -fx-min-height: 40px;
+}
+
+.supervisor-workflow-button:hover {
+    -fx-background-color: #2754a7;
+}
+
+.supervisor-primary-button,
+.supervisor-table-action {
+    -fx-background-color: linear-gradient(to right, #d71e2a, #e22832);
+    -fx-background-radius: 8px;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 10px 14px;
+}
+
+.supervisor-primary-button:hover,
+.supervisor-table-action:hover {
+    -fx-background-color: linear-gradient(to right, #bb1520, #d71e2a);
+}
+
+.supervisor-filter-panel {
+    -fx-padding: 16px 20px;
+}
+
+.supervisor-filter-group .label {
+    -fx-text-fill: #17191e;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.supervisor-filter-group .custodian-filter-field {
+    -fx-pref-width: 180px;
+}
+
+.supervisor-filter-group .date-picker {
+    -fx-pref-width: 104px;
+}
+
+.supervisor-review-table {
+    -fx-pref-height: 330px;
+}
+
+.supervisor-history-table {
+    -fx-pref-height: 380px;
+}
+
+.supervisor-history-panel {
+    -fx-padding: 12px 20px 18px 20px;
+}
+
+.supervisor-review-overview {
+    -fx-alignment: stretch;
+}
+
+.supervisor-detail-card,
+.supervisor-decision-panel {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 16px;
+    -fx-border-color: #e3e5e9;
+    -fx-border-radius: 16px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(gaussian, rgba(31, 38, 50, 0.06), 12, 0.12, 0, 3);
+}
+
+.supervisor-detail-card {
+    -fx-min-height: 230px;
+}
+
+.supervisor-request-identity {
+    -fx-alignment: center-left;
+}
+
+.supervisor-request-id {
+    -fx-text-fill: #525967;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.supervisor-detail-label {
+    -fx-text-fill: #5b6370;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.supervisor-detail-value {
+    -fx-text-fill: #17191e;
+    -fx-font-size: 14px;
+}
+
+.supervisor-reason-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd0d8;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-min-height: 40px;
+    -fx-padding: 8px 10px;
+}
+
+.supervisor-reason-field:focused {
+    -fx-border-color: #d9202b;
+    -fx-effect: dropshadow(gaussian, rgba(217, 32, 43, 0.16), 6, 0.2, 0, 0);
+}
+
+.supervisor-danger-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #d9202b;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-text-fill: #b42318;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 10px 14px;
+}
+
+.supervisor-danger-button:hover {
+    -fx-background-color: #fff4f2;
+}
+
+.supervisor-outcome-pill {
+    -fx-background-color: #f6f7f9;
+    -fx-background-radius: 12px;
+    -fx-text-fill: #525967;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 5px 9px;
+}
+
+.supervisor-outcome-rejected {
+    -fx-background-color: #fff4f2;
+    -fx-text-fill: #b42318;
+}
+
+.supervisor-outcome-blue {
+    -fx-background-color: #eaf1ff;
+    -fx-text-fill: #3267C8;
+}

@@ -52,8 +52,9 @@ public final class SupervisorRequestService {
     public List<LoanRequest> reviewQueue(ReviewFilter filter) throws IOException {
         permissions.require(Permission.REVIEW_REQUESTS);
         Objects.requireNonNull(filter);
-        return lifecycle.loadWithExpiredApprovals().requests().stream()
-                .filter(filter::matches)
+        LoanDeskData data = lifecycle.loadWithExpiredApprovals();
+        return data.requests().stream()
+                .filter(request -> filter.matches(request, data.equipment()))
                 .sorted(Comparator
                         .comparingInt((LoanRequest request) ->
                                 request.status() == RequestStatus.PENDING ? 0 : 1)
@@ -98,6 +99,17 @@ public final class SupervisorRequestService {
         permissions.require(Permission.REVIEW_REQUESTS);
         LoanDeskData data = lifecycle.loadWithExpiredApprovals();
         return availability(data, requireText(equipmentId, "Equipment ID"));
+    }
+
+    /** Returns an equipment name for display in the supervisor's review context. */
+    public String equipmentNameOf(String equipmentId) throws IOException {
+        permissions.require(Permission.REVIEW_REQUESTS);
+        String normalizedEquipmentId = requireText(equipmentId, "Equipment ID");
+        return lifecycle.loadWithExpiredApprovals().equipment().stream()
+                .filter(equipment -> equipment.id().equals(normalizedEquipmentId))
+                .findFirst()
+                .map(Equipment::name)
+                .orElseThrow(() -> new IllegalArgumentException("Equipment was not found."));
     }
 
     /** Returns every decided request, most recently decided first. */
